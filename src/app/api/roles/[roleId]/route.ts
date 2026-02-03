@@ -18,7 +18,10 @@ export const PUT = withPermission("roles:update", async (req, ctx, session) => {
 
   const body = await req.json();
   const parsed = updateRoleSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) {
+    const firstError = parsed.error?.errors?.[0]?.message;
+    return apiError(firstError || "Invalid input");
+  }
 
   if (parsed.data.name) {
     role.name = parsed.data.name;

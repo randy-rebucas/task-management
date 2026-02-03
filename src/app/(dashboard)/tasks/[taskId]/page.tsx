@@ -14,8 +14,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Clock, Paperclip, GitBranch } from "lucide-react";
+import { Edit, Clock, Paperclip, GitBranch, Play } from "lucide-react";
+import { useState } from "react";
 import { format } from "date-fns";
+
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -31,21 +33,107 @@ export default function TaskDetailPage({
   const { data: attachments } = useSWR(`/api/tasks/${taskId}/attachments`, fetcher);
   const { data: dependencies } = useSWR(`/api/tasks/${taskId}/dependencies`, fetcher);
 
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Direct status patch UI state
+  const [selectedTransition, setSelectedTransition] = useState<string>("");
+  const [statusUpdating, setStatusUpdating] = useState(false);
+
+  async function handleStatusPatch() {
+    if (!selectedTransition) return;
+    setStatusUpdating(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toStatusId: selectedTransition }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to update status");
+      }
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setStatusUpdating(false);
+    }
+  }
+
+  async function handleUpload(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/tasks/${taskId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to upload file");
+      }
+      setFile(null);
+      window.location.reload();
+    } catch (err: any) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   if (isLoading) return <LoadingSkeleton />;
   if (!task) return <div>Task not found</div>;
+
 
   return (
     <div>
       <PageHeader
         title={`${task.taskNumber}: ${task.title}`}
         action={
-          can("tasks:update") ? (
-            <Button asChild variant="outline">
-              <Link href={`/tasks/${taskId}/edit`}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </Link>
-            </Button>
-          ) : undefined
+          <div className="flex gap-2">
+            {can("tasks:update") && (
+              <Button asChild variant="outline">
+                <Link href={`/tasks/${taskId}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" /> Edit
+                </Link>
+              </Button>
+            )}
+            {can("tasks:update") && task.allowedTransitions?.length > 0 && (
+              <form
+                className="flex gap-2 items-center"
+                onSubmit={e => {
+                  e.preventDefault();
+                  handleStatusPatch();
+                }}
+              >
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={selectedTransition}
+                  onChange={e => setSelectedTransition(e.target.value)}
+                  required
+                  style={{ minWidth: 120 }}
+                >
+                  <option value="" disabled>
+                    Select status
+                  </option>
+                  {task.allowedTransitions.map((t: any) => (
+                    <option key={t._id} value={t._id}>
+                      {t.toStatus?.name || t._id}
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit" disabled={statusUpdating || !selectedTransition} variant="default">
+                  {statusUpdating ? "Updating..." : "Update Status"}
+                </Button>
+              </form>
+            )}
+          </div>
         }
       />
 
@@ -188,6 +276,18 @@ export default function TaskDetailPage({
               <p className="text-sm text-muted-foreground">
                 {attachments?.length || 0} files
               </p>
+              <form onSubmit={handleUpload} className="mt-2 flex flex-col gap-2">
+                <input
+                  type="file"
+                  onChange={e => setFile(e.target.files?.[0] || null)}
+                  accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain"
+                  disabled={uploading}
+                />
+                <Button type="submit" disabled={uploading || !file} size="sm">
+                  {uploading ? "Uploading..." : "Upload Attachment"}
+                </Button>
+                {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
+              </form>
             </CardContent>
           </Card>
 

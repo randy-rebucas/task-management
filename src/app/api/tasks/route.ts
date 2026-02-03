@@ -59,16 +59,20 @@ export const GET = withAuth(async (req, ctx, session) => {
 export const POST = withPermission("tasks:create", async (req, ctx, session) => {
   const body = await req.json();
   const parsed = createTaskSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const defaultStatus = await WorkflowStatus.findOne({ isDefault: true });
   if (!defaultStatus) return apiError("No default workflow status configured", 500);
 
-  const task = await Task.create({
+  const taskNumber = await Task.countDocuments() + 1;
+
+  const task = new Task({
     ...parsed.data,
+    taskNumber: `TASK-${String(taskNumber).padStart(4, "0")}`,
     status: defaultStatus._id,
     createdBy: session.user.id,
   });
+  await task.save();
 
   await logActivity({
     actor: session.user.id,
@@ -87,5 +91,6 @@ export const POST = withPermission("tasks:create", async (req, ctx, session) => 
     });
   }
 
-  return apiSuccess(task, 201);
+  // Ensure taskNumber is included in the response
+  return apiSuccess({ ...task.toObject(), taskNumber: task.taskNumber }, 201);
 });

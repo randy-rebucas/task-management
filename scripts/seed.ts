@@ -8,14 +8,28 @@ import Permission from "../src/models/Permission";
 import Role from "../src/models/Role";
 import User from "../src/models/User";
 import WorkflowStatus from "../src/models/WorkflowStatus";
+
 import { PERMISSIONS, ROLE_DEFINITIONS, DEFAULT_WORKFLOW_STATUSES } from "../src/config/permissions";
+import AppSetting from "../src/models/AppSetting";
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/task-management";
+
 
 async function seed() {
   console.log("Connecting to MongoDB...");
   await mongoose.connect(MONGODB_URI);
   console.log("Connected.");
+
+  // Cleanup collections
+  console.log("\n--- Cleaning up existing data ---");
+  await Promise.all([
+    Permission.deleteMany({}),
+    Role.deleteMany({}),
+    User.deleteMany({}),
+    WorkflowStatus.deleteMany({}),
+    AppSetting.deleteMany({}),
+  ]);
+  console.log("All relevant collections cleared.");
 
   // 1. Seed Permissions
   console.log("\n--- Seeding Permissions ---");
@@ -33,7 +47,9 @@ async function seed() {
   console.log("\n--- Seeding Roles ---");
   for (const [slug, def] of Object.entries(ROLE_DEFINITIONS)) {
     const permIds = allPermissions
-      .filter((p) => def.permissions.includes(`${p.resource}:${p.action}`))
+      .filter((p) =>
+        (def.permissions as string[]).includes(`${p.resource}:${p.action}`)
+      )
       .map((p) => p._id);
 
     await Role.findOneAndUpdate(
@@ -82,6 +98,22 @@ async function seed() {
     console.log("  Created super admin: admin@taskmanager.com / Admin@123");
   } else {
     console.log("  Super admin already exists.");
+  }
+
+  // 5. Seed App Settings
+  console.log("\n--- Seeding App Settings ---");
+  const defaultSettings = [
+    { key: "theme", value: "light" },
+    { key: "paginationLimit", value: 20 },
+    { key: "fileUploadMaxSize", value: 10485760 }, // 10MB
+  ];
+  for (const setting of defaultSettings) {
+    await AppSetting.findOneAndUpdate(
+      { key: setting.key },
+      { value: setting.value },
+      { upsert: true, new: true }
+    );
+    console.log(`  Setting "${setting.key}" = ${setting.value}`);
   }
 
   console.log("\n--- Seed Complete ---");

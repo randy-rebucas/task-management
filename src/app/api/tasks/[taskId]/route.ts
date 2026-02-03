@@ -14,7 +14,25 @@ export const GET = withPermission("tasks:view", async (req, ctx) => {
     .lean();
 
   if (!task) return apiError("Task not found", 404);
-  return apiSuccess(task);
+
+  // Get allowed transitions for the current status
+  const WorkflowTransition = (await import("@/models/WorkflowTransition")).default;
+  const transitions = await WorkflowTransition.find({
+    fromStatus: task.status._id,
+    isActive: true,
+  })
+    .populate("toStatus", "name slug color order isFinal")
+    .lean();
+
+  // Only return minimal info needed for the frontend
+  const allowedTransitions = transitions.map((t: any) => ({
+    _id: t._id,
+    toStatus: t.toStatus,
+    requiresRemarks: t.requiresRemarks,
+    requiresApproval: t.requiresApproval,
+  }));
+
+  return apiSuccess({ ...task, allowedTransitions });
 });
 
 export const PUT = withPermission("tasks:update", async (req, ctx, session) => {

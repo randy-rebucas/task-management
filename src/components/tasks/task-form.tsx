@@ -82,8 +82,14 @@ export function TaskForm({ taskId, initialData }: TaskFormProps) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        toast.error(data.error || "Failed to save task");
+        let errorMsg = "Failed to save task";
+        try {
+          const data = await res.json();
+          errorMsg = data?.error || errorMsg;
+        } catch {
+          // Response was not JSON or empty
+        }
+        toast.error(errorMsg);
         return;
       }
 

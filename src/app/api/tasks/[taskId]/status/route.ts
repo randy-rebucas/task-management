@@ -13,7 +13,10 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = statusTransitionSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) {
+    const firstError = parsed.error.issues?.[0]?.message || "Invalid request body";
+    return apiError(firstError);
+  }
 
   const task = await Task.findById(taskId).populate("status");
   if (!task) return apiError("Task not found", 404);
@@ -37,7 +40,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
   if (transition.allowedRoles.length > 0) {
     const userRoles = await Role.find({ _id: { $in: session.user.roles } });
     const userRoleIds = userRoles.map((r) => r._id.toString());
-    const allowedRoleIds = transition.allowedRoles.map((r: { _id: unknown }) => r._id.toString());
+    const allowedRoleIds = transition.allowedRoles.map((r) => (r as { _id: { toString(): string } })._id.toString());
     const hasRole = userRoleIds.some((id) => allowedRoleIds.includes(id));
     if (!hasRole) {
       return apiError("Your role is not allowed to perform this transition", 403);

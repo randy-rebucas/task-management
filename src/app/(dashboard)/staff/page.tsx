@@ -117,7 +117,7 @@ export default function StaffPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Roles</SelectItem>
-            {roles?.map((r: { _id: string; name: string }) => (
+            {roles?.data?.map((r: { _id: string; name: string }) => (
               <SelectItem key={r._id} value={r._id}>{r.name}</SelectItem>
             ))}
           </SelectContent>

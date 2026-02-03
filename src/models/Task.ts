@@ -3,7 +3,7 @@ import { ITask } from "@/types";
 
 const TaskSchema = new Schema<ITask>(
   {
-    taskNumber: { type: String, required: true, unique: true },
+    taskNumber: { type: String, required: true, unique: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 200 },
     description: { type: String, default: "" },
     status: { type: Schema.Types.ObjectId, ref: "WorkflowStatus", required: true },
@@ -27,7 +27,7 @@ const TaskSchema = new Schema<ITask>(
   { timestamps: true }
 );
 
-TaskSchema.index({ taskNumber: 1 });
+// Removed duplicate index for taskNumber
 TaskSchema.index({ status: 1 });
 TaskSchema.index({ priority: 1 });
 TaskSchema.index({ assignees: 1 });
@@ -36,21 +36,6 @@ TaskSchema.index({ department: 1 });
 TaskSchema.index({ dueDate: 1 });
 TaskSchema.index({ isArchived: 1, status: 1 });
 TaskSchema.index({ title: "text", description: "text" });
-
-TaskSchema.pre("save", async function (next) {
-  if (this.isNew) {
-    const Counter = mongoose.models.Counter || mongoose.model("Counter",
-      new Schema({ _id: String, seq: { type: Number, default: 0 } })
-    );
-    const counter = await Counter.findByIdAndUpdate(
-      "taskNumber",
-      { $inc: { seq: 1 } },
-      { new: true, upsert: true }
-    );
-    this.taskNumber = `TASK-${String(counter.seq).padStart(4, "0")}`;
-  }
-  next();
-});
 
 const Task: Model<ITask> =
   mongoose.models.Task || mongoose.model<ITask>("Task", TaskSchema);

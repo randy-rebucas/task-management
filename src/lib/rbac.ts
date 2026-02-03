@@ -1,4 +1,6 @@
+
 import { Types } from "mongoose";
+import Permission from "@/models/Permission";
 import Role from "@/models/Role";
 import { IPermission } from "@/types";
 
@@ -11,6 +13,12 @@ export async function getUserPermissions(
   })
     .populate("permissions")
     .lean();
+
+  // If any role is super-admin, grant all permissions
+  if (roles.some((role) => role.slug === "super-admin")) {
+    const allPerms = await Permission.find().lean();
+    return new Set(allPerms.map((p: any) => `${p.resource}:${p.action}`));
+  }
 
   const permSet = new Set<string>();
   for (const role of roles) {

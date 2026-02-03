@@ -16,7 +16,12 @@ export const GET = withPermission("departments:view", async () => {
 export const POST = withPermission("departments:create", async (req, ctx, session) => {
   const body = await req.json();
   const parsed = createDepartmentSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) {
+    const fallbackMsg = typeof parsed.error === 'object' && parsed.error.issues && parsed.error.issues.length > 0
+      ? parsed.error.issues[0].message
+      : 'Invalid request';
+    return apiError(fallbackMsg);
+  }
 
   const existing = await Department.findOne({
     $or: [{ name: parsed.data.name }, { code: parsed.data.code }],

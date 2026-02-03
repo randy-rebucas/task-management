@@ -24,7 +24,7 @@ export default function EditRolePage({
   const { roleId } = use(params);
   const router = useRouter();
   const { data: role, isLoading: roleLoading } = useSWR(`/api/roles/${roleId}`, fetcher);
-  const { data: permissions, isLoading: permsLoading } = useSWR("/api/permissions", fetcher);
+  const { data: permissionsData, isLoading: permsLoading } = useSWR("/api/permissions", fetcher);
 
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -92,15 +92,17 @@ export default function EditRolePage({
   if (!role) return <div>Role not found</div>;
 
   const grouped: Record<string, { key: string; label: string; description?: string }[]> =
-    permissions?.reduce(
-      (acc: Record<string, { key: string; label: string; description?: string }[]>, p: { key: string; label: string; group: string; description?: string }) => {
+    permissionsData?.permissions?.reduce(
+      (acc: Record<string, { key: string; label: string; description?: string }[]>, p: {
+        action: string; key: string; resource: string; group: string; description?: string
+      }) => {
         if (!acc[p.group]) acc[p.group] = [];
-        acc[p.group].push({ key: p.key, label: p.label, description: p.description });
+        acc[p.group].push({ key: p.action, label: p.resource, description: p.description });
         return acc;
       },
       {} as Record<string, { key: string; label: string; description?: string }[]>
     ) || {};
-
+  console.log(grouped);
   return (
     <div>
       <PageHeader title={`Edit Role: ${role.name}`} />
@@ -144,7 +146,9 @@ export default function EditRolePage({
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
+            <pre>{JSON.stringify(form.permissions, null, 2)}</pre>
             {Object.entries(grouped).map(([group, perms]) => {
+              console.log(group, perms);
               const allSelected = perms.every((p) => form.permissions.includes(p.key));
               const someSelected = perms.some((p) => form.permissions.includes(p.key));
 
@@ -167,14 +171,14 @@ export default function EditRolePage({
                   </div>
                   <div className="ml-7 grid gap-2 sm:grid-cols-2">
                     {perms.map((p) => (
-                      <div key={p.key} className="flex items-start space-x-3">
+                      <div key={`${group}-${p.key}`} className="flex items-start space-x-3">
                         <Checkbox
-                          id={`perm-${p.key}`}
+                          id={`perm-${group}-${p.key}`}
                           checked={form.permissions.includes(p.key)}
                           onCheckedChange={() => togglePermission(p.key)}
                         />
                         <div className="space-y-0.5">
-                          <Label htmlFor={`perm-${p.key}`} className="cursor-pointer text-sm">
+                          <Label htmlFor={`perm-${group}-${p.key}`} className="cursor-pointer text-sm">
                             {p.label}
                           </Label>
                           {p.description && (

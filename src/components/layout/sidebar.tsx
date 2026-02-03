@@ -10,9 +10,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { can } = usePermissions();
+  const { can, permissions } = usePermissions();
+  const isSuperAdmin = permissions.has("*:*") || Array.from(permissions).length > 1000; // fallback: large perms set
 
-  const filteredItems = navItems.filter(
+  // If super-admin, show all nav items (no filtering)
+  const filteredItems = isSuperAdmin ? navItems : navItems.filter(
     (item) => !item.permission || can(item.permission)
   );
 

@@ -1,16 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import useSWR from "swr";
-import { usePermissions } from "@/hooks/use-permissions";
-import { PageHeader } from "@/components/shared/page-header";
-import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -36,6 +26,20 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Plus, Pencil, Trash2, Bell, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
+import useSWR from "swr";
+import { useEffect, useState } from "react";
+import { PageHeader } from "@/components/shared/page-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { Label } from "@/components/ui/label";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+
+// General settings API fetcher
+const generalSettingsFetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -48,10 +52,52 @@ interface NotificationRule {
   recipients: string;
 }
 
+
 export default function SettingsPage() {
   const { can } = usePermissions();
-  const { data: rules, isLoading, mutate } = useSWR("/api/notifications/rules", fetcher);
+  const { data: rulesRaw, isLoading, mutate } = useSWR("/api/notifications/rules", fetcher);
+  // Ensure rules is always an array
+  const rules: NotificationRule[] = Array.isArray(rulesRaw) ? rulesRaw : rulesRaw?.data || [];
+  const { data: generalSettings, isLoading: loadingSettings, mutate: mutateSettings } = useSWR("/api/settings/general", generalSettingsFetcher);
 
+  // General settings form state
+  const [settingsForm, setSettingsForm] = useState({
+    theme: generalSettings?.theme || "light",
+    paginationLimit: generalSettings?.paginationLimit || 20,
+    fileUploadMaxSize: generalSettings?.fileUploadMaxSize || 10485760,
+  });
+  useEffect(() => {
+    if (generalSettings) {
+      setSettingsForm({
+        theme: generalSettings.theme || "light",
+        paginationLimit: generalSettings.paginationLimit || 20,
+        fileUploadMaxSize: generalSettings.fileUploadMaxSize || 10485760,
+      });
+    }
+  }, [generalSettings]);
+
+  const [settingsSubmitting, setSettingsSubmitting] = useState(false);
+
+  async function handleSettingsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSettingsSubmitting(true);
+    try {
+      const res = await fetch("/api/settings/general", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settingsForm),
+      });
+      if (!res.ok) throw new Error("Failed to update settings");
+      toast.success("Settings updated");
+      mutateSettings();
+    } catch {
+      toast.error("Failed to update settings");
+    } finally {
+      setSettingsSubmitting(false);
+    }
+  }
+
+  // Notification rule management (existing code)
   const [ruleDialog, setRuleDialog] = useState(false);
   const [editingRule, setEditingRule] = useState<string | null>(null);
   const [ruleForm, setRuleForm] = useState({
@@ -85,24 +131,20 @@ export default function SettingsPage() {
   async function handleRuleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-
     try {
       const url = editingRule
         ? `/api/notifications/rules/${editingRule}`
         : "/api/notifications/rules";
       const method = editingRule ? "PUT" : "POST";
-
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ruleForm),
       });
-
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to save rule");
       }
-
       toast.success(editingRule ? "Rule updated" : "Rule created");
       setRuleDialog(false);
       mutate();
@@ -149,7 +191,73 @@ export default function SettingsPage() {
       />
 
       <div className="max-w-4xl space-y-6">
-        {/* Notification Rules */}
+        {/* General Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" /> General Settings
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Configure system-wide settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingSettings ? (
+              <LoadingSkeleton />
+            ) : (
+              <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="theme">Theme</Label>
+                  <Select
+                    value={settingsForm.theme}
+                    onValueChange={(v) => setSettingsForm((prev) => ({ ...prev, theme: v }))}
+                    disabled={!can("settings:manage")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paginationLimit">Default Pagination Limit</Label>
+                  <Input
+                    id="paginationLimit"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={settingsForm.paginationLimit}
+                    onChange={(e) => setSettingsForm((prev) => ({ ...prev, paginationLimit: Number(e.target.value) }))}
+                    disabled={!can("settings:manage")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fileUploadMaxSize">File Upload Max Size (MB)</Label>
+                  <Input
+                    id="fileUploadMaxSize"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={settingsForm.fileUploadMaxSize / 1024 / 1024}
+                    onChange={(e) => setSettingsForm((prev) => ({ ...prev, fileUploadMaxSize: Number(e.target.value) * 1024 * 1024 }))}
+                    disabled={!can("settings:manage")}
+                  />
+                </div>
+                {can("settings:manage") && (
+                  <Button type="submit" disabled={settingsSubmitting}>
+                    {settingsSubmitting ? "Saving..." : "Save Settings"}
+                  </Button>
+                )}
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notification Rules (existing code) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -161,7 +269,7 @@ export default function SettingsPage() {
               </CardDescription>
             </div>
             {can("settings:manage") && (
-              <Button size="sm" onClick={openCreateRule}>
+              <Button onClick={openCreateRule}>
                 <Plus className="mr-2 h-4 w-4" /> Add Rule
               </Button>
             )}
@@ -169,12 +277,12 @@ export default function SettingsPage() {
           <CardContent>
             {isLoading ? (
               <LoadingSkeleton />
-            ) : rules?.length === 0 ? (
+            ) : rules.length === 0 ? (
               <div className="text-center py-8">
                 <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No notification rules configured</p>
                 {can("settings:manage") && (
-                  <Button size="sm" variant="outline" className="mt-3" onClick={openCreateRule}>
+                  <Button className="mt-3 px-3 py-1 text-sm border rounded hover:bg-gray-100" onClick={openCreateRule}>
                     <Plus className="mr-2 h-4 w-4" /> Add Rule
                   </Button>
                 )}
@@ -193,7 +301,7 @@ export default function SettingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rules?.map((rule: NotificationRule) => (
+                    {rules.map((rule: NotificationRule) => (
                       <TableRow key={rule._id}>
                         <TableCell>
                           <Switch

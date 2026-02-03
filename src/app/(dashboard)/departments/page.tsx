@@ -36,19 +36,19 @@ export default function DepartmentsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "" });
+  const [form, setForm] = useState({ name: "", code: "", description: "" });
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ _id: string; name: string } | null>(null);
 
   function openCreate() {
     setEditingId(null);
-    setForm({ name: "", description: "" });
+    setForm({ name: "", code: "", description: "" });
     setDialogOpen(true);
   }
 
-  function openEdit(dept: { _id: string; name: string; description?: string }) {
+  function openEdit(dept: { _id: string; name: string; code: string; description?: string }) {
     setEditingId(dept._id);
-    setForm({ name: dept.name, description: dept.description || "" });
+    setForm({ name: dept.name, code: dept.code, description: dept.description || "" });
     setDialogOpen(true);
   }
 
@@ -136,7 +136,7 @@ export default function DepartmentsPage() {
             </TableHeader>
             <TableBody>
               {departments?.map(
-                (dept: { _id: string; name: string; description?: string }) => (
+                (dept: { _id: string; name: string; code: string; description?: string }) => (
                   <TableRow key={dept._id}>
                     <TableCell className="font-medium">{dept.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -187,6 +187,16 @@ export default function DepartmentsPage() {
                 required
                 value={form.name}
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dept-code">Code *</Label>
+              <Input
+                id="dept-code"
+                required
+                value={form.code}
+                onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                maxLength={10}
               />
             </div>
             <div className="space-y-2">

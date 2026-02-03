@@ -1,5 +1,7 @@
+
 import mongoose, { Schema, Model } from "mongoose";
 import { IRole } from "@/types";
+import Permission from "@/models/Permission";
 
 const RoleSchema = new Schema<IRole>(
   {
