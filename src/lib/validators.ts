@@ -162,5 +162,5 @@ export const createNotificationRuleSchema = z.object({
 export const exportReportSchema = z.object({
   type: z.enum(["task-summary", "staff-workload", "overdue"]),
   format: z.enum(["pdf", "excel", "csv"]),
-  filters: z.record(z.unknown()).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
 });

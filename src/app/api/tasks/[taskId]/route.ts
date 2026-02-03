@@ -39,7 +39,7 @@ export const PUT = withPermission("tasks:update", async (req, ctx, session) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = updateTaskSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const task = await Task.findByIdAndUpdate(taskId, parsed.data, { new: true });
   if (!task) return apiError("Task not found", 404);

@@ -3,7 +3,7 @@ import { ILoginHistory } from "@/types";
 
 const LoginHistorySchema = new Schema<ILoginHistory>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: Schema.Types.ObjectId, ref: "User", required: false },
     loginAt: { type: Date, default: Date.now },
     ipAddress: { type: String },
     userAgent: { type: String },

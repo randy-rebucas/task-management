@@ -41,9 +41,13 @@ async function resolveRecipients(
         break;
       case "specific_roles":
         if (rule.recipientRoles?.length) {
-          const roleIds = rule.recipientRoles.map((r) => r._id);
+          const roleIds = rule.recipientRoles.map((r) =>
+            typeof r._id === "string"
+              ? r._id
+              : (r._id as any)?.toString?.() ?? ""
+          );
           const users = await User.find({
-            roles: { $in: roleIds },
+            roles: { $in: roleIds as string[] },
             isActive: true,
           }).lean();
           users.forEach((u) => recipients.add(u._id.toString()));

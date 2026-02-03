@@ -8,7 +8,7 @@ export const PATCH = withPermission("tasks:assign", async (req, ctx, session) =>
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = assignTaskSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const task = await Task.findById(taskId);
   if (!task) return apiError("Task not found", 404);

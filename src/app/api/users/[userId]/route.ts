@@ -19,7 +19,7 @@ export const PUT = withPermission("users:update", async (req, ctx, session) => {
   const body = await req.json();
   const parsed = updateUserSchema.safeParse(body);
   if (!parsed.success) {
-    return apiError(parsed.error.errors[0].message);
+    return apiError(parsed.error.issues[0].message);
   }
 
   const user = await User.findById(userId);

@@ -15,7 +15,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = createDependencySchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   if (parsed.data.dependsOn === taskId) {
     return apiError("A task cannot depend on itself");

@@ -191,7 +191,7 @@ export interface IActivityLog {
 
 export interface ILoginHistory {
   _id: Types.ObjectId;
-  user: Types.ObjectId;
+  user?: Types.ObjectId;
   loginAt: Date;
   ipAddress?: string;
   userAgent?: string;

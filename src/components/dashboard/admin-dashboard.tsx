@@ -80,7 +80,7 @@ export function AdminDashboard() {
                   outerRadius={100}
                   dataKey="count"
                   nameKey="status.name"
-                  label={({ status }: { status: { name: string } }) => status.name}
+                  label={(props) => props.payload?.status?.name ?? ""}
                 >
                   {data.taskStatusBreakdown?.map(
                     (entry: { status: { color: string } }, index: number) => (

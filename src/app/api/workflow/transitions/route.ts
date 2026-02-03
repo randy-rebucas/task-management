@@ -16,7 +16,7 @@ export const GET = withPermission("workflow:configure", async () => {
 export const POST = withPermission("workflow:configure", async (req) => {
   const body = await req.json();
   const parsed = createTransitionSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const existing = await WorkflowTransition.findOne({
     fromStatus: parsed.data.fromStatus,

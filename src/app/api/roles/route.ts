@@ -17,7 +17,7 @@ export const GET = withPermission("roles:view", async () => {
 export const POST = withPermission("roles:create", async (req, ctx, session) => {
   const body = await req.json();
   const parsed = createRoleSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const slug = slugify(parsed.data.name, { lower: true, strict: true });
   const existing = await Role.findOne({ slug });

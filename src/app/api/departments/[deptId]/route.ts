@@ -17,7 +17,7 @@ export const PUT = withPermission("departments:update", async (req, ctx, session
   const { deptId } = await ctx.params;
   const body = await req.json();
   const parsed = updateDepartmentSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const dept = await Department.findByIdAndUpdate(deptId, parsed.data, { new: true });
   if (!dept) return apiError("Department not found", 404);

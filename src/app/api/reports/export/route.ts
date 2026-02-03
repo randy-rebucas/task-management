@@ -7,7 +7,7 @@ import ExcelJS from "exceljs";
 export const POST = withPermission("reports:export", async (req) => {
   const body = await req.json();
   const parsed = exportReportSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const { format } = parsed.data;
 
@@ -25,10 +25,20 @@ export const POST = withPermission("reports:export", async (req) => {
     Title: t.title,
     Status: (t.status as { name?: string })?.name || "",
     Priority: t.priority,
-    Assignees: (t.assignees as { firstName: string; lastName: string }[])
-      .map((a) => `${a.firstName} ${a.lastName}`)
-      .join(", "),
-    "Created By": `${(t.createdBy as { firstName: string }).firstName} ${(t.createdBy as { lastName: string }).lastName}`,
+    Assignees: Array.isArray(t.assignees)
+      ? (t.assignees as any[])
+        .map((a) =>
+          a && typeof a === "object" && "firstName" in a && "lastName" in a
+            ? `${a.firstName} ${a.lastName}`
+            : ""
+        )
+        .filter(Boolean)
+        .join(", ")
+      : "",
+    "Created By":
+      t.createdBy && typeof t.createdBy === "object" && "firstName" in t.createdBy && "lastName" in t.createdBy
+        ? `${(t.createdBy as any).firstName} ${(t.createdBy as any).lastName}`
+        : "",
     Department: (t.department as { name?: string })?.name || "",
     "Due Date": t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "",
     "Created At": new Date(t.createdAt).toLocaleDateString(),
@@ -109,8 +119,10 @@ export const POST = withPermission("reports:export", async (req) => {
     return new Promise<NextResponse>((resolve) => {
       const pdfDoc = (pdfMake as unknown as { createPdf: (def: unknown) => { getBuffer: (cb: (buffer: Buffer) => void) => void } }).createPdf(docDefinition);
       pdfDoc.getBuffer((buffer: Buffer) => {
+        // Convert Node.js Buffer to Buffer for NextResponse compatibility
+        const nodeBuffer = Buffer.from(buffer);
         resolve(
-          new NextResponse(buffer, {
+          new NextResponse(nodeBuffer, {
             headers: {
               "Content-Type": "application/pdf",
               "Content-Disposition": "attachment; filename=report.pdf",

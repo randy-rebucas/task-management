@@ -13,7 +13,7 @@ export const GET = withPermission("notifications:manage_rules", async () => {
 export const POST = withPermission("notifications:manage_rules", async (req) => {
   const body = await req.json();
   const parsed = createNotificationRuleSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.errors[0].message);
+  if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const rule = await NotificationRule.create(parsed.data);
   return apiSuccess(rule, 201);

@@ -27,7 +27,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) {
           await LoginHistory.create({
-            user: null,
             success: false,
             failureReason: "User not found",
           }).catch(() => {});
@@ -58,7 +57,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
           roles: (user.roles as { _id: unknown }[]).map((r) =>
-            r._id.toString()
+            typeof r._id === "string"
+              ? r._id
+              : (r._id as any)?.toString?.() ?? ""
           ),
         };
       },
