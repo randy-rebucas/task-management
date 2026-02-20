@@ -240,6 +240,36 @@ export interface ILoginHistory {
   failureReason?: string;
 }
 
+export interface IRoutePoint {
+  lat: number;
+  lng: number;
+  timestamp: Date;
+}
+
+export interface IFieldSession {
+  _id: Types.ObjectId;
+  user: Types.ObjectId;
+  task?: Types.ObjectId;
+  date: Date;
+  checkIn: {
+    time: Date;
+    location: { lat: number; lng: number };
+    address?: string;
+    photo?: string;
+  };
+  checkOut?: {
+    time: Date;
+    location: { lat: number; lng: number };
+    photo?: string;
+  };
+  duration?: number;
+  routePoints: IRoutePoint[];
+  notes?: string;
+  status: "active" | "completed";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export type PermissionString = `${string}:${string}`;
 
 export interface PaginatedResponse<T> {

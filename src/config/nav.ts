@@ -10,6 +10,7 @@ import {
   BarChart3,
   ScrollText,
   Settings,
+  MapPin,
   type LucideIcon,
 } from "lucide-react";
 
@@ -83,6 +84,11 @@ export const navItems: NavItem[] = [
     title: "Visit Logs",
     href: "/visit-logs",
     icon: ScrollText,
+  },
+  {
+    title: "Field Monitoring",
+    href: "/field-monitoring",
+    icon: MapPin,
   },
   {
     title: "Settings",
