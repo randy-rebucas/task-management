@@ -6,7 +6,6 @@ import useSWR from "swr";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function usePermissions() {
-
   const { data: session, status } = useSession();
   // Only fetch if session is loaded and user is present
   const shouldFetch = status === "authenticated" && session?.user?.id;
@@ -15,7 +14,6 @@ export function usePermissions() {
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
-  console.log("Permissions data:", data);
   const permissions: Set<string> = new Set(data?.permissions || []);
 
   return {

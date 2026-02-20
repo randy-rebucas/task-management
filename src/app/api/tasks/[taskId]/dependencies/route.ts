@@ -1,5 +1,5 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createDependencySchema } from "@/lib/validators";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createDependencySchema } from "@/features/auth/validators";
 import TaskDependency from "@/models/TaskDependency";
 
 export const GET = withPermission("tasks:view", async (req, ctx) => {

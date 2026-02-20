@@ -1,5 +1,5 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createTimeLogSchema } from "@/lib/validators";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createTimeLogSchema } from "@/features/auth/validators";
 import TaskTimeLog from "@/models/TaskTimeLog";
 import Task from "@/models/Task";
 

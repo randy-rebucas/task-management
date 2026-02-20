@@ -26,7 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Plus, Pencil, Trash2, Bell, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions } from "@/features/auth/use-permissions";
 import useSWR from "swr";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";

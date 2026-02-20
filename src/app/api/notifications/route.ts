@@ -1,4 +1,4 @@
-import { withAuth, apiSuccess, getPaginationParams } from "@/lib/api-helpers";
+import { withAuth, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
 import Notification from "@/models/Notification";
 
 export const GET = withAuth(async (req, ctx, session) => {

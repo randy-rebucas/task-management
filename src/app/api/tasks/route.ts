@@ -1,9 +1,10 @@
+import Department from "@/models/Department";
 import { NextRequest } from "next/server";
-import { withAuth, withPermission, apiSuccess, apiError, getPaginationParams } from "@/lib/api-helpers";
-import { createTaskSchema } from "@/lib/validators";
-import { logActivity } from "@/lib/activity-logger";
-import { triggerNotification } from "@/lib/notification-service";
-import { getUserPermissions } from "@/lib/rbac";
+import { withAuth, withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
+import { createTaskSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
+import { triggerNotification } from "@/features/users/notification-service";
+import { getUserPermissions } from "@/features/auth/rbac";
 import Task from "@/models/Task";
 import WorkflowStatus from "@/models/WorkflowStatus";
 

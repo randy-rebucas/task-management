@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/config/nav";
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions } from "@/features/auth/use-permissions";
 import { CheckSquare } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 

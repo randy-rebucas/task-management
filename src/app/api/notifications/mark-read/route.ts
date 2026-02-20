@@ -1,4 +1,4 @@
-import { withAuth, apiSuccess, apiError } from "@/lib/api-helpers";
+import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import Notification from "@/models/Notification";
 
 export const PATCH = withAuth(async (req, ctx, session) => {

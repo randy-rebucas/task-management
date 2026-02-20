@@ -1,5 +1,5 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createTransitionSchema } from "@/lib/validators";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createTransitionSchema } from "@/features/auth/validators";
 import WorkflowTransition from "@/models/WorkflowTransition";
 
 export const GET = withPermission("workflow:configure", async () => {

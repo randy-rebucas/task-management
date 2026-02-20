@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { withAuth, apiSuccess, apiError } from "@/lib/api-helpers";
+import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { FILE_UPLOAD } from "@/config/constants";
 
 export const POST = withAuth(async (req) => {

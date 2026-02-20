@@ -1,6 +1,6 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createRoleSchema } from "@/lib/validators";
-import { logActivity } from "@/lib/activity-logger";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createRoleSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
 import Role from "@/models/Role";
 import Permission from "@/models/Permission";
 import slugify from "slugify";

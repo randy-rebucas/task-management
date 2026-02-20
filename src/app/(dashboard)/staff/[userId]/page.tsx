@@ -3,7 +3,7 @@
 import { use } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions } from "@/features/auth/use-permissions";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { Button } from "@/components/ui/button";

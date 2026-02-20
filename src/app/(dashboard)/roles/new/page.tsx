@@ -18,7 +18,8 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function NewRolePage() {
   const router = useRouter();
-  const { data: permissions, isLoading } = useSWR("/api/permissions", fetcher);
+  const { data, isLoading } = useSWR("/api/permissions", fetcher);
+  const permissions = data?.permissions;
 
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -147,8 +148,8 @@ export default function NewRolePage() {
                     </Label>
                   </div>
                   <div className="ml-7 grid gap-2 sm:grid-cols-2">
-                    {perms.map((p) => (
-                      <div key={p.key} className="flex items-start space-x-3">
+                    {perms.map((p, idx) => (
+                      <div key={p.key || idx} className="flex items-start space-x-3">
                         <Checkbox
                           id={`perm-${p.key}`}
                           checked={form.permissions.includes(p.key)}

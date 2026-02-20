@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import TaskAttachment from "@/models/TaskAttachment";
 import Task from "@/models/Task";
 import { FILE_UPLOAD } from "@/config/constants";

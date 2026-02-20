@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
-import { getUserPermissions } from "@/lib/rbac";
+import { getUserPermissions } from "@/features/auth/rbac";
 import User from "@/models/User";
 
 export async function GET(req: NextRequest) {

@@ -1,5 +1,5 @@
-import { withPermission, withAuth, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createWorkflowStatusSchema } from "@/lib/validators";
+import { withPermission, withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createWorkflowStatusSchema } from "@/features/auth/validators";
 import WorkflowStatus from "@/models/WorkflowStatus";
 
 export const GET = withAuth(async () => {

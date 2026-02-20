@@ -1,4 +1,4 @@
-import { withPermission, apiSuccess, getPaginationParams } from "@/lib/api-helpers";
+import { withPermission, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
 import ActivityLog from "@/models/ActivityLog";
 
 export const GET = withPermission("activity_logs:view", async (req) => {

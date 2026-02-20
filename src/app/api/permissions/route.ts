@@ -1,4 +1,4 @@
-import { withPermission, apiSuccess } from "@/lib/api-helpers";
+import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
 import Permission from "@/models/Permission";
 
 export const GET = withPermission("roles:view", async () => {

@@ -1,5 +1,5 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createNotificationRuleSchema } from "@/lib/validators";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createNotificationRuleSchema } from "@/features/auth/validators";
 import NotificationRule from "@/models/NotificationRule";
 
 export const GET = withPermission("notifications:manage_rules", async () => {

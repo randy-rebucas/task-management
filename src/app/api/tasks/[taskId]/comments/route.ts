@@ -1,6 +1,6 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { createCommentSchema } from "@/lib/validators";
-import { triggerNotification } from "@/lib/notification-service";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { createCommentSchema } from "@/features/auth/validators";
+import { triggerNotification } from "@/features/users/notification-service";
 import TaskComment from "@/models/TaskComment";
 import Task from "@/models/Task";
 

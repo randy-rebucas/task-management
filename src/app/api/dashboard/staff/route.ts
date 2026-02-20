@@ -1,4 +1,4 @@
-import { withAuth, apiSuccess } from "@/lib/api-helpers";
+import { withAuth, apiSuccess } from "@/features/auth/api-helpers";
 import Task from "@/models/Task";
 import WorkflowStatus from "@/models/WorkflowStatus";
 

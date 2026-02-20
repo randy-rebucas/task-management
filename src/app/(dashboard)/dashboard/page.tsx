@@ -1,6 +1,6 @@
 "use client";
 
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions } from "@/features/auth/use-permissions";
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 import { ManagerDashboard } from "@/components/dashboard/manager-dashboard";
 import { StaffDashboard } from "@/components/dashboard/staff-dashboard";

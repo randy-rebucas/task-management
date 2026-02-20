@@ -1,6 +1,6 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { updateUserSchema } from "@/lib/validators";
-import { logActivity } from "@/lib/activity-logger";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { updateUserSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
 import User from "@/models/User";
 
 export const GET = withPermission("users:view", async (req, ctx) => {

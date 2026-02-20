@@ -1,8 +1,8 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
-import { statusTransitionSchema } from "@/lib/validators";
-import { logActivity } from "@/lib/activity-logger";
-import { triggerNotification } from "@/lib/notification-service";
-import { getUserPermissions } from "@/lib/rbac";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { statusTransitionSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
+import { triggerNotification } from "@/features/users/notification-service";
+import { getUserPermissions } from "@/features/auth/rbac";
 import Task from "@/models/Task";
 import WorkflowStatus from "@/models/WorkflowStatus";
 import WorkflowTransition from "@/models/WorkflowTransition";

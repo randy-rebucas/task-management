@@ -1,6 +1,6 @@
-import { withPermission, apiSuccess, apiError } from "@/lib/api-helpers";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateDepartmentSchema } from "@/lib/validators";
-import { logActivity } from "@/lib/activity-logger";
+import { logActivity } from "@/features/users/activity-logger";
 import Department from "@/models/Department";
 
 export const GET = withPermission("departments:view", async (req, ctx) => {

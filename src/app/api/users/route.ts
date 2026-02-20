@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/lib/api-helpers";
-import { createUserSchema } from "@/lib/validators";
-import { logActivity } from "@/lib/activity-logger";
+import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
+import { createUserSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
 import User from "@/models/User";
 
 export const GET = withPermission("users:view", async (req) => {
