@@ -1,4 +1,4 @@
-import { withPermission, apiSuccess, getPaginationParams } from "@/lib/api-helpers";
+import { withPermission, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
 import Task from "@/models/Task";
 
 export const GET = withPermission("reports:view", async (req) => {

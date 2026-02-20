@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import User from "@/models/User";
-import { resetPasswordSchema } from "@/lib/validators";
+import { resetPasswordSchema } from "@/features/auth/validators";
 
 export async function POST(req: NextRequest) {
   await dbConnect();

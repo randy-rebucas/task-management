@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import User from "@/models/User";
-import { forgotPasswordSchema } from "@/lib/validators";
+import { forgotPasswordSchema } from "@/features/auth/validators";
 import { sendEmail } from "@/lib/email";
 import crypto from "crypto";
 

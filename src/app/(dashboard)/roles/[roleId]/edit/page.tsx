@@ -97,12 +97,11 @@ export default function EditRolePage({
         action: string; key: string; resource: string; group: string; description?: string
       }) => {
         if (!acc[p.group]) acc[p.group] = [];
-        acc[p.group].push({ key: p.action, label: p.resource, description: p.description });
+        acc[p.group].push({ key: `${p.resource}:${p.action}`, label: p.resource, description: p.description });
         return acc;
       },
       {} as Record<string, { key: string; label: string; description?: string }[]>
     ) || {};
-  console.log(grouped);
   return (
     <div>
       <PageHeader title={`Edit Role: ${role.name}`} />
@@ -146,9 +145,7 @@ export default function EditRolePage({
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <pre>{JSON.stringify(form.permissions, null, 2)}</pre>
             {Object.entries(grouped).map(([group, perms]) => {
-              console.log(group, perms);
               const allSelected = perms.every((p) => form.permissions.includes(p.key));
               const someSelected = perms.some((p) => form.permissions.includes(p.key));
 

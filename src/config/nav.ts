@@ -80,6 +80,11 @@ export const navItems: NavItem[] = [
     permission: "activity_logs:view",
   },
   {
+    title: "Visit Logs",
+    href: "/visit-logs",
+    icon: ScrollText,
+  },
+  {
     title: "Settings",
     href: "/settings",
     icon: Settings,

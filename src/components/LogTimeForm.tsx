@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { Button } from "./ui/button";
 
@@ -31,9 +32,8 @@ function LogTimeForm({ taskId, onLogged }: { taskId: string; onLogged: () => voi
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    minutes: totalMinutes,
-                    description,
-                    date,
+                    duration: totalMinutes,
+                    note: description,
                 }),
             });
             if (!res.ok) {

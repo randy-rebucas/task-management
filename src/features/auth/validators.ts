@@ -1,3 +1,14 @@
+import { z } from "zod";
+
+// Visit Logs
+export const createVisitLogSchema = z.object({
+	placesVisited: z.string().min(1),
+	peopleMet: z.string().min(1),
+	purpose: z.string().min(1),
+	outcome: z.string().min(1),
+	nextAction: z.string().min(1),
+	photos: z.array(z.string()).optional(),
+});
 // Notification Rules
 export const createNotificationRuleSchema = z.object({
 	event: z.string().min(1),
@@ -22,7 +33,6 @@ export const createDepartmentSchema = z.object({
 	parentDepartment: z.string().optional(),
 	isActive: z.boolean().optional(),
 });
-import { z } from "zod";
 
 // Auth
 export const loginSchema = z.object({
@@ -122,4 +132,8 @@ export const createTransitionSchema = z.object({
 	from: z.string().min(1),
 	to: z.string().min(1),
 	name: z.string().min(1),
+});
+
+export const exportReportSchema = z.object({
+	format: z.enum(["csv", "excel", "pdf"]),
 });

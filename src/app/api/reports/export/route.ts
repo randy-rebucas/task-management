@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { withPermission, apiError } from "@/lib/api-helpers";
-import { exportReportSchema } from "@/lib/validators";
+import { withPermission, apiError } from "@/features/auth/api-helpers";
+import { exportReportSchema } from "@/features/auth/validators";
 import Task from "@/models/Task";
 import ExcelJS from "exceljs";
 

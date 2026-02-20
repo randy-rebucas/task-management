@@ -39,7 +39,7 @@ export default function TasksPage() {
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [page, setPage] = useState(1);
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebounce(search, 300);
 
   const params = new URLSearchParams();
   params.set("page", String(page));

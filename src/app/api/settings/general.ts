@@ -2,7 +2,7 @@
 import AppSetting from "@/models/AppSetting";
 import { dbConnect } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { withPermission } from "@/lib/api-helpers";
+import { withPermission } from "@/features/auth/api-helpers";
 
 export const GET = async () => {
   await dbConnect();

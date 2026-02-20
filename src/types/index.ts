@@ -1,5 +1,18 @@
 import { Types } from "mongoose";
 
+export interface IVisitLog {
+  _id: Types.ObjectId;
+  user: Types.ObjectId;
+  placesVisited: string;
+  peopleMet: string;
+  purpose: string;
+  outcome: string;
+  nextAction: string;
+  photos: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IPermission {
   _id: Types.ObjectId;
   resource: string;
