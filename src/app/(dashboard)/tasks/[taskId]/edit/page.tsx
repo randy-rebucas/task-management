@@ -28,6 +28,7 @@ export default function EditTaskPage({
           title: task.title,
           description: task.description,
           priority: task.priority,
+          taskType: task.taskType || "general",
           category: task.category || "",
           assignees: task.assignees?.map((a: { _id: string }) => a._id) || [],
           dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
@@ -35,6 +36,11 @@ export default function EditTaskPage({
           estimatedHours: task.estimatedHours || null,
           tags: task.tags || [],
           department: task.department?._id || "",
+          isRecurring: task.isRecurring || false,
+          recurringConfig: task.recurringConfig,
+          lead: task.lead?._id || task.lead || "",
+          client: task.client?._id || task.client || "",
+          deal: task.deal?._id || task.deal || "",
         }}
       />
     </div>

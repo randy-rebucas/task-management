@@ -87,6 +87,69 @@ export interface ISubtask {
   assignee?: Types.ObjectId;
 }
 
+export type DealStage =
+  | "prospect"
+  | "contacted"
+  | "meeting"
+  | "proposal"
+  | "negotiation"
+  | "closed_won"
+  | "closed_lost";
+
+export type LeadStatus = "new" | "contacted" | "qualified" | "unqualified" | "converted";
+export type LeadSource = "referral" | "cold_call" | "social_media" | "website" | "event" | "other";
+
+export interface IClient {
+  _id: Types.ObjectId;
+  name: string;
+  company?: string;
+  industry?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  website?: string;
+  assignedTo?: Types.ObjectId;
+  department?: Types.ObjectId;
+  status: "active" | "inactive";
+  notes?: string;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ILead {
+  _id: Types.ObjectId;
+  name: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  source: LeadSource;
+  status: LeadStatus;
+  assignedTo?: Types.ObjectId;
+  convertedToClient?: Types.ObjectId;
+  notes?: string;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IDeal {
+  _id: Types.ObjectId;
+  title: string;
+  lead?: Types.ObjectId;
+  client?: Types.ObjectId;
+  stage: DealStage;
+  value: number;
+  currency: string;
+  probability: number;
+  expectedCloseDate?: Date;
+  assignedTo?: Types.ObjectId;
+  notes?: string;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ITask {
   _id: Types.ObjectId;
   taskNumber: string;
@@ -114,6 +177,9 @@ export interface ITask {
   };
   subtasks: ISubtask[];
   isArchived: boolean;
+  lead?: Types.ObjectId;
+  client?: Types.ObjectId;
+  deal?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }

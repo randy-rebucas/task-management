@@ -48,7 +48,7 @@ export default function StaffPage() {
   const [department, setDepartment] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebounce(search, 300);
 
   const [deleteTarget, setDeleteTarget] = useState<{ _id: string; name: string } | null>(null);
 

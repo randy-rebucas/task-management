@@ -11,6 +11,10 @@ import {
   ScrollText,
   Settings,
   MapPin,
+  TrendingUp,
+  Briefcase,
+  UserPlus,
+  KanbanSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -89,6 +93,22 @@ export const navItems: NavItem[] = [
     title: "Field Monitoring",
     href: "/field-monitoring",
     icon: MapPin,
+  },
+  {
+    title: "KPI Dashboard",
+    href: "/kpi",
+    icon: TrendingUp,
+  },
+  {
+    title: "CRM",
+    href: "/crm",
+    icon: Briefcase,
+    permission: "crm:view",
+    children: [
+      { title: "Leads", href: "/crm/leads", icon: UserPlus },
+      { title: "Clients", href: "/crm/clients", icon: Building2 },
+      { title: "Pipeline", href: "/crm/pipeline", icon: KanbanSquare },
+    ],
   },
   {
     title: "Settings",

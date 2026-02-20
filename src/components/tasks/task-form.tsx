@@ -19,7 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
-import { TASK_TYPES, PREDEFINED_TAGS } from "@/config/constants";
+import { TASK_TYPES, PREDEFINED_TAGS, FIELD_TASK_TYPES } from "@/config/constants";
+import { AlertTriangle } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -44,6 +45,9 @@ interface TaskFormProps {
       endDate?: string;
       daysOfWeek?: number[];
     };
+    lead?: string;
+    client?: string;
+    deal?: string;
   };
 }
 
@@ -68,6 +72,11 @@ export function TaskForm({ taskId, initialData }: TaskFormProps) {
   const [customTag, setCustomTag] = useState("");
   const [department, setDepartment] = useState(initialData?.department || "");
 
+  // CRM links
+  const [lead, setLead] = useState(initialData?.lead || "");
+  const [client, setClient] = useState(initialData?.client || "");
+  const [deal, setDeal] = useState(initialData?.deal || "");
+
   // Recurring
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
   const [recurringFrequency, setRecurringFrequency] = useState(
@@ -85,6 +94,15 @@ export function TaskForm({ taskId, initialData }: TaskFormProps) {
 
   const { data: users } = useSWR("/api/users?limit=100", fetcher);
   const { data: departments } = useSWR("/api/departments", fetcher);
+  const { data: leadsData } = useSWR("/api/crm/leads?limit=100", fetcher);
+  const { data: clientsData } = useSWR("/api/crm/clients?limit=100", fetcher);
+  const { data: dealsData } = useSWR("/api/crm/deals?limit=100", fetcher);
+  const crmLeads = leadsData?.data ?? [];
+  const crmClients = clientsData?.data ?? [];
+  const crmDeals = dealsData?.data ?? [];
+
+  const isFieldType = FIELD_TASK_TYPES.includes(taskType as (typeof FIELD_TASK_TYPES)[number]);
+  const hasCrmLink = !!(lead || client || deal);
 
   function toggleTag(tag: string) {
     setTags((prev) =>
@@ -121,6 +139,9 @@ export function TaskForm({ taskId, initialData }: TaskFormProps) {
       tags: tags.length ? tags : undefined,
       department: department || undefined,
       isRecurring,
+      lead: lead || undefined,
+      client: client || undefined,
+      deal: deal || undefined,
     };
 
     if (isRecurring) {
@@ -224,6 +245,63 @@ export function TaskForm({ taskId, initialData }: TaskFormProps) {
                   <SelectItem value="urgent">Urgent</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* CRM Links */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium">CRM Links</Label>
+              {isFieldType && !hasCrmLink && (
+                <span className="flex items-center gap-1 text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-0.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  Required for field-type tasks
+                </span>
+              )}
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Lead</Label>
+                <Select value={lead || "none"} onValueChange={(v) => setLead(v === "none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {crmLeads.map((l: any) => (
+                      <SelectItem key={l._id} value={l._id}>{l.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Client</Label>
+                <Select value={client || "none"} onValueChange={(v) => setClient(v === "none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {crmClients.map((c: any) => (
+                      <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Deal</Label>
+                <Select value={deal || "none"} onValueChange={(v) => setDeal(v === "none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {crmDeals.map((d: any) => (
+                      <SelectItem key={d._id} value={d._id}>{d.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

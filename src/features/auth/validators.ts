@@ -24,10 +24,26 @@ export const createRoleSchema = z.object({
 	description: z.string().max(200).optional(),
 	permissions: z.array(z.string()).min(1),
 });
+
+export const updateRoleSchema = z.object({
+	name: z.string().min(1).max(50).optional(),
+	description: z.string().max(200).optional(),
+	permissions: z.array(z.string()).min(1).optional(),
+	isActive: z.boolean().optional(),
+});
 // Departments
 export const createDepartmentSchema = z.object({
 	name: z.string().min(1).max(100),
 	code: z.string().min(1).max(20).toUpperCase(),
+	description: z.string().optional(),
+	head: z.string().optional(),
+	parentDepartment: z.string().optional(),
+	isActive: z.boolean().optional(),
+});
+
+export const updateDepartmentSchema = z.object({
+	name: z.string().min(1).max(100).optional(),
+	code: z.string().min(1).max(20).toUpperCase().optional(),
 	description: z.string().optional(),
 	head: z.string().optional(),
 	parentDepartment: z.string().optional(),
@@ -102,23 +118,38 @@ export const updateSubtaskSchema = z.object({
 });
 
 // Tasks
-export const createTaskSchema = z.object({
-	title: z.string().min(1).max(200),
-	description: z.string().optional(),
-	priority: z.enum(["low", "medium", "high", "urgent"]),
-	taskType: taskTypeEnum.optional(),
-	dueDate: z.string().optional(),
-	startDate: z.string().optional(),
-	assignees: z.array(z.string()).optional(),
-	department: z.string().optional(),
-	estimatedHours: z.number().min(0).optional(),
-	tags: z.array(z.string()).optional(),
-	category: z.string().optional(),
-	attachments: z.array(z.string()).optional(),
-	dependencies: z.array(z.string()).optional(),
-	isRecurring: z.boolean().optional(),
-	recurringConfig: recurringConfigSchema.optional(),
-});
+export const createTaskSchema = z
+  .object({
+    title: z.string().min(1).max(200),
+    description: z.string().optional(),
+    priority: z.enum(["low", "medium", "high", "urgent"]),
+    taskType: taskTypeEnum.optional(),
+    dueDate: z.string().optional(),
+    startDate: z.string().optional(),
+    assignees: z.array(z.string()).optional(),
+    department: z.string().optional(),
+    estimatedHours: z.number().min(0).optional(),
+    tags: z.array(z.string()).optional(),
+    category: z.string().optional(),
+    attachments: z.array(z.string()).optional(),
+    dependencies: z.array(z.string()).optional(),
+    isRecurring: z.boolean().optional(),
+    recurringConfig: recurringConfigSchema.optional(),
+    lead: z.string().optional(),
+    client: z.string().optional(),
+    deal: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.taskType && FIELD_TASK_TYPES_SET.has(data.taskType)) {
+      if (!data.lead && !data.client && !data.deal) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Field-type tasks must be linked to a Lead, Client, or Deal.",
+          path: ["lead"],
+        });
+      }
+    }
+  });
 
 export const updateTaskSchema = z.object({
 	title: z.string().min(1).max(200).optional(),
@@ -137,27 +168,36 @@ export const updateTaskSchema = z.object({
 	status: z.string().optional(),
 	isRecurring: z.boolean().optional(),
 	recurringConfig: recurringConfigSchema.optional(),
+	lead: z.string().optional(),
+	client: z.string().optional(),
+	deal: z.string().optional(),
 });
 
 export const createCommentSchema = z.object({
 	content: z.string().min(1),
+	parentComment: z.string().optional(),
 });
 
 export const createTimeLogSchema = z.object({
-	duration: z.number().min(1),
-	note: z.string().optional(),
+	startTime: z.string().min(1, "Start time is required"),
+	endTime: z.string().optional(),
+	duration: z.number().min(0),
+	description: z.string().optional(),
 });
 
 export const assignTaskSchema = z.object({
-	assignee: z.string().min(1),
+	assignees: z.array(z.string().min(1)).min(1, "At least one assignee is required"),
+	remarks: z.string().optional(),
 });
 
 export const createDependencySchema = z.object({
-	dependencyId: z.string().min(1),
+	dependsOn: z.string().min(1),
+	type: z.enum(["blocks", "blocked_by", "related"]).default("blocked_by"),
 });
 
 export const statusTransitionSchema = z.object({
-	status: z.string().min(1),
+	toStatusId: z.string().min(1, "Target status is required"),
+	remarks: z.string().optional(),
 });
 
 export const createWorkflowStatusSchema = z.object({
@@ -170,11 +210,78 @@ export const createWorkflowStatusSchema = z.object({
 });
 
 export const createTransitionSchema = z.object({
-	from: z.string().min(1),
-	to: z.string().min(1),
-	name: z.string().min(1),
+	fromStatus: z.string().min(1, "From status is required"),
+	toStatus: z.string().min(1, "To status is required"),
+	allowedRoles: z.array(z.string()).optional(),
+	requiresRemarks: z.boolean().optional(),
+	requiresApproval: z.boolean().optional(),
+	approverRoles: z.array(z.string()).optional(),
 });
 
 export const exportReportSchema = z.object({
 	format: z.enum(["csv", "excel", "pdf"]),
 });
+
+// CRM
+const FIELD_TASK_TYPES_SET = new Set([
+  "field_visit",
+  "client_meeting",
+  "lead_follow_up",
+  "proposal_submission",
+  "collection_payment",
+  "partner_onboarding",
+]);
+
+export const createClientSchema = z.object({
+  name: z.string().min(1).max(200),
+  company: z.string().optional(),
+  industry: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  website: z.string().optional(),
+  assignedTo: z.string().optional(),
+  department: z.string().optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+  notes: z.string().optional(),
+});
+
+export const updateClientSchema = createClientSchema.partial();
+
+export const createLeadSchema = z.object({
+  name: z.string().min(1).max(200),
+  company: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  source: z.enum(["referral", "cold_call", "social_media", "website", "event", "other"]),
+  status: z.enum(["new", "contacted", "qualified", "unqualified", "converted"]).optional(),
+  assignedTo: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const updateLeadSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  company: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  source: z.enum(["referral", "cold_call", "social_media", "website", "event", "other"]).optional(),
+  status: z.enum(["new", "contacted", "qualified", "unqualified", "converted"]).optional(),
+  assignedTo: z.string().optional(),
+  convertedToClient: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const createDealSchema = z.object({
+  title: z.string().min(1).max(200),
+  lead: z.string().optional(),
+  client: z.string().optional(),
+  stage: z.enum(["prospect", "contacted", "meeting", "proposal", "negotiation", "closed_won", "closed_lost"]).optional(),
+  value: z.number().min(0).optional(),
+  currency: z.string().optional(),
+  probability: z.number().min(0).max(100).optional(),
+  expectedCloseDate: z.string().optional(),
+  assignedTo: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const updateDealSchema = createDealSchema.partial();

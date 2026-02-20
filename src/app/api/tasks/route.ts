@@ -7,6 +7,10 @@ import { triggerNotification } from "@/features/users/notification-service";
 import { getUserPermissions } from "@/features/auth/rbac";
 import Task from "@/models/Task";
 import WorkflowStatus from "@/models/WorkflowStatus";
+// Register CRM models so Mongoose populate works
+import "@/models/Lead";
+import "@/models/Client";
+import "@/models/Deal";
 
 export const GET = withAuth(async (req, ctx, session) => {
   const perms = await getUserPermissions(session.user.roles);

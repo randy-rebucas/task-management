@@ -63,6 +63,9 @@ const TaskSchema = new Schema<ITask>(
     recurringConfig: { type: RecurringConfigSchema },
     subtasks: { type: [SubtaskSchema], default: [] },
     isArchived: { type: Boolean, default: false },
+    lead: { type: Schema.Types.ObjectId, ref: "Lead" },
+    client: { type: Schema.Types.ObjectId, ref: "Client" },
+    deal: { type: Schema.Types.ObjectId, ref: "Deal" },
   },
   { timestamps: true }
 );
@@ -76,6 +79,9 @@ TaskSchema.index({ department: 1 });
 TaskSchema.index({ dueDate: 1 });
 TaskSchema.index({ isArchived: 1, status: 1 });
 TaskSchema.index({ title: "text", description: "text" });
+TaskSchema.index({ lead: 1 });
+TaskSchema.index({ client: 1 });
+TaskSchema.index({ deal: 1 });
 
 const Task: Model<ITask> =
   mongoose.models.Task || mongoose.model<ITask>("Task", TaskSchema);

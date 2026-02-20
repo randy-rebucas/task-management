@@ -52,6 +52,12 @@ export const PERMISSIONS = [
   { resource: "dashboard", action: "admin", description: "Access admin dashboard", group: "Dashboards" },
   { resource: "dashboard", action: "manager", description: "Access manager dashboard", group: "Dashboards" },
   { resource: "dashboard", action: "staff", description: "Access staff dashboard", group: "Dashboards" },
+
+  // CRM
+  { resource: "crm", action: "view", description: "View leads, clients, and deals", group: "CRM" },
+  { resource: "crm", action: "create", description: "Create leads, clients, and deals", group: "CRM" },
+  { resource: "crm", action: "update", description: "Update leads, clients, and deals", group: "CRM" },
+  { resource: "crm", action: "delete", description: "Delete leads, clients, and deals", group: "CRM" },
 ] as const;
 
 export const ROLE_DEFINITIONS = {
@@ -73,6 +79,7 @@ export const ROLE_DEFINITIONS = {
       "visit_logs:create", "visit_logs:view", "visit_logs:view_all", "visit_logs:delete",
       "notifications:manage_rules",
       "dashboard:manager", "dashboard:staff",
+      "crm:view", "crm:create", "crm:update", "crm:delete",
     ],
   },
   "field-coordinator": {
@@ -86,6 +93,7 @@ export const ROLE_DEFINITIONS = {
       "activity_logs:view",
       "visit_logs:create", "visit_logs:view", "visit_logs:view_all",
       "dashboard:manager", "dashboard:staff",
+      "crm:view", "crm:create", "crm:update",
     ],
   },
   "sales-officer": {
@@ -97,6 +105,7 @@ export const ROLE_DEFINITIONS = {
       "departments:view",
       "visit_logs:create", "visit_logs:view",
       "dashboard:staff",
+      "crm:view", "crm:create", "crm:update",
     ],
   },
   "partner-onboarding-officer": {
@@ -108,6 +117,7 @@ export const ROLE_DEFINITIONS = {
       "departments:view",
       "visit_logs:create", "visit_logs:view",
       "dashboard:staff",
+      "crm:view", "crm:create", "crm:update",
     ],
   },
   finance: {
@@ -121,6 +131,7 @@ export const ROLE_DEFINITIONS = {
       "activity_logs:view",
       "visit_logs:view", "visit_logs:view_all",
       "dashboard:staff",
+      "crm:view",
     ],
   },
   "viewer-auditor": {
@@ -135,6 +146,7 @@ export const ROLE_DEFINITIONS = {
       "activity_logs:view",
       "visit_logs:view", "visit_logs:view_all",
       "dashboard:staff",
+      "crm:view",
     ],
   },
 } as const;

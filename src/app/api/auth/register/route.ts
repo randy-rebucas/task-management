@@ -17,18 +17,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
   }
 
-  // Default role assignment (e.g., 'staff')
-  if (!parsed.data.roles || parsed.data.roles.length === 0) {
-    parsed.data.roles = [process.env.DEFAULT_ROLE_ID || "staff_role_id"];
-  }
-
   const user = await User.create(parsed.data);
 
   await logActivity({
-    actor: user._id,
+    actor: user._id.toString(),
     action: "user.registered",
     resource: "user",
-    resourceId: user._id,
+    resourceId: user._id.toString(),
     details: { email: user.email },
     req,
   });

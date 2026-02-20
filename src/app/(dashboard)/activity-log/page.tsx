@@ -37,7 +37,7 @@ export default function ActivityLogPage() {
   const [action, setAction] = useState("");
   const [entity, setEntity] = useState("");
   const [page, setPage] = useState(1);
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebounce(search, 300);
 
   const params = new URLSearchParams();
   params.set("page", String(page));

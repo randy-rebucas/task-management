@@ -26,6 +26,42 @@ export const PREDEFINED_TAGS = [
   "Manufacturing",
 ];
 
+export const FIELD_TASK_TYPES = [
+  "field_visit",
+  "client_meeting",
+  "lead_follow_up",
+  "proposal_submission",
+  "collection_payment",
+  "partner_onboarding",
+] as const;
+
+export const DEAL_STAGES: { value: string; label: string; color: string }[] = [
+  { value: "prospect",    label: "Prospect",    color: "bg-gray-100 text-gray-800" },
+  { value: "contacted",   label: "Contacted",   color: "bg-blue-100 text-blue-800" },
+  { value: "meeting",     label: "Meeting",     color: "bg-purple-100 text-purple-800" },
+  { value: "proposal",    label: "Proposal",    color: "bg-yellow-100 text-yellow-800" },
+  { value: "negotiation", label: "Negotiation", color: "bg-orange-100 text-orange-800" },
+  { value: "closed_won",  label: "Closed Won",  color: "bg-green-100 text-green-800" },
+  { value: "closed_lost", label: "Closed Lost", color: "bg-red-100 text-red-800" },
+];
+
+export const LEAD_SOURCES: { value: string; label: string }[] = [
+  { value: "referral",     label: "Referral" },
+  { value: "cold_call",    label: "Cold Call" },
+  { value: "social_media", label: "Social Media" },
+  { value: "website",      label: "Website" },
+  { value: "event",        label: "Event" },
+  { value: "other",        label: "Other" },
+];
+
+export const LEAD_STATUSES: { value: string; label: string; color: string }[] = [
+  { value: "new",          label: "New",          color: "bg-blue-100 text-blue-800" },
+  { value: "contacted",    label: "Contacted",    color: "bg-purple-100 text-purple-800" },
+  { value: "qualified",    label: "Qualified",    color: "bg-green-100 text-green-800" },
+  { value: "unqualified",  label: "Unqualified",  color: "bg-red-100 text-red-800" },
+  { value: "converted",    label: "Converted",    color: "bg-emerald-100 text-emerald-800" },
+];
+
 export const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 
 export const PRIORITY_COLORS: Record<string, string> = {

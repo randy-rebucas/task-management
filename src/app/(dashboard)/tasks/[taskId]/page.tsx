@@ -15,10 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Edit, Clock, Paperclip, GitBranch, RefreshCw, Mic, CheckSquare, Plus, X } from "lucide-react";
+import { Edit, Clock, Paperclip, GitBranch, RefreshCw, Mic, CheckSquare, Plus, X, Briefcase } from "lucide-react";
 import { format } from "date-fns";
 import LogTimeForm from "@/components/LogTimeForm";
-import { TASK_TYPES } from "@/config/constants";
+import { TASK_TYPES, DEAL_STAGES } from "@/config/constants";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -771,6 +771,64 @@ export default function TaskDetailPage({
               </p>
             </CardContent>
           </Card>
+
+          {/* CRM Links */}
+          {(task?.lead || task?.client || task?.deal) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" /> CRM Links
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {task.lead && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Lead</p>
+                    <Link
+                      href={`/crm/leads/${task.lead._id || task.lead}`}
+                      className="text-sm text-blue-600 hover:underline font-medium"
+                    >
+                      {task.lead.name || "View Lead"}
+                    </Link>
+                    {task.lead.status && (
+                      <span className="ml-2 text-xs text-muted-foreground">({task.lead.status})</span>
+                    )}
+                  </div>
+                )}
+                {task.client && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Client</p>
+                    <Link
+                      href={`/crm/clients/${task.client._id || task.client}`}
+                      className="text-sm text-blue-600 hover:underline font-medium"
+                    >
+                      {task.client.name || "View Client"}
+                    </Link>
+                    {task.client.company && (
+                      <span className="ml-2 text-xs text-muted-foreground">{task.client.company}</span>
+                    )}
+                  </div>
+                )}
+                {task.deal && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Deal</p>
+                    <Link
+                      href={`/crm/deals/${task.deal._id || task.deal}`}
+                      className="text-sm text-blue-600 hover:underline font-medium"
+                    >
+                      {task.deal.title || "View Deal"}
+                    </Link>
+                    {task.deal.stage && (() => {
+                      const stageCfg = DEAL_STAGES.find((s) => s.value === task.deal.stage);
+                      return stageCfg ? (
+                        <Badge className={`ml-2 ${stageCfg.color} text-xs`}>{stageCfg.label}</Badge>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

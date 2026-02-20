@@ -2,7 +2,6 @@ import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helper
 import { statusTransitionSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
-import { getUserPermissions } from "@/features/auth/rbac";
 import Task from "@/models/Task";
 import WorkflowStatus from "@/models/WorkflowStatus";
 import WorkflowTransition from "@/models/WorkflowTransition";
@@ -21,7 +20,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
   const task = await Task.findById(taskId).populate("status");
   if (!task) return apiError("Task not found", 404);
 
-  const fromStatus = await WorkflowStatus.findById(task.status);
+  const fromStatus = task.status as unknown as { name?: string } | null;
   const toStatus = await WorkflowStatus.findById(parsed.data.toStatusId);
   if (!toStatus) return apiError("Invalid target status", 400);
 
