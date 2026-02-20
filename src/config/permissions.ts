@@ -42,6 +42,12 @@ export const PERMISSIONS = [
   // Notifications
   { resource: "notifications", action: "manage_rules", description: "Configure notification rules", group: "Notifications" },
 
+  // Visit Logs
+  { resource: "visit_logs", action: "create", description: "Submit new visit logs", group: "Visit Logs" },
+  { resource: "visit_logs", action: "view", description: "View own visit logs", group: "Visit Logs" },
+  { resource: "visit_logs", action: "view_all", description: "View all users' visit logs", group: "Visit Logs" },
+  { resource: "visit_logs", action: "delete", description: "Delete visit log entries", group: "Visit Logs" },
+
   // Dashboards
   { resource: "dashboard", action: "admin", description: "Access admin dashboard", group: "Dashboards" },
   { resource: "dashboard", action: "manager", description: "Access manager dashboard", group: "Dashboards" },
@@ -54,45 +60,80 @@ export const ROLE_DEFINITIONS = {
     description: "Full system access with all permissions",
     permissions: PERMISSIONS.map((p) => `${p.resource}:${p.action}`),
   },
-  admin: {
-    name: "Admin",
-    description: "System administration without workflow configuration",
-    permissions: PERMISSIONS.filter(
-      (p) => p.resource !== "workflow"
-    ).map((p) => `${p.resource}:${p.action}`),
+  "operations-manager": {
+    name: "Operations Manager",
+    description: "Oversees operations, manages tasks and teams across departments with full reporting access",
+    permissions: [
+      "tasks:create", "tasks:view", "tasks:view_all", "tasks:update", "tasks:delete",
+      "tasks:assign", "tasks:reassign", "tasks:approve",
+      "users:view", "users:update",
+      "departments:create", "departments:view", "departments:update",
+      "reports:view", "reports:export",
+      "activity_logs:view",
+      "visit_logs:create", "visit_logs:view", "visit_logs:view_all", "visit_logs:delete",
+      "notifications:manage_rules",
+      "dashboard:manager", "dashboard:staff",
+    ],
   },
-  manager: {
-    name: "Manager",
-    description: "Team and task management with reporting access",
+  "field-coordinator": {
+    name: "Field Coordinator",
+    description: "Coordinates field activities, assigns tasks, and tracks visit logs across teams",
     permissions: [
       "tasks:create", "tasks:view", "tasks:view_all", "tasks:update", "tasks:assign",
-      "tasks:reassign", "tasks:approve",
+      "users:view",
+      "departments:view",
+      "reports:view",
+      "activity_logs:view",
+      "visit_logs:create", "visit_logs:view", "visit_logs:view_all",
+      "dashboard:manager", "dashboard:staff",
+    ],
+  },
+  "sales-officer": {
+    name: "Sales Officer",
+    description: "Manages sales-related tasks and logs field visits",
+    permissions: [
+      "tasks:create", "tasks:view", "tasks:update",
+      "users:view",
+      "departments:view",
+      "visit_logs:create", "visit_logs:view",
+      "dashboard:staff",
+    ],
+  },
+  "partner-onboarding-officer": {
+    name: "Partner Onboarding Officer",
+    description: "Handles partner onboarding tasks and manages new user creation",
+    permissions: [
+      "tasks:create", "tasks:view", "tasks:update",
+      "users:create", "users:view",
+      "departments:view",
+      "visit_logs:create", "visit_logs:view",
+      "dashboard:staff",
+    ],
+  },
+  finance: {
+    name: "Finance",
+    description: "Reviews task progress and generates financial and operational reports",
+    permissions: [
+      "tasks:view", "tasks:view_all",
+      "users:view",
+      "departments:view",
+      "reports:view", "reports:export",
+      "activity_logs:view",
+      "visit_logs:view", "visit_logs:view_all",
+      "dashboard:staff",
+    ],
+  },
+  "viewer-auditor": {
+    name: "Viewer / Auditor",
+    description: "Read-only access to tasks, reports, audit logs, and visit logs for compliance review",
+    permissions: [
+      "tasks:view", "tasks:view_all",
       "users:view",
       "roles:view",
       "departments:view",
       "reports:view", "reports:export",
       "activity_logs:view",
-      "dashboard:manager", "dashboard:staff",
-    ],
-  },
-  staff: {
-    name: "Staff",
-    description: "Task execution and personal task management",
-    permissions: [
-      "tasks:create", "tasks:view", "tasks:update",
-      "users:view",
-      "departments:view",
-      "dashboard:staff",
-    ],
-  },
-  viewer: {
-    name: "Viewer",
-    description: "Read-only access to tasks and reports",
-    permissions: [
-      "tasks:view",
-      "users:view",
-      "departments:view",
-      "reports:view",
+      "visit_logs:view", "visit_logs:view_all",
       "dashboard:staff",
     ],
   },
