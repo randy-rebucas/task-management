@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/db";
 import User from "@/models/User";
-import { createUserSchema } from "@/lib/validators";
+import { createUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 
 export async function POST(req: NextRequest) {
@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
     action: "user.registered",
     resource: "user",
     resourceId: user._id,
-    meta: { email: user.email },
+    details: { email: user.email },
+    req,
   });
 
   return NextResponse.json({ message: "Registration successful" }, { status: 201 });

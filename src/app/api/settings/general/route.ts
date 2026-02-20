@@ -1,4 +1,3 @@
-
 import AppSetting from "@/models/AppSetting";
 import { dbConnect } from "@/lib/db";
 import { NextResponse } from "next/server";
