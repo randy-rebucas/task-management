@@ -5,6 +5,7 @@ interface TaskStatusBadgeProps {
 }
 
 export function TaskStatusBadge({ status }: TaskStatusBadgeProps) {
+  if (!status) return <Badge variant="outline">Unknown</Badge>;
   return (
     <Badge
       variant="outline"

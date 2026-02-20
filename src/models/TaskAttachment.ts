@@ -9,6 +9,7 @@ const TaskAttachmentSchema = new Schema<ITaskAttachment>(
     fileUrl: { type: String, required: true },
     fileSize: { type: Number, required: true },
     mimeType: { type: String, required: true },
+    attachmentType: { type: String, enum: ["file", "voice_note"], default: "file" },
     isProofOfWork: { type: Boolean, default: false },
   },
   { timestamps: true }

@@ -25,6 +25,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
   const formData = await req.formData();
   const file = formData.get("file") as File;
   const isProofOfWork = formData.get("isProofOfWork") === "true";
+  const attachmentType = formData.get("attachmentType") === "voice_note" ? "voice_note" : "file";
 
   if (!file) return apiError("No file provided");
 
@@ -52,6 +53,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
     fileUrl: `/uploads/${taskId}/${fileName}`,
     fileSize: file.size,
     mimeType: file.type,
+    attachmentType,
     isProofOfWork,
   });
 

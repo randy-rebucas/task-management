@@ -69,6 +69,24 @@ export interface IDepartment {
   updatedAt: Date;
 }
 
+export type TaskType =
+  | "field_visit"
+  | "client_meeting"
+  | "orientation_event"
+  | "lead_follow_up"
+  | "proposal_submission"
+  | "collection_payment"
+  | "partner_onboarding"
+  | "internal_task";
+
+export interface ISubtask {
+  _id: Types.ObjectId;
+  title: string;
+  completed: boolean;
+  completedAt?: Date;
+  assignee?: Types.ObjectId;
+}
+
 export interface ITask {
   _id: Types.ObjectId;
   taskNumber: string;
@@ -76,6 +94,7 @@ export interface ITask {
   description: string;
   status: Types.ObjectId;
   priority: "low" | "medium" | "high" | "urgent";
+  taskType?: TaskType;
   category?: string;
   assignees: Types.ObjectId[];
   createdBy: Types.ObjectId;
@@ -86,6 +105,14 @@ export interface ITask {
   estimatedHours?: number;
   actualHours: number;
   tags: string[];
+  isRecurring: boolean;
+  recurringConfig?: {
+    frequency: "daily" | "weekly" | "monthly" | "yearly";
+    interval: number;
+    daysOfWeek?: number[];
+    endDate?: Date;
+  };
+  subtasks: ISubtask[];
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -110,6 +137,7 @@ export interface ITaskAttachment {
   fileUrl: string;
   fileSize: number;
   mimeType: string;
+  attachmentType: "file" | "voice_note";
   isProofOfWork: boolean;
   createdAt: Date;
   updatedAt: Date;

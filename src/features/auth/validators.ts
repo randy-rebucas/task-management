@@ -74,28 +74,69 @@ export const updateUserSchema = z.object({
 	isActive: z.boolean().optional(),
 });
 
+const taskTypeEnum = z.enum([
+	"field_visit",
+	"client_meeting",
+	"orientation_event",
+	"lead_follow_up",
+	"proposal_submission",
+	"collection_payment",
+	"partner_onboarding",
+	"internal_task",
+]);
+
+const recurringConfigSchema = z.object({
+	frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
+	interval: z.number().min(1).default(1),
+	daysOfWeek: z.array(z.number().min(0).max(6)).optional(),
+	endDate: z.string().optional(),
+});
+
+export const createSubtaskSchema = z.object({
+	title: z.string().min(1).max(200),
+	assignee: z.string().optional(),
+});
+
+export const updateSubtaskSchema = z.object({
+	completed: z.boolean(),
+});
+
 // Tasks
 export const createTaskSchema = z.object({
 	title: z.string().min(1).max(200),
 	description: z.string().optional(),
 	priority: z.enum(["low", "medium", "high", "urgent"]),
+	taskType: taskTypeEnum.optional(),
 	dueDate: z.string().optional(),
-	assignee: z.string().optional(),
+	startDate: z.string().optional(),
+	assignees: z.array(z.string()).optional(),
 	department: z.string().optional(),
+	estimatedHours: z.number().min(0).optional(),
+	tags: z.array(z.string()).optional(),
+	category: z.string().optional(),
 	attachments: z.array(z.string()).optional(),
 	dependencies: z.array(z.string()).optional(),
+	isRecurring: z.boolean().optional(),
+	recurringConfig: recurringConfigSchema.optional(),
 });
 
 export const updateTaskSchema = z.object({
 	title: z.string().min(1).max(200).optional(),
 	description: z.string().optional(),
 	priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+	taskType: taskTypeEnum.optional(),
 	dueDate: z.string().optional(),
-	assignee: z.string().optional(),
+	startDate: z.string().optional(),
+	assignees: z.array(z.string()).optional(),
 	department: z.string().optional(),
+	estimatedHours: z.number().min(0).optional(),
+	tags: z.array(z.string()).optional(),
+	category: z.string().optional(),
 	attachments: z.array(z.string()).optional(),
 	dependencies: z.array(z.string()).optional(),
 	status: z.string().optional(),
+	isRecurring: z.boolean().optional(),
+	recurringConfig: recurringConfigSchema.optional(),
 });
 
 export const createCommentSchema = z.object({
