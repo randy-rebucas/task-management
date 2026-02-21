@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createTimeLogSchema } from "@/features/auth/validators";
 import TaskTimeLog from "@/models/TaskTimeLog";
+import Department from "@/models/Department";
 import Task from "@/models/Task";
 
 export const GET = withPermission("tasks:view", async (req, ctx) => {
