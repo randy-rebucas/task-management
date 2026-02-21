@@ -1,4 +1,5 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { getUserPermissions, checkPermission } from "@/features/auth/rbac";
 import { statusTransitionSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
@@ -50,6 +51,19 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
   // Check remarks requirement
   if (transition.requiresRemarks && !parsed.data.remarks) {
     return apiError("Remarks are required for this status transition", 400);
+  }
+
+  // Closing/finalising a task requires either being an assignee OR having tasks:approve
+  if (toStatus.isFinal) {
+    const isAssignee = (task.assignees as unknown as { toString(): string }[]).some(
+      (a) => a.toString() === session.user.id
+    );
+    if (!isAssignee) {
+      const userPerms = await getUserPermissions(session.user.roles);
+      if (!checkPermission(userPerms, "tasks:approve")) {
+        return apiError("Only task assignees or users with approval permission can close tasks", 403);
+      }
+    }
   }
 
   const previousStatusName = fromStatus?.name;

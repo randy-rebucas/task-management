@@ -15,24 +15,35 @@ import AppSetting from "../src/models/AppSetting";
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/task-management";
 
+const DEPARTMENTS = [
+  { name: "Business Operations",                       code: "BIZ-OPS",  description: "Manages overall business operations, processes, and cross-functional coordination." },
+  { name: "Customer Success",                          code: "CX",       description: "Ensures client satisfaction, retention, and long-term relationship management." },
+  { name: "Finance & Legal",                           code: "FIN-LEG",  description: "Oversees financial planning, reporting, compliance, and legal affairs." },
+  { name: "Marketing & Growth",                        code: "MKT",      description: "Drives brand awareness, lead generation, and growth campaigns." },
+  { name: "Sales & Partnerships",                      code: "SALES",    description: "Manages sales pipelines, partner deals, and revenue generation." },
+  { name: "Service Provider Onboarding & Quality Control", code: "SPQC", description: "Handles onboarding of service providers and maintains quality standards." },
+  { name: "Tech & Product",                            code: "TECH",     description: "Builds and maintains the product, infrastructure, and technical systems." },
+  { name: "Academy / Training Division",               code: "ACADEMY",  description: "Develops training programs, learning materials, and staff development initiatives." },
+];
 
 async function seed() {
   console.log("Connecting to MongoDB...");
   await mongoose.connect(MONGODB_URI);
   console.log("Connected.");
 
-  // Cleanup collections
+  // ── Cleanup ────────────────────────────────────────────────────────────────
   console.log("\n--- Cleaning up existing data ---");
   await Promise.all([
     Permission.deleteMany({}),
     Role.deleteMany({}),
     User.deleteMany({}),
     WorkflowStatus.deleteMany({}),
+    Department.deleteMany({}),
     AppSetting.deleteMany({}),
   ]);
   console.log("All relevant collections cleared.");
 
-  // 1. Seed Permissions
+  // ── 1. Seed Permissions ────────────────────────────────────────────────────
   console.log("\n--- Seeding Permissions ---");
   for (const perm of PERMISSIONS) {
     await Permission.findOneAndUpdate(
@@ -44,7 +55,7 @@ async function seed() {
   const allPermissions = await Permission.find().lean();
   console.log(`Seeded ${allPermissions.length} permissions.`);
 
-  // 2. Seed Roles
+  // ── 2. Seed Roles ──────────────────────────────────────────────────────────
   console.log("\n--- Seeding Roles ---");
   for (const [slug, def] of Object.entries(ROLE_DEFINITIONS)) {
     const permIds = allPermissions
@@ -65,10 +76,21 @@ async function seed() {
       },
       { upsert: true, new: true }
     );
-    console.log(`  Role "${def.name}" - ${permIds.length} permissions`);
+    console.log(`  Role "${def.name}" — ${permIds.length} permissions`);
   }
 
-  // 3. Seed Workflow Statuses
+  // ── 3. Seed Departments ────────────────────────────────────────────────────
+  console.log("\n--- Seeding Departments ---");
+  for (const dept of DEPARTMENTS) {
+    await Department.findOneAndUpdate(
+      { code: dept.code },
+      { ...dept, isActive: true },
+      { upsert: true, new: true }
+    );
+    console.log(`  Department "${dept.name}" (${dept.code})`);
+  }
+
+  // ── 4. Seed Workflow Statuses ──────────────────────────────────────────────
   console.log("\n--- Seeding Workflow Statuses ---");
   for (const status of DEFAULT_WORKFLOW_STATUSES) {
     await WorkflowStatus.findOneAndUpdate(
@@ -79,12 +101,10 @@ async function seed() {
     console.log(`  Status "${status.name}"`);
   }
 
-  // 4. Seed Super Admin User
+  // ── 5. Seed Super Admin User ───────────────────────────────────────────────
   console.log("\n--- Seeding Super Admin User ---");
   const superAdminRole = await Role.findOne({ slug: "super-admin" });
-  if (!superAdminRole) {
-    throw new Error("Super Admin role not found");
-  }
+  if (!superAdminRole) throw new Error("Super Admin role not found");
 
   const existingAdmin = await User.findOne({ email: "admin@taskmanager.com" });
   if (!existingAdmin) {
@@ -101,12 +121,12 @@ async function seed() {
     console.log("  Super admin already exists.");
   }
 
-  // 5. Seed App Settings
+  // ── 6. Seed App Settings ───────────────────────────────────────────────────
   console.log("\n--- Seeding App Settings ---");
   const defaultSettings = [
-    { key: "theme", value: "light" },
-    { key: "paginationLimit", value: 20 },
-    { key: "fileUploadMaxSize", value: 10485760 }, // 10MB
+    { key: "theme",              value: "light" },
+    { key: "paginationLimit",    value: 20 },
+    { key: "fileUploadMaxSize",  value: 10485760 }, // 10 MB
   ];
   for (const setting of defaultSettings) {
     await AppSetting.findOneAndUpdate(

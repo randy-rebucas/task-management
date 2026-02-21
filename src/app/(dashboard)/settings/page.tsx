@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, Bell, Settings, Zap } from "lucide-react";
+import { Plus, Pencil, Trash2, Bell, Settings, Zap, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/features/auth/use-permissions";
 import useSWR from "swr";
@@ -119,6 +119,25 @@ export default function SettingsPage() {
   }, [generalSettings]);
 
   const [settingsSubmitting, setSettingsSubmitting] = useState(false);
+
+  const [syncingPermissions, setSyncingPermissions] = useState(false);
+
+  async function handleSyncPermissions() {
+    setSyncingPermissions(true);
+    try {
+      const res = await fetch("/api/admin/sync-permissions", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Sync failed");
+      const { permissions: p, roles: r } = json.data.results;
+      toast.success(
+        `Sync complete — ${p.added} permissions added, ${p.updated} updated; ${r.created} roles created, ${r.updated} updated`
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sync permissions");
+    } finally {
+      setSyncingPermissions(false);
+    }
+  }
 
   async function handleSettingsSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -385,6 +404,34 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* System Maintenance */}
+        {can("settings:manage") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" /> System Maintenance
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Sync permission definitions and system roles from config to the database.
+                Run this after deploying updates that add or modify permissions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleSyncPermissions}
+                disabled={syncingPermissions}
+                variant="outline"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncingPermissions ? "animate-spin" : ""}`} />
+                {syncingPermissions ? "Syncing..." : "Sync Permissions & Roles"}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Safe to run at any time — never deletes custom roles or user data.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Notification Rules (existing code) */}
         <Card>
