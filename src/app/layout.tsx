@@ -28,6 +28,10 @@ export const metadata: Metadata = {
   title: "Task Manager",
   description: "Web-based Task Management System with RBAC",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
