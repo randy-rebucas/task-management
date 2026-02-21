@@ -58,15 +58,15 @@ export function RegisterForm() {
 
   if (success) {
     return (
-      <Card>
+      <Card className="mx-auto w-full max-w-md shadow-lg border border-border bg-white/90 dark:bg-card/90">
         <CardHeader className="text-center">
-          <CardTitle>Registration successful</CardTitle>
+          <CardTitle className="text-2xl font-bold">Registration successful</CardTitle>
           <CardDescription>
             You can now sign in with your credentials.
           </CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">
-          <Link href="/login" className="text-sm text-primary hover:underline">
+          <Link href="/login" className="text-sm text-primary hover:underline text-center">
             Back to sign in
           </Link>
         </CardFooter>
@@ -75,30 +75,31 @@ export function RegisterForm() {
   }
 
   return (
-    <Card>
+    <Card className="mx-auto w-full max-w-md shadow-lg border border-border bg-white/90 dark:bg-card/90">
       <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl">Register</CardTitle>
+        <CardTitle className="text-2xl font-bold">Register</CardTitle>
         <CardDescription>Create your account</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <CardContent className="space-y-5 flex flex-col gap-4">
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive text-center font-medium">
               {error}
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-left">Email</Label>
             <Input
               id="email"
               type="email"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               required
+              className="h-11"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-left">Password</Label>
             <Input
               id="password"
               type="password"
@@ -106,36 +107,39 @@ export function RegisterForm() {
               onChange={(e) => handleChange("password", e.target.value)}
               required
               minLength={8}
+              className="h-11"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="firstName" className="text-left">First Name</Label>
             <Input
               id="firstName"
               type="text"
               value={form.firstName}
               onChange={(e) => handleChange("firstName", e.target.value)}
               required
+              className="h-11"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="lastName" className="text-left">Last Name</Label>
             <Input
               id="lastName"
               type="text"
               value={form.lastName}
               onChange={(e) => handleChange("lastName", e.target.value)}
               required
+              className="h-11"
             />
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full" disabled={loading}>
+        <CardFooter className="flex flex-col gap-3 mt-2">
+          <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
             Register
           </Button>
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-primary"
+            className="text-sm text-muted-foreground hover:text-primary text-center"
           >
             Already have an account?
           </Link>
