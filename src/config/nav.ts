@@ -19,6 +19,7 @@ import {
   Trophy,
   ShieldCheck,
   LineChart,
+  Smartphone,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,11 @@ export const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Field Hub",
+    href: "/field",
+    icon: Smartphone,
   },
   {
     title: "My Tasks",

@@ -1,0 +1,34 @@
+{
+  "name": "Task Manager",
+  "short_name": "TaskMgr",
+  "description": "Field coordinator task management — check tasks, log visits, upload proof, update CRM, submit reports.",
+  "start_url": "/field",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/next.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Tasks",
+      "url": "/my-tasks",
+      "description": "View your assigned tasks"
+    },
+    {
+      "name": "Log Visit",
+      "url": "/visit-logs/new",
+      "description": "Record a new site visit"
+    },
+    {
+      "name": "Upload Proof",
+      "url": "/proof-of-work",
+      "description": "Submit proof of work"
+    }
+  ]
+}
