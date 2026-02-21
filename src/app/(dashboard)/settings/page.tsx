@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, Bell, Settings } from "lucide-react";
+import { Plus, Pencil, Trash2, Bell, Settings, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/features/auth/use-permissions";
 import useSWR from "swr";
@@ -43,6 +43,7 @@ const generalSettingsFetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+
 interface NotificationRule {
   _id: string;
   name: string;
@@ -59,6 +60,47 @@ export default function SettingsPage() {
   // Ensure rules is always an array
   const rules: NotificationRule[] = Array.isArray(rulesRaw) ? rulesRaw : rulesRaw?.data || [];
   const { data: generalSettings, isLoading: loadingSettings, mutate: mutateSettings } = useSWR("/api/settings/general", generalSettingsFetcher);
+  const { data: automationRaw, isLoading: loadingAutomation, mutate: mutateAutomation } = useSWR("/api/settings/automation", fetcher);
+
+  const [automationForm, setAutomationForm] = useState({
+    "automation.followUpTask":      true as boolean,
+    "automation.escalation":        true as boolean,
+    "automation.escalationDays":    3    as number,
+    "automation.performanceReport": true as boolean,
+    "automation.fieldSummary":      true as boolean,
+  });
+  useEffect(() => {
+    if (automationRaw) {
+      setAutomationForm({
+        "automation.followUpTask":      automationRaw["automation.followUpTask"]      ?? true,
+        "automation.escalation":        automationRaw["automation.escalation"]        ?? true,
+        "automation.escalationDays":    automationRaw["automation.escalationDays"]    ?? 3,
+        "automation.performanceReport": automationRaw["automation.performanceReport"] ?? true,
+        "automation.fieldSummary":      automationRaw["automation.fieldSummary"]      ?? true,
+      });
+    }
+  }, [automationRaw]);
+
+  const [automationSubmitting, setAutomationSubmitting] = useState(false);
+
+  async function handleAutomationSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAutomationSubmitting(true);
+    try {
+      const res = await fetch("/api/settings/automation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(automationForm),
+      });
+      if (!res.ok) throw new Error("Failed to update automation settings");
+      toast.success("Automation settings updated");
+      mutateAutomation();
+    } catch {
+      toast.error("Failed to update automation settings");
+    } finally {
+      setAutomationSubmitting(false);
+    }
+  }
 
   // General settings form state
   const [settingsForm, setSettingsForm] = useState({
@@ -257,6 +299,93 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Automation Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" /> Automation
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Enable or disable automated actions and scheduled jobs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingAutomation ? (
+              <LoadingSkeleton />
+            ) : (
+              <form onSubmit={handleAutomationSubmit} className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Auto follow-up task after meeting</p>
+                    <p className="text-xs text-muted-foreground">Creates a lead_follow_up task 3 days out when a client_meeting is completed</p>
+                  </div>
+                  <Switch
+                    checked={automationForm["automation.followUpTask"]}
+                    onCheckedChange={(v) => setAutomationForm((p) => ({ ...p, "automation.followUpTask": v }))}
+                    disabled={!can("settings:manage")}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Auto escalate overdue tasks</p>
+                    <p className="text-xs text-muted-foreground">Notifies Operations Managers when tasks are overdue beyond the threshold</p>
+                  </div>
+                  <Switch
+                    checked={automationForm["automation.escalation"]}
+                    onCheckedChange={(v) => setAutomationForm((p) => ({ ...p, "automation.escalation": v }))}
+                    disabled={!can("settings:manage")}
+                  />
+                </div>
+                {automationForm["automation.escalation"] && (
+                  <div className="ml-4 space-y-1">
+                    <Label htmlFor="escalationDays">Escalation threshold (days overdue)</Label>
+                    <Input
+                      id="escalationDays"
+                      type="number"
+                      min={1}
+                      max={30}
+                      className="w-24"
+                      value={automationForm["automation.escalationDays"]}
+                      onChange={(e) => setAutomationForm((p) => ({ ...p, "automation.escalationDays": Number(e.target.value) }))}
+                      disabled={!can("settings:manage")}
+                    />
+                  </div>
+                )}
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Weekly performance report</p>
+                    <p className="text-xs text-muted-foreground">Emails a team performance summary to admins and managers every Saturday</p>
+                  </div>
+                  <Switch
+                    checked={automationForm["automation.performanceReport"]}
+                    onCheckedChange={(v) => setAutomationForm((p) => ({ ...p, "automation.performanceReport": v }))}
+                    disabled={!can("settings:manage")}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Daily AI field summary</p>
+                    <p className="text-xs text-muted-foreground">Generates an AI summary of daily visit logs and field sessions for management</p>
+                  </div>
+                  <Switch
+                    checked={automationForm["automation.fieldSummary"]}
+                    onCheckedChange={(v) => setAutomationForm((p) => ({ ...p, "automation.fieldSummary": v }))}
+                    disabled={!can("settings:manage")}
+                  />
+                </div>
+                {can("settings:manage") && (
+                  <Button type="submit" disabled={automationSubmitting}>
+                    {automationSubmitting ? "Saving..." : "Save Automation Settings"}
+                  </Button>
+                )}
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Notification Rules (existing code) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -379,6 +508,9 @@ export default function SettingsPage() {
                   <SelectItem value="lead-stagnation">Lead Stagnation</SelectItem>
                   <SelectItem value="field-inactive">Field Coordinator Inactive</SelectItem>
                   <SelectItem value="weekly-summary">Weekly Summary</SelectItem>
+                  <SelectItem value="task-escalated">Task Escalated</SelectItem>
+                  <SelectItem value="weekly-performance-report">Weekly Performance Report</SelectItem>
+                  <SelectItem value="daily-field-summary">Daily Field Summary</SelectItem>
                 </SelectContent>
               </Select>
             </div>

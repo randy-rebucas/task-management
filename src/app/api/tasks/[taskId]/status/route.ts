@@ -7,6 +7,7 @@ import WorkflowStatus from "@/models/WorkflowStatus";
 import WorkflowTransition from "@/models/WorkflowTransition";
 import TaskComment from "@/models/TaskComment";
 import Role from "@/models/Role";
+import AppSetting from "@/models/AppSetting";
 
 export const PATCH = withPermission("tasks:update", async (req, ctx, session) => {
   const { taskId } = await ctx.params;
@@ -59,6 +60,34 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
   }
 
   await task.save();
+
+  // Auto-create a follow-up task when a client_meeting is completed (if enabled)
+  const followUpEnabled = await AppSetting.findOne({ key: "automation.followUpTask" }).lean();
+  if (toStatus.isFinal && task.taskType === "client_meeting" && (followUpEnabled ? Boolean(followUpEnabled.value) : true)) {
+    const defaultStatus = await WorkflowStatus.findOne({ isDefault: true, isActive: true });
+    if (defaultStatus) {
+      const taskCount = await Task.countDocuments();
+      const followUp = await Task.create({
+        taskNumber: `TASK-${String(taskCount + 1).padStart(4, "0")}`,
+        title: `Follow-up: ${task.title}`,
+        description: `Auto-generated follow-up from completed meeting: ${task.taskNumber}`,
+        taskType: "lead_follow_up",
+        status: defaultStatus._id,
+        priority: task.priority,
+        assignees: task.assignees,
+        createdBy: session.user.id,
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        ...(task.client && { client: task.client }),
+        ...(task.lead   && { lead:   task.lead   }),
+        ...(task.deal   && { deal:   task.deal   }),
+      });
+      await triggerNotification("task_assigned", {
+        taskId: followUp._id.toString(),
+        actorId: session.user.id,
+        data: { taskTitle: followUp.title, actorName: session.user.name },
+      });
+    }
+  }
 
   // Add system comment for the transition
   if (parsed.data.remarks) {
