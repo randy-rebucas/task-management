@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { PageHeader } from "@/components/shared/page-header";
@@ -34,6 +34,7 @@ export default function EditStaffPage({
   const { data: departments } = useSWR("/api/departments", fetcher);
 
   const [submitting, setSubmitting] = useState(false);
+  const initialized = useRef(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -46,7 +47,8 @@ export default function EditStaffPage({
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && departments && !initialized.current) {
+      initialized.current = true;
       setForm({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
@@ -58,7 +60,7 @@ export default function EditStaffPage({
         isActive: user.isActive ?? true,
       });
     }
-  }, [user]);
+  }, [user, departments]);
 
   function handleChange(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));

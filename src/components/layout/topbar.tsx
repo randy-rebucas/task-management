@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { Bell, LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu, User, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,9 +15,21 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { MobileNav } from "./mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { useSubscription } from "@/hooks/use-subscription";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+const PLAN_LABEL: Record<string, string> = {
+  starter: "Starter",
+  growth: "Growth",
+  business: "Business",
+  enterprise: "Enterprise",
+};
 
 export function Topbar() {
   const { data: session } = useSession();
+  const { subscription, isLoading, isActive, isTrialing, trialDaysLeft } = useSubscription();
+
   const initials = session?.user?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -42,7 +54,38 @@ export function Topbar() {
         </Sheet>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {/* Subscription badge */}
+        {!isLoading && (
+          <>
+            {subscription && isActive ? (
+              <Link
+                href="/settings/subscription"
+                className={cn(
+                  "hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-opacity hover:opacity-80",
+                  isTrialing
+                    ? "bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/30"
+                    : "bg-primary/10 text-primary ring-1 ring-primary/20"
+                )}
+              >
+                <Zap className="h-3 w-3" />
+                {PLAN_LABEL[subscription.plan] ?? subscription.plan}
+                {isTrialing && trialDaysLeft !== null && (
+                  <span className="ml-1 opacity-70">· {trialDaysLeft}d trial</span>
+                )}
+              </Link>
+            ) : !subscription ? (
+              <Link
+                href="/#pricing"
+                className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-muted text-muted-foreground ring-1 ring-border hover:bg-accent transition-colors"
+              >
+                <Zap className="h-3 w-3" />
+                No plan
+              </Link>
+            ) : null}
+          </>
+        )}
+
         <NotificationBell />
 
         <DropdownMenu>
@@ -64,7 +107,7 @@ export function Topbar() {
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <a href="/settings" className="flex items-center gap-2">
+              <a href="/settings/profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile
               </a>

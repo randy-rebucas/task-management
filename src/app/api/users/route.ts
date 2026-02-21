@@ -1,5 +1,4 @@
-import { NextRequest } from "next/server";
-import Department from "@/models/Department";
+import "@/models/Department"; // register schema so User.populate("department") works
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
@@ -43,7 +42,7 @@ export const GET = withPermission("users:view", async (req) => {
   });
 });
 
-export const POST = withPermission("users:create", async (req, ctx, session) => {
+export const POST = withPermission("users:create", async (req, _ctx, session) => {
   const body = await req.json();
   const parsed = createUserSchema.safeParse(body);
   if (!parsed.success) {

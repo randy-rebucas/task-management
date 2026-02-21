@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 import {
   CheckCircle,
@@ -94,7 +96,10 @@ const leaderboard = [
   { name: "Carlos R.", score: 76, tasks: 31 },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (session?.user) redirect("/dashboard");
+
   return (
     <div className="min-h-screen bg-[#080d1a] text-white overflow-x-hidden">
       {/* ── Navbar ── */}
@@ -819,7 +824,7 @@ export default function Home() {
               </div>
 
               <Link
-                href="/login"
+                href="/subscribe/starter"
                 className="block w-full text-center py-2.5 rounded-xl border border-white/15 text-sm font-semibold hover:bg-white/5 transition-colors mb-6"
               >
                 Start Free Trial
@@ -857,7 +862,7 @@ export default function Home() {
                 </div>
 
                 <Link
-                  href="/login"
+                  href="/subscribe/growth"
                   className="block w-full text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-blue-500/20 mb-6"
                 >
                   Start Free Trial
@@ -895,7 +900,7 @@ export default function Home() {
               </div>
 
               <Link
-                href="/login"
+                href="/subscribe/business"
                 className="block w-full text-center py-2.5 rounded-xl border border-white/15 text-sm font-semibold hover:bg-white/5 transition-colors mb-6"
               >
                 Start Free Trial

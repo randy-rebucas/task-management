@@ -20,6 +20,9 @@ import {
   ShieldCheck,
   LineChart,
   Smartphone,
+  CreditCard,
+  UserCircle,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -148,5 +151,11 @@ export const navItems: NavItem[] = [
     href: "/settings",
     icon: Settings,
     permission: "notifications:manage_rules",
+    children: [
+      { title: "General",      href: "/settings",              icon: Settings,    permission: "notifications:manage_rules" },
+      { title: "Profile",      href: "/settings/profile",      icon: UserCircle },
+      { title: "Subscription", href: "/settings/subscription", icon: Zap },
+      { title: "Billing",      href: "/settings/billing",      icon: CreditCard,  permission: "settings:manage" },
+    ],
   },
 ];
