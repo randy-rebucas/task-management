@@ -45,31 +45,52 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="hidden w-64 border-r bg-sidebar lg:flex lg:flex-col">
+    <aside className="hidden w-64 border-r bg-sidebar lg:flex lg:flex-col overflow-hidden">
       <div className="flex h-16 items-center gap-2 border-b px-6 shrink-0">
         <CheckSquare className="h-6 w-6 text-primary" />
         <span className="text-lg font-semibold">Task Manager</span>
       </div>
 
-      <ScrollArea className="flex-1">
-        <nav className="space-y-1 p-4">
-          {filteredItems.map((item) =>
-            item.children ? (
-              <SidebarGroup
-                key={item.href}
-                item={item}
-                pathname={pathname}
-                can={can}
-                isSuperAdmin={isSuperAdmin}
-              />
-            ) : (
-              <SidebarItem
-                key={item.href}
-                item={item}
-                isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-              />
-            )
-          )}
+      <ScrollArea className="flex-1 min-h-0">
+        <nav className="p-3 space-y-0.5">
+          {(() => {
+            const groups: { label: string; items: typeof filteredItems }[] = [];
+            for (const item of filteredItems) {
+              const label = item.group ?? "";
+              const last = groups[groups.length - 1];
+              if (last && last.label === label) {
+                last.items.push(item);
+              } else {
+                groups.push({ label, items: [item] });
+              }
+            }
+            return groups.map(({ label, items }) => (
+              <div key={label} className="mb-1">
+                {label && (
+                  <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none">
+                    {label}
+                  </p>
+                )}
+                {items.map((item) =>
+                  item.children ? (
+                    <SidebarGroup
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                      can={can}
+                      isSuperAdmin={isSuperAdmin}
+                    />
+                  ) : (
+                    <SidebarItem
+                      key={item.href}
+                      item={item}
+                      isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+                    />
+                  )
+                )}
+              </div>
+            ));
+          })()}
         </nav>
       </ScrollArea>
 
