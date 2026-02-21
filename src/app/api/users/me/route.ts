@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Department from "@/models/Department";
 import { auth } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { getUserPermissions } from "@/features/auth/rbac";

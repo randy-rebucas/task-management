@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import Department from "@/models/Department";
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";

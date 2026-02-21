@@ -1,4 +1,5 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import Department from "@/models/Department";
 import { updateUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import User from "@/models/User";

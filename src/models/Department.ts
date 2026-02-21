@@ -13,7 +13,6 @@ const DepartmentSchema = new Schema<IDepartment>(
   { timestamps: true }
 );
 
-DepartmentSchema.index({ code: 1 });
 DepartmentSchema.index({ isActive: 1 });
 
 const Department: Model<IDepartment> =
