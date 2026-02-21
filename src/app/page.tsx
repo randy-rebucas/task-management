@@ -11,6 +11,11 @@ import {
   TrendingUp,
   Target,
   Bell,
+  Camera,
+  Trophy,
+  ScanLine,
+  Star,
+  FileCheck,
 } from "lucide-react";
 
 const features = [
@@ -368,6 +373,368 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature highlight: Field Monitoring ── */}
+      <section className="py-28 px-6 border-t border-white/[0.07] bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            {/* Mockup – LEFT */}
+            <div className="relative order-2 lg:order-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/15 to-teal-600/15 rounded-3xl blur-3xl" />
+              <div className="relative rounded-3xl border border-white/[0.09] bg-[#0d1426] p-6">
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-sm font-semibold">Field Sessions</p>
+                    <p className="text-xs text-white/35 mt-0.5">Live · 3 active now</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Live Tracking
+                  </div>
+                </div>
+
+                {/* GPS grid mockup */}
+                <div className="mb-5 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 relative overflow-hidden h-36">
+                  <div className="absolute inset-0 grid grid-cols-10 grid-rows-5">
+                    {Array.from({ length: 50 }).map((_, i) => (
+                      <div key={i} className="border-[0.5px] border-white/[0.04]" />
+                    ))}
+                  </div>
+                  {/* Coverage blobs */}
+                  <div className="absolute top-4 left-8 w-16 h-14 bg-emerald-500/20 rounded-full blur-xl" />
+                  <div className="absolute top-8 left-[55%] w-14 h-12 bg-blue-500/20 rounded-full blur-xl" />
+                  <div className="absolute bottom-4 left-[30%] w-12 h-10 bg-violet-500/20 rounded-full blur-xl" />
+                  {/* Staff pins */}
+                  {[
+                    { top: "22%", left: "22%", label: "A", color: "#10b981" },
+                    { top: "45%", left: "58%", label: "J", color: "#6366f1" },
+                    { top: "68%", left: "38%", label: "M", color: "#3b82f6" },
+                  ].map((pin) => (
+                    <div
+                      key={pin.label}
+                      className="absolute flex flex-col items-center -translate-x-1/2 -translate-y-1/2"
+                      style={{ top: pin.top, left: pin.left }}
+                    >
+                      <div
+                        className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg ring-2 ring-white/20"
+                        style={{ background: pin.color }}
+                      >
+                        {pin.label}
+                      </div>
+                      <div className="w-px h-2 opacity-60" style={{ background: pin.color }} />
+                      <div className="h-1 w-1 rounded-full opacity-40" style={{ background: pin.color }} />
+                    </div>
+                  ))}
+                  <p className="absolute bottom-2 right-3 text-[10px] text-white/20">GPS Coverage Map</p>
+                </div>
+
+                {/* Session rows */}
+                <div className="space-y-2.5">
+                  {[
+                    { name: "Aisha T.", location: "Zone A – Downtown", checkin: "08:14 AM", photos: 6 },
+                    { name: "James M.", location: "Zone C – Westside", checkin: "09:02 AM", photos: 3 },
+                    { name: "Marcus L.", location: "Zone B – Midtown", checkin: "09:45 AM", photos: 4 },
+                  ].map((session) => (
+                    <div
+                      key={session.name}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.05]"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-bold shrink-0">
+                        {session.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{session.name}</div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 text-white/30 shrink-0" />
+                          <span className="text-xs text-white/35 truncate">{session.location}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center gap-1 text-xs text-white/35 justify-end">
+                          <Camera className="h-3 w-3" />
+                          {session.photos}
+                        </div>
+                        <div className="text-[10px] text-white/25 mt-0.5">{session.checkin}</div>
+                      </div>
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Copy – RIGHT */}
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-sm mb-6">
+                <MapPin className="h-3.5 w-3.5" />
+                <span>Real-time field intelligence</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 leading-[1.15]">
+                Know exactly where
+                <br />
+                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                  your team is
+                </span>
+              </h2>
+              <p className="text-white/50 text-base leading-relaxed mb-8">
+                Live GPS session tracking, photo proof-of-work, and automatic
+                check-in/check-out — all in one dashboard. No more calling staff
+                to confirm their whereabouts.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "Live GPS coverage map with staff location pins",
+                  "Photo proof-of-work with timestamps",
+                  "QR code check-in at client sites",
+                  "Auto-generated visit log reports",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-white/65">
+                    <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 mt-10 px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20"
+              >
+                See It Live
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature highlight: Performance ── */}
+      <section className="py-28 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            {/* Copy – LEFT */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-sm mb-6">
+                <Trophy className="h-3.5 w-3.5" />
+                <span>Drive a culture of excellence</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 leading-[1.15]">
+                Performance rules
+                <br />
+                <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+                  you actually control
+                </span>
+              </h2>
+              <p className="text-white/50 text-base leading-relaxed mb-8">
+                Define exactly how scores are calculated — weight tasks by
+                priority, reward early completions, deduct for overdue items.
+                Set individual and team targets then watch the numbers move.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "Custom scoring rules by task type & priority",
+                  "Individual & team performance targets",
+                  "Auto-calculated scores — no manual work",
+                  "Achievement streaks & milestone rewards",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-white/65">
+                    <CheckCircle className="h-5 w-5 text-amber-400 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 mt-10 px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/20"
+              >
+                Try It Free
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            {/* Mockup – RIGHT */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/15 to-orange-500/15 rounded-3xl blur-3xl" />
+              <div className="relative rounded-3xl border border-white/[0.09] bg-[#0d1426] p-6">
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-sm font-semibold">Performance Rules</p>
+                    <p className="text-xs text-white/35 mt-0.5">Active · 4 rules configured</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-amber-400">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} className={`h-3.5 w-3.5 ${s <= 4 ? "fill-amber-400" : "fill-white/10 text-white/20"}`} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scoring rules */}
+                <div className="space-y-2.5 mb-5">
+                  {[
+                    { rule: "Task completed on time", points: "+10 pts", color: "text-emerald-400" },
+                    { rule: "High-priority task completed", points: "+25 pts", color: "text-blue-400" },
+                    { rule: "Task completed early", points: "+15 pts", color: "text-violet-400" },
+                    { rule: "Task overdue", points: "−8 pts", color: "text-red-400" },
+                  ].map((r) => (
+                    <div key={r.rule} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/[0.05]">
+                      <div className="flex items-center gap-2.5">
+                        <FileCheck className="h-4 w-4 text-white/30 shrink-0" />
+                        <span className="text-sm text-white/70">{r.rule}</span>
+                      </div>
+                      <span className={`text-sm font-bold shrink-0 ${r.color}`}>{r.points}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Target progress */}
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-medium text-white/60">Monthly Target Progress</p>
+                    <span className="text-xs text-amber-400 font-semibold">83% avg</span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {[
+                      { name: "Sarah K.", pct: 94 },
+                      { name: "James M.", pct: 87 },
+                      { name: "Aisha T.", pct: 68 },
+                    ].map((t) => (
+                      <div key={t.name} className="flex items-center gap-3">
+                        <span className="text-xs text-white/40 w-16 shrink-0">{t.name}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-white/[0.08]">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-400"
+                            style={{ width: `${t.pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-white/35 w-8 text-right shrink-0">{t.pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature highlight: Proof of Work ── */}
+      <section className="py-28 px-6 border-t border-white/[0.07] bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            {/* Mockup – LEFT */}
+            <div className="relative order-2 lg:order-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-sky-500/15 to-cyan-600/15 rounded-3xl blur-3xl" />
+              <div className="relative rounded-3xl border border-white/[0.09] bg-[#0d1426] p-6">
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <p className="text-sm font-semibold">Proof of Work</p>
+                    <p className="text-xs text-white/35 mt-0.5">Today · 12 submissions</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-sky-400 bg-sky-400/10 px-2.5 py-1 rounded-full border border-sky-400/20">
+                    <ScanLine className="h-3.5 w-3.5" />
+                    QR Verified
+                  </div>
+                </div>
+
+                {/* QR scan strip */}
+                <div className="mb-5 flex items-center gap-3 p-3.5 rounded-2xl border border-sky-500/20 bg-sky-500/[0.07]">
+                  <div className="h-12 w-12 rounded-xl border border-sky-500/30 bg-sky-500/10 flex items-center justify-center shrink-0">
+                    <ScanLine className="h-6 w-6 text-sky-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-sky-300">QR Code Scanned</p>
+                    <p className="text-xs text-white/35 mt-0.5">Site: Greenfield Office · 09:12 AM</p>
+                  </div>
+                  <div className="ml-auto shrink-0 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg border border-emerald-400/20 font-medium">
+                    ✓ Valid
+                  </div>
+                </div>
+
+                {/* Submission rows */}
+                <div className="space-y-2.5">
+                  {[
+                    { name: "Aisha T.", task: "Site inspection – Block A", photos: 5, time: "09:14 AM", status: "approved" },
+                    { name: "Carlos R.", task: "Equipment delivery – Bay 3", photos: 3, time: "10:02 AM", status: "approved" },
+                    { name: "James M.", task: "Client meeting notes", photos: 2, time: "10:45 AM", status: "pending" },
+                  ].map((sub) => (
+                    <div key={sub.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/[0.05]">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-sky-500 to-cyan-600 flex items-center justify-center text-xs font-bold shrink-0">
+                        {sub.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{sub.task}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Camera className="h-3 w-3 text-white/30" />
+                          <span className="text-xs text-white/35">{sub.photos} photos · {sub.time}</span>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-semibold px-2 py-1 rounded-lg border shrink-0 ${
+                        sub.status === "approved"
+                          ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20"
+                          : "text-amber-400 bg-amber-400/10 border-amber-400/20"
+                      }`}>
+                        {sub.status === "approved" ? "✓ Approved" : "⏳ Pending"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            </div>
+
+            {/* Copy – RIGHT */}
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-sm mb-6">
+                <ScanLine className="h-3.5 w-3.5" />
+                <span>Verifiable work evidence</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 leading-[1.15]">
+                Evidence your team
+                <br />
+                <span className="bg-gradient-to-r from-sky-400 to-cyan-400 bg-clip-text text-transparent">
+                  actually showed up
+                </span>
+              </h2>
+              <p className="text-white/50 text-base leading-relaxed mb-8">
+                Replace guesswork with verified evidence. Staff scan a QR code
+                on-site, submit timestamped photos, and managers get instant
+                confirmation — all without phone calls or manual check-ins.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "QR code scan verifies on-site presence",
+                  "Timestamped photo submissions per task",
+                  "Manager approval workflow with one click",
+                  "Full audit trail for compliance & disputes",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-white/65">
+                    <CheckCircle className="h-5 w-5 text-sky-400 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 mt-10 px-7 py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-sky-500/20"
+              >
+                See It Live
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
           </div>
         </div>
       </section>
