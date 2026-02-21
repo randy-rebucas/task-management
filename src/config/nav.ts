@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Trophy,
   ShieldCheck,
+  LineChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -106,6 +107,12 @@ export const navItems: NavItem[] = [
     title: "KPI Dashboard",
     href: "/kpi",
     icon: TrendingUp,
+  },
+  {
+    title: "Analytics",
+    href: "/analytics",
+    icon: LineChart,
+    permission: "reports:view",
   },
   {
     title: "Performance",
