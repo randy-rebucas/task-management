@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
 import { cancelPayPalSubscription } from "@/lib/paypal";
+import User from "@/models/User";
 import { Subscription } from "@/models/Subscription";
 
 export async function POST() {
@@ -12,6 +13,15 @@ export async function POST() {
     }
 
     await dbConnect();
+
+    // Only the account owner can cancel the subscription
+    const currentUser = await User.findById(session.user.id).select("owner").lean();
+    if (currentUser?.owner) {
+      return NextResponse.json(
+        { error: "Only the account owner can cancel the subscription" },
+        { status: 403 }
+      );
+    }
 
     const subscription = await Subscription.findOne({
       user: session.user.id,

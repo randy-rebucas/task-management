@@ -54,7 +54,13 @@ export const POST = withPermission("users:create", async (req, _ctx, session) =>
     return apiError("A user with this email already exists", 409);
   }
 
-  const user = await User.create(parsed.data);
+  // Determine the root owner for this account.
+  // If the creator is already staff (has an owner), propagate that owner;
+  // otherwise the creator is the owner.
+  const creator = await User.findById(session.user.id).select("owner").lean();
+  const ownerId = creator?.owner ?? session.user.id;
+
+  const user = await User.create({ ...parsed.data, owner: ownerId });
 
   await logActivity({
     actor: session.user.id,

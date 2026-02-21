@@ -79,12 +79,13 @@ export function Sidebar() {
 }
 
 function SubscriptionPanel() {
-  const { subscription, isLoading, isActive, isTrialing, trialDaysLeft } = useSubscription();
+  const { subscription, isLoading, isOwner, isActive, isTrialing, trialDaysLeft } = useSubscription();
 
   if (isLoading) return null;
 
-  /* No subscription — show upgrade prompt */
+  /* No active subscription — only show upgrade prompt to the owner */
   if (!subscription || !isActive) {
+    if (!isOwner) return null;
     return (
       <div className="shrink-0 border-t p-4">
         <Link
@@ -102,6 +103,29 @@ function SubscriptionPanel() {
   const statusColor = STATUS_COLOR[subscription.status] ?? "bg-gray-400";
   const statusLabel = STATUS_LABEL[subscription.status] ?? subscription.status;
 
+  /* Staff: read-only plan badge, no links */
+  if (!isOwner) {
+    return (
+      <div className="shrink-0 border-t p-4">
+        <div className="rounded-lg border bg-muted/40 px-3 py-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-semibold text-foreground">
+                {PLAN_LABEL[subscription.plan] ?? subscription.plan} Plan
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className={cn("h-1.5 w-1.5 rounded-full", statusColor)} />
+              <span className="text-[11px] text-muted-foreground">{statusLabel}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* Owner: full panel with manage link */
   return (
     <div className="shrink-0 border-t p-4">
       <Link

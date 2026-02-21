@@ -58,6 +58,20 @@ export const PERMISSIONS = [
   { resource: "crm", action: "create", description: "Create leads, clients, and deals", group: "CRM" },
   { resource: "crm", action: "update", description: "Update leads, clients, and deals", group: "CRM" },
   { resource: "crm", action: "delete", description: "Delete leads, clients, and deals", group: "CRM" },
+
+  // Performance
+  { resource: "performance", action: "view", description: "View performance targets and summaries", group: "Performance" },
+  { resource: "performance", action: "manage", description: "Set and manage performance targets", group: "Performance" },
+
+  // Proof of Work
+  { resource: "proof_of_work", action: "view", description: "View proof of work submissions and locations", group: "Proof of Work" },
+  { resource: "proof_of_work", action: "submit", description: "Submit proof of work entries", group: "Proof of Work" },
+
+  // Settings (admin-only)
+  { resource: "settings", action: "manage", description: "Manage system settings and billing configuration", group: "Settings" },
+
+  // Subscriptions
+  { resource: "subscriptions", action: "manage", description: "Manage account subscription — cancel, upgrade (owner only)", group: "Subscriptions" },
 ] as const;
 
 export const ROLE_DEFINITIONS = {
@@ -80,6 +94,8 @@ export const ROLE_DEFINITIONS = {
       "notifications:manage_rules",
       "dashboard:manager", "dashboard:staff",
       "crm:view", "crm:create", "crm:update", "crm:delete",
+      "performance:view", "performance:manage",
+      "proof_of_work:view",
     ],
   },
   "field-coordinator": {
@@ -94,6 +110,8 @@ export const ROLE_DEFINITIONS = {
       "visit_logs:create", "visit_logs:view", "visit_logs:view_all",
       "dashboard:manager", "dashboard:staff",
       "crm:view", "crm:create", "crm:update",
+      "performance:view",
+      "proof_of_work:view", "proof_of_work:submit",
     ],
   },
   "sales-officer": {
@@ -106,6 +124,7 @@ export const ROLE_DEFINITIONS = {
       "visit_logs:create", "visit_logs:view",
       "dashboard:staff",
       "crm:view", "crm:create", "crm:update",
+      "proof_of_work:submit",
     ],
   },
   "partner-onboarding-officer": {
@@ -118,6 +137,7 @@ export const ROLE_DEFINITIONS = {
       "visit_logs:create", "visit_logs:view",
       "dashboard:staff",
       "crm:view", "crm:create", "crm:update",
+      "proof_of_work:submit",
     ],
   },
   finance: {
@@ -132,6 +152,8 @@ export const ROLE_DEFINITIONS = {
       "visit_logs:view", "visit_logs:view_all",
       "dashboard:staff",
       "crm:view",
+      "performance:view",
+      "proof_of_work:view",
     ],
   },
   "viewer-auditor": {
@@ -147,6 +169,8 @@ export const ROLE_DEFINITIONS = {
       "visit_logs:view", "visit_logs:view_all",
       "dashboard:staff",
       "crm:view",
+      "performance:view",
+      "proof_of_work:view",
     ],
   },
 } as const;

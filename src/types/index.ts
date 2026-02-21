@@ -49,6 +49,7 @@ export interface IUser {
   team?: string;
   jobTitle?: string;
   isActive: boolean;
+  owner?: Types.ObjectId;
   lastLoginAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;

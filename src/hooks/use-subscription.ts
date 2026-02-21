@@ -15,13 +15,14 @@ export interface SubscriptionInfo {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function useSubscription() {
-  const { data, isLoading } = useSWR<{ subscription: SubscriptionInfo | null }>(
+  const { data, isLoading } = useSWR<{ subscription: SubscriptionInfo | null; isOwner: boolean }>(
     "/api/subscriptions/status",
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 
   const subscription = data?.subscription ?? null;
+  const isOwner = data?.isOwner ?? true; // default true to avoid flicker hiding owner UI
 
   const isActive =
     subscription?.status === "ACTIVE" || subscription?.status === "APPROVED";
@@ -38,5 +39,5 @@ export function useSubscription() {
       )
     : null;
 
-  return { subscription, isLoading, isActive, isTrialing, trialDaysLeft };
+  return { subscription, isLoading, isOwner, isActive, isTrialing, trialDaysLeft };
 }

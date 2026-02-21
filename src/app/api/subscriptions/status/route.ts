@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { dbConnect } from "@/lib/db";
+import User from "@/models/User";
 import { Subscription } from "@/models/Subscription";
 
 export async function GET() {
@@ -12,13 +13,18 @@ export async function GET() {
 
     await dbConnect();
 
+    // Look up the current user to check if they're staff (have an owner)
+    const currentUser = await User.findById(session.user.id).select("owner").lean();
+    const ownerId = currentUser?.owner ?? session.user.id;
+    const isOwner = !currentUser?.owner;
+
     const subscription = await Subscription.findOne({
-      user: session.user.id,
+      user: ownerId,
       status: { $in: ["ACTIVE", "APPROVED", "APPROVAL_PENDING", "SUSPENDED"] },
     }).sort({ createdAt: -1 });
 
     if (!subscription) {
-      return NextResponse.json({ subscription: null });
+      return NextResponse.json({ subscription: null, isOwner });
     }
 
     return NextResponse.json({
@@ -31,6 +37,7 @@ export async function GET() {
         trialEndTime: subscription.trialEndTime,
         startTime: subscription.startTime,
       },
+      isOwner,
     });
   } catch (err) {
     console.error("[subscriptions/status]", err);

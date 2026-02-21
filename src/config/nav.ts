@@ -23,6 +23,7 @@ import {
   CreditCard,
   UserCircle,
   Zap,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -145,6 +146,11 @@ export const navItems: NavItem[] = [
       { title: "Clients", href: "/crm/clients", icon: Building2 },
       { title: "Pipeline", href: "/crm/pipeline", icon: KanbanSquare },
     ],
+  },
+  {
+    title: "Knowledgebase",
+    href: "/knowledgebase",
+    icon: BookOpen,
   },
   {
     title: "Settings",

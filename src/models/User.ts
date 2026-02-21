@@ -15,6 +15,7 @@ const UserSchema = new Schema<IUser>(
     team: { type: String, trim: true },
     jobTitle: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    owner: { type: Schema.Types.ObjectId, ref: "User", index: true },
     lastLoginAt: { type: Date },
     passwordResetToken: { type: String },
     passwordResetExpires: { type: Date },
