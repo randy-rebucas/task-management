@@ -4,6 +4,7 @@ import path from "path";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
+import Department from "../src/models/Department";
 import Permission from "../src/models/Permission";
 import Role from "../src/models/Role";
 import User from "../src/models/User";
