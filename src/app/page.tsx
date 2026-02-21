@@ -16,6 +16,8 @@ import {
   ScanLine,
   Star,
   FileCheck,
+  Sparkles,
+  Building2,
 } from "lucide-react";
 
 const features = [
@@ -169,8 +171,21 @@ export default function Home() {
           </div>
 
           <p className="mt-6 text-sm text-white/30">
-            No credit card required · Free 14-day trial · Cancel anytime
+            No credit card required · Free 7-day trial · Cancel anytime
           </p>
+
+          {/* Industry tags */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs text-white/25 mr-1">Built for:</span>
+            {["Cleaning", "Logistics", "Construction", "Sales Teams", "Field Services"].map((industry) => (
+              <span
+                key={industry}
+                className="text-xs px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] text-white/45"
+              >
+                {industry}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -762,6 +777,202 @@ export default function Home() {
             Learn More
             <ArrowRight className="h-4 w-4" />
           </Link>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section className="py-28 px-6">
+        <div className="mx-auto max-w-7xl">
+
+          {/* Heading */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-sm mb-6">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Simple, transparent pricing</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
+              One flat price. Your whole team.
+            </h2>
+            <p className="text-white/45 text-lg max-w-xl mx-auto">
+              No per-seat surprises. Every plan includes a{" "}
+              <span className="text-white font-semibold">7-day free trial</span>
+              {" "}— no credit card required.
+            </p>
+            <p className="mt-3 text-sm text-white/30">
+              Designed for field businesses —{" "}
+              <span className="text-white/50">cleaning · logistics · construction · sales teams</span>
+            </p>
+          </div>
+
+          {/* Cards — 4 columns on lg, 2 on md, 1 on mobile */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+
+            {/* Starter */}
+            <div className="rounded-2xl border border-white/[0.09] bg-white/[0.025] p-6 flex flex-col">
+              <div className="mb-5">
+                <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3">Starter</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-extrabold">$49</span>
+                  <span className="text-white/40 text-sm mb-1.5">/mo</span>
+                </div>
+                <p className="text-xs text-white/35 mt-1">Up to 10 team members</p>
+              </div>
+
+              <Link
+                href="/login"
+                className="block w-full text-center py-2.5 rounded-xl border border-white/15 text-sm font-semibold hover:bg-white/5 transition-colors mb-6"
+              >
+                Start Free Trial
+              </Link>
+
+              <ul className="space-y-2.5 flex-1">
+                {[
+                  "10 team members",
+                  "Task management & subtasks",
+                  "Basic dashboard",
+                  "Email notifications",
+                  "5 GB storage",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/50">
+                    <CheckCircle className="h-4 w-4 text-white/25 shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Growth – highlighted */}
+            <div className="relative rounded-2xl p-px bg-gradient-to-br from-blue-500 to-violet-600 shadow-2xl shadow-blue-500/20 flex flex-col">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500 to-violet-600 text-white">
+                Most Popular
+              </div>
+              <div className="rounded-2xl bg-[#0d1426] p-6 flex flex-col h-full">
+                <div className="mb-5">
+                  <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Growth</p>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-4xl font-extrabold">$149</span>
+                    <span className="text-white/40 text-sm mb-1.5">/mo</span>
+                  </div>
+                  <p className="text-xs text-white/35 mt-1">Up to 30 team members</p>
+                </div>
+
+                <Link
+                  href="/login"
+                  className="block w-full text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-blue-500/20 mb-6"
+                >
+                  Start Free Trial
+                </Link>
+
+                <ul className="space-y-2.5 flex-1">
+                  {[
+                    "30 team members",
+                    "Everything in Starter",
+                    "CRM & deal pipeline",
+                    "KPI & performance tracking",
+                    "Field monitoring & GPS",
+                    "Proof of work submissions",
+                    "PDF & Excel exports",
+                    "Priority support",
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-white/70">
+                      <CheckCircle className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Business */}
+            <div className="rounded-2xl border border-white/[0.09] bg-white/[0.025] p-6 flex flex-col">
+              <div className="mb-5">
+                <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3">Business</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-extrabold">$299</span>
+                  <span className="text-white/40 text-sm mb-1.5">/mo</span>
+                </div>
+                <p className="text-xs text-white/35 mt-1">Up to 100 team members</p>
+              </div>
+
+              <Link
+                href="/login"
+                className="block w-full text-center py-2.5 rounded-xl border border-white/15 text-sm font-semibold hover:bg-white/5 transition-colors mb-6"
+              >
+                Start Free Trial
+              </Link>
+
+              <ul className="space-y-2.5 flex-1">
+                {[
+                  "100 team members",
+                  "Everything in Growth",
+                  "Advanced role permissions",
+                  "Multi-department management",
+                  "Custom workflow builder",
+                  "50 GB storage",
+                  "Dedicated onboarding",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/50">
+                    <CheckCircle className="h-4 w-4 text-white/25 shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Enterprise */}
+            <div className="rounded-2xl border border-white/[0.09] bg-white/[0.025] p-6 flex flex-col">
+              <div className="mb-5">
+                <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3">Enterprise</p>
+                <div className="flex items-end gap-1 mb-2">
+                  <span className="text-3xl font-extrabold leading-tight">Custom</span>
+                </div>
+                <p className="text-xs text-white/35 mt-1">Unlimited team members</p>
+              </div>
+
+              <Link
+                href="/login"
+                className="block w-full text-center py-2.5 rounded-xl border border-white/15 text-sm font-semibold hover:bg-white/5 transition-colors mb-6"
+              >
+                Contact Sales
+              </Link>
+
+              <ul className="space-y-2.5 flex-1">
+                {[
+                  "Unlimited members",
+                  "Everything in Business",
+                  "Custom integrations & API",
+                  "Dedicated account manager",
+                  "SSO & advanced security",
+                  "Custom SLA & uptime",
+                  "Unlimited storage",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-white/50">
+                    <Building2 className="h-4 w-4 text-white/25 shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+          </div>
+
+          {/* Savings note */}
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-white/30">
+            <span>
+              💡 Annual billing saves up to{" "}
+              <span className="text-white/55 font-medium">20%</span>
+            </span>
+            <span className="hidden sm:block h-4 w-px bg-white/10" />
+            <span>
+              100+ members?{" "}
+              <Link href="/login" className="text-blue-400 hover:text-blue-300 transition-colors">
+                Talk to us for volume pricing
+              </Link>
+            </span>
+            <span className="hidden sm:block h-4 w-px bg-white/10" />
+            <span>All prices in USD</span>
+          </div>
+
         </div>
       </section>
 
