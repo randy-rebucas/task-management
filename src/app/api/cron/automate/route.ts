@@ -341,8 +341,9 @@ ${sessionText || "(none)"}`;
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  // Protect with CRON_SECRET — required; no secret configured = reject all
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

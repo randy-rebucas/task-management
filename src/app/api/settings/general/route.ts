@@ -1,9 +1,9 @@
 import AppSetting from "@/models/AppSetting";
 import { dbConnect } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { withPermission } from "@/features/auth/api-helpers";
+import { withAuth, withPermission } from "@/features/auth/api-helpers";
 
-export const GET = async () => {
+export const GET = withAuth(async () => {
   await dbConnect();
   const keys = ["theme", "paginationLimit", "fileUploadMaxSize"];
   const settingsArr = await AppSetting.find({ key: { $in: keys } }).lean();
@@ -16,7 +16,7 @@ export const GET = async () => {
   if (!settings.paginationLimit) settings.paginationLimit = 20;
   if (!settings.fileUploadMaxSize) settings.fileUploadMaxSize = 10485760;
   return NextResponse.json(settings);
-};
+});
 
 export const PUT = withPermission("settings:manage", async (req) => {
   await dbConnect();

@@ -185,7 +185,7 @@ export default function WorkflowPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Statuses</CardTitle>
-              {can("workflow:manage") && (
+              {can("workflow:configure") && (
                 <Button size="sm" onClick={openCreateStatus}>
                   <Plus className="mr-2 h-4 w-4" /> Add Status
                 </Button>
@@ -199,7 +199,7 @@ export default function WorkflowPage() {
                   title="No statuses"
                   description="Create workflow statuses for tasks"
                   action={
-                    can("workflow:manage") ? (
+                    can("workflow:configure") ? (
                       <Button onClick={openCreateStatus}>
                         <Plus className="mr-2 h-4 w-4" /> Add Status
                       </Button>
@@ -240,7 +240,7 @@ export default function WorkflowPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {can("workflow:manage") && (
+                            {can("workflow:configure") && (
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditStatus(s)}>
                                   <Pencil className="h-4 w-4" />
@@ -265,7 +265,7 @@ export default function WorkflowPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Transitions</CardTitle>
-              {can("workflow:manage") && (
+              {can("workflow:configure") && (
                 <Button size="sm" onClick={openCreateTransition}>
                   <Plus className="mr-2 h-4 w-4" /> Add Transition
                 </Button>
@@ -280,7 +280,7 @@ export default function WorkflowPage() {
                   title="No transitions"
                   description="Define how tasks can move between statuses"
                   action={
-                    can("workflow:manage") ? (
+                    can("workflow:configure") ? (
                       <Button onClick={openCreateTransition}>
                         <Plus className="mr-2 h-4 w-4" /> Add Transition
                       </Button>
@@ -317,7 +317,7 @@ export default function WorkflowPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {can("workflow:manage") && (
+                            {can("workflow:configure") && (
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditTransition(t)}>
                                   <Pencil className="h-4 w-4" />

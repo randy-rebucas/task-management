@@ -376,13 +376,11 @@ async function runWeeklySummary() {
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  // Protect with CRON_SECRET
+  // Protect with CRON_SECRET — required; no secret configured = reject all
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const auth = req.headers.get("authorization") ?? "";
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   await dbConnect();

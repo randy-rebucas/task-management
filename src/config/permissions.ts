@@ -66,6 +66,7 @@ export const PERMISSIONS = [
   // Proof of Work
   { resource: "proof_of_work", action: "view", description: "View proof of work submissions and locations", group: "Proof of Work" },
   { resource: "proof_of_work", action: "submit", description: "Submit proof of work entries", group: "Proof of Work" },
+  { resource: "proof_of_work", action: "manage", description: "Manage proof of work locations and review/delete submissions", group: "Proof of Work" },
 
   // Settings (admin-only)
   { resource: "settings", action: "manage", description: "Manage system settings and billing configuration", group: "Settings" },
@@ -95,7 +96,7 @@ export const ROLE_DEFINITIONS = {
       "dashboard:manager", "dashboard:staff",
       "crm:view", "crm:create", "crm:update", "crm:delete",
       "performance:view", "performance:manage",
-      "proof_of_work:view",
+      "proof_of_work:view", "proof_of_work:manage",
     ],
   },
   "field-coordinator": {
@@ -111,7 +112,7 @@ export const ROLE_DEFINITIONS = {
       "dashboard:manager", "dashboard:staff",
       "crm:view", "crm:create", "crm:update",
       "performance:view",
-      "proof_of_work:view", "proof_of_work:submit",
+      "proof_of_work:view", "proof_of_work:submit", "proof_of_work:manage",
     ],
   },
   "sales-officer": {

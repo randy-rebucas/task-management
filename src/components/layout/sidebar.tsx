@@ -37,12 +37,16 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { can, permissions } = usePermissions();
+  const { can, canAny, permissions } = usePermissions();
   const isSuperAdmin = permissions.has("*:*") || Array.from(permissions).length > 1000;
 
-  const filteredItems = isSuperAdmin ? navItems : navItems.filter(
-    (item) => !item.permission || can(item.permission)
-  );
+  const itemAllowed = (item: (typeof navItems)[number]) => {
+    if (item.permissions?.length) return canAny(item.permissions);
+    if (item.permission) return can(item.permission);
+    return true;
+  };
+
+  const filteredItems = isSuperAdmin ? navItems : navItems.filter(itemAllowed);
 
   return (
     <aside className="hidden w-64 border-r bg-sidebar lg:flex lg:flex-col overflow-hidden">
@@ -78,6 +82,7 @@ export function Sidebar() {
                       item={item}
                       pathname={pathname}
                       can={can}
+                      canAny={canAny}
                       isSuperAdmin={isSuperAdmin}
                     />
                   ) : (
@@ -193,11 +198,13 @@ function SidebarGroup({
   item,
   pathname,
   can,
+  canAny,
   isSuperAdmin,
 }: {
   item: NavItem;
   pathname: string;
   can: (p: string) => boolean;
+  canAny: (perms: string[]) => boolean;
   isSuperAdmin: boolean;
 }) {
   const isAnyChildActive = item.children?.some(
@@ -208,7 +215,11 @@ function SidebarGroup({
 
   const visibleChildren = isSuperAdmin
     ? item.children ?? []
-    : (item.children ?? []).filter((c) => !c.permission || can(c.permission));
+    : (item.children ?? []).filter((c) => {
+        if (c.permissions?.length) return canAny(c.permissions);
+        if (c.permission) return can(c.permission);
+        return true;
+      });
 
   return (
     <div>

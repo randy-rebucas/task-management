@@ -31,7 +31,10 @@ export interface NavItem {
   title: string;
   href: string;
   icon: LucideIcon;
+  /** Single permission required (AND). */
   permission?: string;
+  /** Any one of these permissions is sufficient (OR). Overrides `permission` when set. */
+  permissions?: string[];
   group?: string;
   children?: NavItem[];
 }
@@ -44,14 +47,14 @@ export const navItems: NavItem[] = [
   { group: "Main",   title: "Notifications",href: "/notifications", icon: Bell },
 
   // ── Tasks & Workflow ────────────────────────────
-  { group: "Tasks & Workflow", title: "All Tasks",    href: "/tasks",       icon: ListTodo,   permission: "tasks:view_all" },
-  { group: "Tasks & Workflow", title: "Workflow",     href: "/workflow",    icon: GitBranch,  permission: "workflow:configure" },
-  { group: "Tasks & Workflow", title: "Proof of Work",href: "/proof-of-work",icon: ShieldCheck,permission: "proof_of_work:view" },
+  { group: "Tasks & Workflow", title: "All Tasks",     href: "/tasks",        icon: ListTodo,   permission: "tasks:view_all" },
+  { group: "Tasks & Workflow", title: "Workflow",      href: "/workflow",     icon: GitBranch,  permission: "workflow:configure" },
+  { group: "Tasks & Workflow", title: "Proof of Work", href: "/proof-of-work", icon: ShieldCheck, permissions: ["proof_of_work:view", "proof_of_work:submit"] },
 
   // ── Field ────────────────────────────────────────
-  { group: "Field",  title: "Field Hub",       href: "/field",          icon: Smartphone },
-  { group: "Field",  title: "Field Monitoring", href: "/field-monitoring",icon: MapPin },
-  { group: "Field",  title: "Visit Logs",       href: "/visit-logs",     icon: ScrollText },
+  { group: "Field",  title: "Field Hub",        href: "/field",           icon: Smartphone, permission: "visit_logs:create" },
+  { group: "Field",  title: "Field Monitoring",  href: "/field-monitoring", icon: MapPin,     permission: "visit_logs:view_all" },
+  { group: "Field",  title: "Visit Logs",        href: "/visit-logs",      icon: ScrollText, permission: "visit_logs:view" },
 
   // ── CRM & Sales ──────────────────────────────────
   {
@@ -86,11 +89,10 @@ export const navItems: NavItem[] = [
     title: "Settings",
     href: "/settings",
     icon: Settings,
-    permission: "notifications:manage_rules",
     children: [
-      { title: "General",      href: "/settings",              icon: Settings,    permission: "notifications:manage_rules" },
+      { title: "General",      href: "/settings",              icon: Settings,    permission: "settings:manage" },
       { title: "Profile",      href: "/settings/profile",      icon: UserCircle },
-      { title: "Subscription", href: "/settings/subscription", icon: Zap },
+      { title: "Subscription", href: "/settings/subscription", icon: Zap, permission: "subscriptions:manage" },
       { title: "Billing",      href: "/settings/billing",      icon: CreditCard,  permission: "settings:manage" },
     ],
   },

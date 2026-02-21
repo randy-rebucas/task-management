@@ -10,11 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function MobileNav() {
   const pathname = usePathname();
-  const { can } = usePermissions();
+  const { can, canAny } = usePermissions();
 
-  const filteredItems = navItems.filter(
-    (item) => !item.permission || can(item.permission)
-  );
+  const filteredItems = navItems.filter((item) => {
+    if (item.permissions?.length) return canAny(item.permissions);
+    if (item.permission) return can(item.permission);
+    return true;
+  });
 
   return (
     <div className="flex h-full flex-col">
