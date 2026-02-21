@@ -278,12 +278,15 @@ export default function SettingsPage() {
             {isLoading ? (
               <LoadingSkeleton />
             ) : rules.length === 0 ? (
-              <div className="text-center py-8">
-                <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No notification rules configured</p>
+              <div className="text-center py-12 flex flex-col items-center gap-4">
+                <Bell className="h-12 w-12 text-muted-foreground mb-2" />
+                <div>
+                  <p className="text-lg font-semibold text-muted-foreground mb-1">No notification rules configured</p>
+                  <p className="text-sm text-muted-foreground mb-2">Notification rules let you automate alerts for important events, such as task assignments, deadlines, or inactivity. Get notified via email or in-app.</p>
+                </div>
                 {can("settings:manage") && (
-                  <Button className="mt-3 px-3 py-1 text-sm border rounded hover:bg-gray-100" onClick={openCreateRule}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Rule
+                  <Button className="mt-2 px-4 py-2 text-base font-medium border rounded hover:bg-primary/90" onClick={openCreateRule}>
+                    <Plus className="mr-2 h-5 w-5" /> Create your first rule
                   </Button>
                 )}
               </div>
