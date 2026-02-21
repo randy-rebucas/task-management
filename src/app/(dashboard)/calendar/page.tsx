@@ -16,9 +16,17 @@ import {
   subMonths, subWeeks, subDays,
   format, parseISO, differenceInDays, isToday, isPast,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { MonthView } from "@/components/calendar/month-view";
 import { WeekView } from "@/components/calendar/week-view";
@@ -53,16 +61,38 @@ function getViewLabel(currentDate: Date, view: View): string {
   return format(currentDate, "EEEE, MMMM d, yyyy");
 }
 
+const TASK_TYPES = [
+  { value: "field_visit",         label: "Field Visit" },
+  { value: "client_meeting",      label: "Client Meeting" },
+  { value: "orientation_event",   label: "Orientation" },
+  { value: "lead_follow_up",      label: "Follow-up" },
+  { value: "proposal_submission", label: "Proposal" },
+  { value: "collection_payment",  label: "Collection" },
+  { value: "partner_onboarding",  label: "Onboarding" },
+  { value: "internal_task",       label: "Internal" },
+];
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>("month");
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
 
   const { start, end } = getDateRange(currentDate, view);
   const swrKey = `/api/tasks?dueDateFrom=${format(start, "yyyy-MM-dd")}&dueDateTo=${format(end, "yyyy-MM-dd")}&limit=200`;
 
   const { data, mutate } = useSWR(swrKey, fetcher);
-  const tasks: CalendarTask[] = data?.data ?? [];
+  const rawTasks: CalendarTask[] = data?.data ?? [];
+
+  // Apply filters
+  const tasks = rawTasks.filter((t) => {
+    if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+    if (filterType !== "all" && t.taskType !== filterType) return false;
+    return true;
+  });
+
+  const activeFilters = (filterPriority !== "all" ? 1 : 0) + (filterType !== "all" ? 1 : 0);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -90,7 +120,7 @@ export default function CalendarPage() {
 
       const taskId = active.id as string;
       const newDateStr = over.id as string;
-      const task = tasks.find((t) => t._id === taskId);
+      const task = rawTasks.find((t) => t._id === taskId);
       if (!task?.dueDate) return;
 
       const oldDue = parseISO(task.dueDate);
@@ -126,10 +156,10 @@ export default function CalendarPage() {
 
       mutate();
     },
-    [tasks, mutate]
+    [rawTasks, mutate]
   );
 
-  const overdueTasks = tasks.filter((t) => {
+  const overdueTasks = rawTasks.filter((t) => {
     if (!t.dueDate) return false;
     const due = parseISO(t.dueDate);
     return isPast(due) && !isToday(due) && !t.status?.isFinal;
@@ -161,7 +191,7 @@ export default function CalendarPage() {
         }
       />
 
-      {/* Toolbar */}
+      {/* Primary toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <Tabs value={view} onValueChange={(v) => setView(v as View)}>
           <TabsList>
@@ -189,9 +219,16 @@ export default function CalendarPage() {
           </Button>
         </div>
 
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-foreground">
           {getViewLabel(currentDate, view)}
         </span>
+
+        {/* Task count */}
+        {rawTasks.length > 0 && (
+          <Badge variant="secondary" className="ml-1">
+            {tasks.length}{activeFilters > 0 && rawTasks.length !== tasks.length ? ` / ${rawTasks.length}` : ""} task{tasks.length !== 1 ? "s" : ""}
+          </Badge>
+        )}
 
         {overdueTasks.length > 0 && (
           <Button
@@ -202,6 +239,46 @@ export default function CalendarPage() {
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Reschedule {overdueTasks.length} overdue
+          </Button>
+        )}
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger className="h-8 w-36 text-xs">
+            <SelectValue placeholder="All priorities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All priorities</SelectItem>
+            <SelectItem value="urgent">Urgent</SelectItem>
+            <SelectItem value="high">High</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="h-8 w-40 text-xs">
+            <SelectValue placeholder="All types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {TASK_TYPES.map((t) => (
+              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {activeFilters > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs text-muted-foreground"
+            onClick={() => { setFilterPriority("all"); setFilterType("all"); }}
+          >
+            Clear filters
           </Button>
         )}
       </div>

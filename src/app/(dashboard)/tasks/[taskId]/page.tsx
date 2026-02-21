@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
+import { toast } from "sonner";
 import { usePermissions } from "@/features/auth/use-permissions";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
@@ -15,7 +16,18 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Edit, Clock, Paperclip, GitBranch, RefreshCw, Mic, CheckSquare, Plus, X, Briefcase, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Edit, Clock, Paperclip, RefreshCw, Mic, CheckSquare,
+  Plus, X, Briefcase, ShieldCheck, CheckCircle2, XCircle,
+} from "lucide-react";
 import { format } from "date-fns";
 import LogTimeForm from "@/components/LogTimeForm";
 import { TASK_TYPES, DEAL_STAGES, FIELD_TASK_TYPES } from "@/config/constants";
@@ -30,10 +42,18 @@ export default function TaskDetailPage({
 }) {
   const { taskId } = use(params);
   const { can } = usePermissions();
+
   const { data: task, isLoading, mutate: mutateTask } = useSWR(`/api/tasks/${taskId}`, fetcher);
   const { data: timeLogs } = useSWR(`/api/tasks/${taskId}/time-logs`, fetcher);
   const { data: attachments, mutate: mutateAttachments } = useSWR(`/api/tasks/${taskId}/attachments`, fetcher);
-  const { data: dependencies } = useSWR(`/api/tasks/${taskId}/dependencies`, fetcher);
+
+  // Only load when edit mode is open
+  const [editMode, setEditMode] = useState(false);
+  const { data: departments } = useSWR(editMode ? "/api/departments" : null, fetcher);
+  const { data: users } = useSWR(editMode ? "/api/users?isActive=true" : null, fetcher);
+
+  const [form, setForm] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
 
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -43,21 +63,11 @@ export default function TaskDetailPage({
   const [voiceFile, setVoiceFile] = useState<File | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
 
-  // Subtask state
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [subtaskLoading, setSubtaskLoading] = useState(false);
 
-  // Editable sidebar state
-  const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState<any>(null);
-  const [saving, setSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
-
-  const { data: departments } = useSWR("/api/departments", fetcher);
-  const { data: users } = useSWR("/api/users?isActive=true", fetcher);
-
-  const [selectedTransition, setSelectedTransition] = useState<string>("");
+  const [selectedTransition, setSelectedTransition] = useState("");
   const [statusUpdating, setStatusUpdating] = useState(false);
 
   const [proofModalOpen, setProofModalOpen] = useState(false);
@@ -65,6 +75,8 @@ export default function TaskDetailPage({
     `/api/proof-of-work/submissions?taskId=${taskId}`,
     fetcher
   );
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   async function handleStatusPatch() {
     if (!selectedTransition) return;
@@ -76,32 +88,31 @@ export default function TaskDetailPage({
         body: JSON.stringify({ toStatusId: selectedTransition }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to update status");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || "Failed to update status");
       }
+      setSelectedTransition("");
       mutateTask();
+      toast.success("Status updated");
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setStatusUpdating(false);
     }
   }
 
-  async function handleUpload(e: React.SyntheticEvent) {
+  async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
     setUploading(true);
     setUploadError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(`/api/tasks/${taskId}/attachments`, {
-        method: "POST",
-        body: formData,
-      });
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/tasks/${taskId}/attachments`, { method: "POST", body: fd });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to upload file");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || "Failed to upload file");
       }
       setFile(null);
       mutateAttachments();
@@ -112,22 +123,19 @@ export default function TaskDetailPage({
     }
   }
 
-  async function handleVoiceUpload(e: React.SyntheticEvent) {
+  async function handleVoiceUpload(e: React.FormEvent) {
     e.preventDefault();
     if (!voiceFile) return;
     setVoiceUploading(true);
     setVoiceError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", voiceFile);
-      formData.append("attachmentType", "voice_note");
-      const res = await fetch(`/api/tasks/${taskId}/attachments`, {
-        method: "POST",
-        body: formData,
-      });
+      const fd = new FormData();
+      fd.append("file", voiceFile);
+      fd.append("attachmentType", "voice_note");
+      const res = await fetch(`/api/tasks/${taskId}/attachments`, { method: "POST", body: fd });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to upload voice note");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || "Failed to upload voice note");
       }
       setVoiceFile(null);
       mutateAttachments();
@@ -174,8 +182,7 @@ export default function TaskDetailPage({
 
   function startEdit() {
     setForm({
-      status: task.status?._id || "",
-      priority: task.priority || "",
+      priority: task.priority || "medium",
       taskType: task.taskType || "",
       assignees: task.assignees?.map((a: any) => a._id) || [],
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "",
@@ -183,50 +190,49 @@ export default function TaskDetailPage({
       department: (task.department as any)?._id || "",
       tags: task.tags || [],
     });
-    setEditError(null);
     setEditMode(true);
   }
 
   function cancelEdit() {
     setEditMode(false);
     setForm(null);
-    setEditError(null);
   }
 
   async function saveEdit() {
     setSaving(true);
-    setEditError(null);
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status: form.status,
           priority: form.priority,
           taskType: form.taskType || undefined,
           assignees: form.assignees,
           dueDate: form.dueDate || undefined,
-          category: form.category,
+          category: form.category || undefined,
           department: form.department || undefined,
           tags: form.tags,
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to update task");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.error || "Failed to update task");
       }
       setEditMode(false);
       setForm(null);
       mutateTask();
+      toast.success("Task updated");
     } catch (err: any) {
-      setEditError(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   if (isLoading) return <LoadingSkeleton />;
-  if (!task) return <div>Task not found</div>;
+  if (!task) return <div className="p-6 text-muted-foreground">Task not found.</div>;
 
   const taskTypeLabel = TASK_TYPES.find((t) => t.value === task.taskType)?.label;
   const isFieldTask = FIELD_TASK_TYPES.includes(task.taskType as typeof FIELD_TASK_TYPES[number]);
@@ -257,56 +263,26 @@ export default function TaskDetailPage({
                 </Link>
               </Button>
             )}
-            {can("tasks:update") && task.allowedTransitions?.length > 0 && (
-              <form
-                className="flex gap-2 items-center"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleStatusPatch();
-                }}
-              >
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  value={selectedTransition}
-                  onChange={(e) => setSelectedTransition(e.target.value)}
-                  required
-                  style={{ minWidth: 120 }}
-                >
-                  <option value="" disabled>
-                    Select status
-                  </option>
-                  {task.allowedTransitions.map((t: any) => (
-                    <option key={t._id} value={t._id}>
-                      {t.toStatus?.name || t._id}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="submit"
-                  disabled={statusUpdating || !selectedTransition}
-                  variant="default"
-                >
-                  {statusUpdating ? "Updating..." : "Update Status"}
-                </Button>
-              </form>
-            )}
           </div>
         }
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main column */}
+        {/* ── Main column ── */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Description */}
           <Card>
             <CardHeader>
-              <CardTitle>Details</CardTitle>
+              <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose max-w-none text-sm">
-                {task.description || (
-                  <span className="text-muted-foreground">No description</span>
-                )}
-              </div>
+              {task.description ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+                  {task.description}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No description provided.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -317,17 +293,13 @@ export default function TaskDetailPage({
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CheckSquare className="h-4 w-4" /> Subtasks
                   {subtasks.length > 0 && (
-                    <span className="text-muted-foreground font-normal">
-                      ({completedSubtasks}/{subtasks.length})
+                    <span className="text-muted-foreground font-normal text-xs">
+                      {completedSubtasks}/{subtasks.length}
                     </span>
                   )}
                 </CardTitle>
                 {can("tasks:update") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAddingSubtask(true)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setAddingSubtask(true)}>
                     <Plus className="h-4 w-4 mr-1" /> Add
                   </Button>
                 )}
@@ -335,12 +307,10 @@ export default function TaskDetailPage({
             </CardHeader>
             <CardContent className="space-y-2">
               {subtasks.length > 0 && (
-                <div className="mb-3">
-                  <Progress
-                    value={subtasks.length ? (completedSubtasks / subtasks.length) * 100 : 0}
-                    className="h-1.5"
-                  />
-                </div>
+                <Progress
+                  value={(completedSubtasks / subtasks.length) * 100}
+                  className="h-1.5 mb-3"
+                />
               )}
               {subtasks.map((sub: any) => (
                 <div key={sub._id} className="flex items-center gap-2 group">
@@ -348,7 +318,7 @@ export default function TaskDetailPage({
                     type="checkbox"
                     checked={sub.completed}
                     onChange={(e) => toggleSubtask(sub._id, e.target.checked)}
-                    className="h-4 w-4 cursor-pointer"
+                    className="h-4 w-4 cursor-pointer accent-primary"
                     disabled={!can("tasks:update")}
                   />
                   <span
@@ -373,32 +343,19 @@ export default function TaskDetailPage({
               )}
               {addingSubtask && (
                 <div className="flex gap-2 mt-2">
-                  <input
+                  <Input
                     autoFocus
-                    type="text"
-                    className="flex-1 border rounded px-2 py-1 text-sm"
-                    placeholder="Subtask title..."
+                    className="h-8 text-sm"
+                    placeholder="Subtask title…"
                     value={newSubtaskTitle}
                     onChange={(e) => setNewSubtaskTitle(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") addSubtask();
-                      if (e.key === "Escape") {
-                        setAddingSubtask(false);
-                        setNewSubtaskTitle("");
-                      }
+                      if (e.key === "Escape") { setAddingSubtask(false); setNewSubtaskTitle(""); }
                     }}
                   />
-                  <Button size="sm" onClick={addSubtask} disabled={subtaskLoading}>
-                    Add
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setAddingSubtask(false);
-                      setNewSubtaskTitle("");
-                    }}
-                  >
+                  <Button size="sm" onClick={addSubtask} disabled={subtaskLoading}>Add</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setAddingSubtask(false); setNewSubtaskTitle(""); }}>
                     Cancel
                   </Button>
                 </div>
@@ -409,78 +366,129 @@ export default function TaskDetailPage({
           <TaskComments taskId={taskId} />
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Properties card */}
+        {/* ── Sidebar ── */}
+        <div className="space-y-4">
+          {/* Properties */}
           <Card>
-            <CardContent className="pt-6 space-y-4">
-              {can("tasks:update") && !editMode && (
-                <div className="flex justify-end mb-2">
-                  <Button size="sm" variant="outline" onClick={startEdit}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Properties</CardTitle>
+                {can("tasks:update") && !editMode && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={startEdit}>
                     Edit
                   </Button>
-                </div>
-              )}
-              {editMode ? (
-                <form
-                  className="space-y-4"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    saveEdit();
-                  }}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Status</span>
-                    <TaskStatusBadge status={task.status} />
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Task Type</span>
-                    <select
-                      className="border rounded px-2 py-1 text-sm"
-                      value={form.taskType}
-                      onChange={(e) => setForm((f: any) => ({ ...f, taskType: e.target.value }))}
-                    >
-                      <option value="">— None —</option>
-                      {TASK_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Priority</span>
-                    <select
-                      className="border rounded px-2 py-1 text-sm"
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {editMode && form ? (
+                <>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Priority</span>
+                    <Select
                       value={form.priority}
-                      onChange={(e) => setForm((f: any) => ({ ...f, priority: e.target.value }))}
-                      required
+                      onValueChange={(v) => setForm((f: any) => ({ ...f, priority: v }))}
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
+                      <SelectTrigger className="h-7 text-xs w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Type</span>
+                    <Select
+                      value={form.taskType || "__none__"}
+                      onValueChange={(v) => setForm((f: any) => ({ ...f, taskType: v === "__none__" ? "" : v }))}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {TASK_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Department</span>
+                    <Select
+                      value={form.department || "__none__"}
+                      onValueChange={(v) => setForm((f: any) => ({ ...f, department: v === "__none__" ? "" : v }))}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {departments?.map((d: any) => (
+                          <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Due Date</span>
+                    <input
+                      type="datetime-local"
+                      className="h-7 rounded-md border px-2 text-xs"
+                      value={form.dueDate}
+                      onChange={(e) => setForm((f: any) => ({ ...f, dueDate: e.target.value }))}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Category</span>
+                    <Input
+                      className="h-7 text-xs w-36"
+                      value={form.category}
+                      onChange={(e) => setForm((f: any) => ({ ...f, category: e.target.value }))}
+                      placeholder="e.g. Admin"
+                    />
                   </div>
                   <Separator />
                   <div>
-                    <span className="text-sm text-muted-foreground">Assignees</span>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="text-xs text-muted-foreground">Tags</span>
+                    <Input
+                      className="h-7 text-xs mt-1"
+                      value={form.tags.join(", ")}
+                      onChange={(e) =>
+                        setForm((f: any) => ({
+                          ...f,
+                          tags: e.target.value.split(",").map((t: string) => t.trim()).filter(Boolean),
+                        }))
+                      }
+                      placeholder="Comma separated"
+                    />
+                  </div>
+                  <Separator />
+                  <div>
+                    <span className="text-xs text-muted-foreground">Assignees</span>
+                    <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
                       {users?.data?.map((u: any) => (
-                        <label key={u._id} className="flex items-center gap-2 text-sm">
+                        <label key={u._id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5">
                           <input
                             type="checkbox"
+                            className="h-3.5 w-3.5 accent-primary"
                             checked={form.assignees.includes(u._id)}
-                            onChange={(e) => {
+                            onChange={(e) =>
                               setForm((f: any) => ({
                                 ...f,
                                 assignees: e.target.checked
                                   ? [...f.assignees, u._id]
                                   : f.assignees.filter((id: string) => id !== u._id),
-                              }));
-                            }}
+                              }))
+                            }
                           />
                           {u.firstName} {u.lastName}
                         </label>
@@ -488,183 +496,145 @@ export default function TaskDetailPage({
                     </div>
                   </div>
                   <Separator />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Due Date & Time</span>
-                    <input
-                      type="datetime-local"
-                      className="border rounded px-2 py-1 text-sm"
-                      value={form.dueDate}
-                      onChange={(e) => setForm((f: any) => ({ ...f, dueDate: e.target.value }))}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Category</span>
-                    <input
-                      type="text"
-                      className="border rounded px-2 py-1 text-sm"
-                      value={form.category}
-                      onChange={(e) => setForm((f: any) => ({ ...f, category: e.target.value }))}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Department</span>
-                    <select
-                      className="border rounded px-2 py-1 text-sm"
-                      value={form.department}
-                      onChange={(e) => setForm((f: any) => ({ ...f, department: e.target.value }))}
-                    >
-                      <option value="">— None —</option>
-                      {departments?.map((d: any) => (
-                        <option key={d._id} value={d._id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <Separator />
-                  <div>
-                    <span className="text-sm text-muted-foreground">Tags</span>
-                    <input
-                      type="text"
-                      className="border rounded px-2 py-1 text-sm w-full mt-1"
-                      value={form.tags.join(", ")}
-                      onChange={(e) =>
-                        setForm((f: any) => ({
-                          ...f,
-                          tags: e.target.value
-                            .split(",")
-                            .map((t: string) => t.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                      placeholder="Comma separated"
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={cancelEdit} disabled={saving}>
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" onClick={saveEdit} disabled={saving} className="flex-1">
+                      {saving ? "Saving…" : "Save"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={cancelEdit} disabled={saving}>
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={saving}>
-                      {saving ? "Saving..." : "Save"}
-                    </Button>
                   </div>
-                  {editError && <div className="text-xs text-red-500 mt-2">{editError}</div>}
-                </form>
+                </>
               ) : (
                 <>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Status</span>
+                  {/* Status + inline transition */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Status</span>
                     <TaskStatusBadge status={task.status} />
                   </div>
+                  {can("tasks:update") && task.allowedTransitions?.length > 0 && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground shrink-0">Change to</span>
+                      <div className="flex items-center gap-1">
+                        <Select value={selectedTransition} onValueChange={setSelectedTransition}>
+                          <SelectTrigger className="h-7 text-xs w-32">
+                            <SelectValue placeholder="Select…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {task.allowedTransitions.map((t: any) => (
+                              <SelectItem key={t._id} value={t._id}>
+                                {t.toStatus?.name || t._id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          disabled={statusUpdating || !selectedTransition}
+                          onClick={handleStatusPatch}
+                        >
+                          {statusUpdating
+                            ? <RefreshCw className="h-3 w-3 animate-spin" />
+                            : "Apply"
+                          }
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Priority</span>
+                    <TaskPriorityBadge priority={task.priority} />
+                  </div>
                   {taskTypeLabel && (
                     <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Task Type</span>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Type</span>
                         <Badge variant="outline" className="text-xs">{taskTypeLabel}</Badge>
                       </div>
-                      <Separator />
                     </>
                   )}
                   {task.isRecurring && (
                     <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Recurring</span>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Recurring</span>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <RefreshCw className="h-3 w-3" />
                           <span className="capitalize">
-                            Every {task.recurringConfig?.interval}{" "}
-                            {task.recurringConfig?.frequency}
+                            Every {task.recurringConfig?.interval} {task.recurringConfig?.frequency}
                           </span>
                         </div>
                       </div>
-                      <Separator />
                     </>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Priority</span>
-                    <TaskPriorityBadge priority={task.priority} />
-                  </div>
                   <Separator />
                   <div>
-                    <span className="text-sm text-muted-foreground">Assignees</span>
-                    <div className="mt-2 space-y-2">
-                      {task.assignees?.map(
-                        (a: { _id: string; firstName: string; lastName: string }) => (
+                    <span className="text-xs text-muted-foreground">Assignees</span>
+                    <div className="mt-2 space-y-1.5">
+                      {task.assignees?.length > 0 ? (
+                        task.assignees.map((a: { _id: string; firstName: string; lastName: string }) => (
                           <div key={a._id} className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px]">
-                                {a.firstName[0]}
-                                {a.lastName[0]}
+                            <Avatar className="h-5 w-5">
+                              <AvatarFallback className="text-[9px]">
+                                {a.firstName[0]}{a.lastName[0]}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">
-                              {a.firstName} {a.lastName}
-                            </span>
+                            <span className="text-xs">{a.firstName} {a.lastName}</span>
                           </div>
-                        )
-                      )}
-                      {task.assignees?.length === 0 && (
-                        <span className="text-sm text-muted-foreground">Unassigned</span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Unassigned</span>
                       )}
                     </div>
                   </div>
-                  <Separator />
                   {task.dueDate && (
                     <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Due Date</span>
-                        <span className="text-sm">
-                          {format(new Date(task.dueDate), "MMM d, yyyy HH:mm")}
-                        </span>
-                      </div>
                       <Separator />
-                    </>
-                  )}
-                  {task.category && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Category</span>
-                        <Badge variant="outline">{task.category}</Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Due</span>
+                        <span className="text-xs">{format(new Date(task.dueDate), "MMM d, yyyy HH:mm")}</span>
                       </div>
-                      <Separator />
                     </>
                   )}
                   {task.department && (
                     <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Department</span>
-                        <span className="text-sm">
-                          {(task.department as { name: string }).name}
-                        </span>
-                      </div>
                       <Separator />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Department</span>
+                        <span className="text-xs">{(task.department as { name: string }).name}</span>
+                      </div>
                     </>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Created</span>
-                    <span className="text-sm">
-                      {format(new Date(task.createdAt), "MMM d, yyyy")}
-                    </span>
-                  </div>
+                  {task.category && (
+                    <>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Category</span>
+                        <Badge variant="outline" className="text-xs">{task.category}</Badge>
+                      </div>
+                    </>
+                  )}
                   {task.tags?.length > 0 && (
                     <>
                       <Separator />
                       <div>
-                        <span className="text-sm text-muted-foreground">Tags</span>
-                        <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="text-xs text-muted-foreground">Tags</span>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
                           {task.tags.map((tag: string) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
+                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                           ))}
                         </div>
                       </div>
                     </>
                   )}
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Created</span>
+                    <span className="text-xs">{format(new Date(task.createdAt), "MMM d, yyyy")}</span>
+                  </div>
                 </>
               )}
             </CardContent>
@@ -672,20 +642,26 @@ export default function TaskDetailPage({
 
           {/* Time Logged */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Clock className="h-4 w-4" /> Time Logged
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-lg font-bold">{task.actualHours?.toFixed(1) || 0}h</p>
-              {task.estimatedHours && (
-                <p className="text-xs text-muted-foreground">
-                  of {task.estimatedHours}h estimated
-                </p>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <p className="text-xl font-bold">{task.actualHours?.toFixed(1) ?? 0}h</p>
+                {task.estimatedHours > 0 && (
+                  <p className="text-xs text-muted-foreground">of {task.estimatedHours}h estimated</p>
+                )}
+              </div>
+              {task.estimatedHours > 0 && (
+                <Progress
+                  value={Math.min((task.actualHours / task.estimatedHours) * 100, 100)}
+                  className="h-1.5 mb-2"
+                />
               )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {timeLogs?.length || 0} time entries
+              <p className="text-xs text-muted-foreground mb-3">
+                {timeLogs?.length ?? 0} entr{timeLogs?.length === 1 ? "y" : "ies"}
               </p>
               {can("tasks:update") && (
                 <LogTimeForm taskId={taskId} onLogged={() => mutateTask()} />
@@ -695,13 +671,16 @@ export default function TaskDetailPage({
 
           {/* Attachments */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Paperclip className="h-4 w-4" /> Attachments
+                {fileAttachments.length > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">({fileAttachments.length})</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {fileAttachments.length > 0 && (
+              {fileAttachments.length > 0 ? (
                 <div className="space-y-1">
                   {fileAttachments.map((a: any) => (
                     <a
@@ -716,22 +695,22 @@ export default function TaskDetailPage({
                     </a>
                   ))}
                 </div>
-              )}
-              {fileAttachments.length === 0 && (
-                <p className="text-sm text-muted-foreground">No files attached.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">No files attached.</p>
               )}
               {can("tasks:update") && (
-                <form onSubmit={handleUpload} className="flex flex-col gap-2">
+                <form onSubmit={handleUpload} className="flex flex-col gap-2 pt-1">
                   <input
                     type="file"
+                    className="text-xs"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain"
+                    accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
                     disabled={uploading}
                   />
-                  <Button type="submit" disabled={uploading || !file} size="sm">
-                    {uploading ? "Uploading..." : "Upload File"}
+                  <Button type="submit" disabled={uploading || !file} size="sm" className="h-7 text-xs">
+                    {uploading ? "Uploading…" : "Upload File"}
                   </Button>
-                  {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
+                  {uploadError && <span className="text-xs text-destructive">{uploadError}</span>}
                 </form>
               )}
             </CardContent>
@@ -739,13 +718,16 @@ export default function TaskDetailPage({
 
           {/* Voice Notes */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Mic className="h-4 w-4" /> Voice Notes
+                {voiceNotes.length > 0 && (
+                  <span className="text-xs font-normal text-muted-foreground">({voiceNotes.length})</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {voiceNotes.length > 0 && (
+              {voiceNotes.length > 0 ? (
                 <div className="space-y-2">
                   {voiceNotes.map((a: any) => (
                     <div key={a._id} className="space-y-1">
@@ -754,74 +736,60 @@ export default function TaskDetailPage({
                     </div>
                   ))}
                 </div>
-              )}
-              {voiceNotes.length === 0 && (
-                <p className="text-sm text-muted-foreground">No voice notes yet.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">No voice notes yet.</p>
               )}
               {can("tasks:update") && (
-                <form onSubmit={handleVoiceUpload} className="flex flex-col gap-2">
+                <form onSubmit={handleVoiceUpload} className="flex flex-col gap-2 pt-1">
                   <input
                     type="file"
+                    className="text-xs"
                     onChange={(e) => setVoiceFile(e.target.files?.[0] || null)}
                     accept="audio/*"
                     disabled={voiceUploading}
                   />
-                  <Button type="submit" disabled={voiceUploading || !voiceFile} size="sm">
-                    {voiceUploading ? "Uploading..." : "Upload Voice Note"}
+                  <Button type="submit" disabled={voiceUploading || !voiceFile} size="sm" className="h-7 text-xs">
+                    {voiceUploading ? "Uploading…" : "Upload Voice Note"}
                   </Button>
-                  {voiceError && <span className="text-xs text-red-500">{voiceError}</span>}
+                  {voiceError && <span className="text-xs text-destructive">{voiceError}</span>}
                 </form>
               )}
             </CardContent>
           </Card>
 
-          {/* Dependencies */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <GitBranch className="h-4 w-4" /> Dependencies
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {dependencies?.length || 0} dependencies
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Proof of Work */}
+          {/* Proof of Work — field tasks only */}
           {isFieldTask && (
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4" /> Proof of Work
                     {Array.isArray(proofSubmissions) && proofSubmissions.length > 0 && (
-                      <span className="text-muted-foreground font-normal">
+                      <span className="text-xs font-normal text-muted-foreground">
                         ({proofSubmissions.length})
                       </span>
                     )}
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => setProofModalOpen(true)}>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setProofModalOpen(true)}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Submit
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 {(!Array.isArray(proofSubmissions) || proofSubmissions.length === 0) ? (
-                  <p className="text-sm text-muted-foreground">No submissions yet.</p>
+                  <p className="text-xs text-muted-foreground">No submissions yet.</p>
                 ) : (
                   proofSubmissions.map((p: any) => {
                     const statusMap: Record<string, { label: string; icon: typeof CheckCircle2; cls: string }> = {
-                      pending:  { label: "Pending",  icon: Clock,         cls: "text-yellow-600" },
-                      verified: { label: "Verified", icon: CheckCircle2,  cls: "text-green-600"  },
-                      rejected: { label: "Rejected", icon: XCircle,       cls: "text-red-600"    },
+                      pending:  { label: "Pending",  icon: Clock,        cls: "text-yellow-600" },
+                      verified: { label: "Verified", icon: CheckCircle2, cls: "text-green-600"  },
+                      rejected: { label: "Rejected", icon: XCircle,      cls: "text-red-600"    },
                     };
                     const st = statusMap[p.verificationStatus] ?? statusMap.pending;
                     const Icon = st.icon;
                     return (
-                      <div key={p._id} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-muted-foreground text-xs">
+                      <div key={p._id} className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">
                           {format(new Date(p.createdAt), "MMM d, HH:mm")}
                           {" · "}{p.photos?.length ?? 0} photo{p.photos?.length !== 1 ? "s" : ""}
                           {p.signatureUrl ? " · Signed" : ""}
@@ -842,7 +810,7 @@ export default function TaskDetailPage({
           {/* CRM Links */}
           {(task?.lead || task?.client || task?.deal) && (
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Briefcase className="h-4 w-4" /> CRM Links
                 </CardTitle>
@@ -850,10 +818,10 @@ export default function TaskDetailPage({
               <CardContent className="space-y-3">
                 {task.lead && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Lead</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">Lead</p>
                     <Link
                       href={`/crm/leads/${task.lead._id || task.lead}`}
-                      className="text-sm text-blue-600 hover:underline font-medium"
+                      className="text-sm font-medium text-primary hover:underline"
                     >
                       {task.lead.name || "View Lead"}
                     </Link>
@@ -864,10 +832,10 @@ export default function TaskDetailPage({
                 )}
                 {task.client && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Client</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">Client</p>
                     <Link
                       href={`/crm/clients/${task.client._id || task.client}`}
-                      className="text-sm text-blue-600 hover:underline font-medium"
+                      className="text-sm font-medium text-primary hover:underline"
                     >
                       {task.client.name || "View Client"}
                     </Link>
@@ -878,17 +846,17 @@ export default function TaskDetailPage({
                 )}
                 {task.deal && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Deal</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">Deal</p>
                     <Link
                       href={`/crm/deals/${task.deal._id || task.deal}`}
-                      className="text-sm text-blue-600 hover:underline font-medium"
+                      className="text-sm font-medium text-primary hover:underline"
                     >
                       {task.deal.title || "View Deal"}
                     </Link>
                     {task.deal.stage && (() => {
                       const stageCfg = DEAL_STAGES.find((s) => s.value === task.deal.stage);
                       return stageCfg ? (
-                        <Badge className={`ml-2 ${stageCfg.color} text-xs`}>{stageCfg.label}</Badge>
+                        <Badge className={`ml-2 text-xs ${stageCfg.color}`}>{stageCfg.label}</Badge>
                       ) : null;
                     })()}
                   </div>

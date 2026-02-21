@@ -37,25 +37,39 @@ export function WeekView({ currentDate, tasks, onSelectTask }: WeekViewProps) {
     <div className="rounded-lg border">
       {/* Header row */}
       <div className="grid grid-cols-7 border-b">
-        {days.map((day) => (
-          <div
-            key={day.toISOString()}
-            className={cn(
-              "py-2 text-center text-sm font-medium border-r last:border-r-0",
-              isToday(day) && "bg-primary/5"
-            )}
-          >
-            <div className="text-xs text-gray-500 uppercase">{format(day, "EEE")}</div>
+        {days.map((day) => {
+          const dayTasks = getTasksForDay(tasks, day);
+          const today = isToday(day);
+          return (
             <div
+              key={day.toISOString()}
               className={cn(
-                "mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold",
-                isToday(day) && "bg-primary text-primary-foreground"
+                "py-2 text-center text-sm font-medium border-r last:border-r-0",
+                today && "bg-primary/5"
               )}
             >
-              {format(day, "d")}
+              <div className="text-xs text-gray-500 uppercase">{format(day, "EEE")}</div>
+              <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                <div
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold",
+                    today && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {format(day, "d")}
+                </div>
+                {dayTasks.length > 0 && (
+                  <span className={cn(
+                    "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-medium",
+                    today ? "bg-primary/20 text-primary" : "bg-gray-100 text-gray-500"
+                  )}>
+                    {dayTasks.length}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Day columns */}

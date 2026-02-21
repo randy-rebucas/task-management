@@ -9,6 +9,7 @@ interface CalendarTask {
   _id: string;
   title: string;
   priority: string;
+  taskType?: string;
   dueDate?: string;
   status?: { name: string; color: string; isFinal?: boolean };
   assignees?: { _id: string; firstName: string; lastName: string; avatar?: string }[];
@@ -27,6 +28,17 @@ const PRIORITY_BORDER: Record<string, string> = {
   low:    "border-l-gray-300",
 };
 
+const TASK_TYPE_LABEL: Record<string, string> = {
+  field_visit:         "Field Visit",
+  client_meeting:      "Meeting",
+  orientation_event:   "Orientation",
+  lead_follow_up:      "Follow-up",
+  proposal_submission: "Proposal",
+  collection_payment:  "Collection",
+  partner_onboarding:  "Onboarding",
+  internal_task:       "Internal",
+};
+
 export function CalendarEvent({ task, onSelect, compact = false }: CalendarEventProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task._id,
@@ -42,6 +54,7 @@ export function CalendarEvent({ task, onSelect, compact = false }: CalendarEvent
   const isDueToday = dueDate && isToday(dueDate);
 
   const borderColor = PRIORITY_BORDER[task.priority] ?? "border-l-gray-300";
+  const typeLabel = task.taskType ? TASK_TYPE_LABEL[task.taskType] : null;
 
   return (
     <div
@@ -75,7 +88,12 @@ export function CalendarEvent({ task, onSelect, compact = false }: CalendarEvent
       </div>
 
       {!compact && (
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          {typeLabel && (
+            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">
+              {typeLabel}
+            </span>
+          )}
           {isOverdue && (
             <span className="rounded bg-red-100 px-1 py-0.5 text-[10px] font-medium text-red-700">
               Overdue

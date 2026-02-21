@@ -64,6 +64,7 @@ export function MonthView({ currentDate, tasks, onSelectTask, onSelectDay }: Mon
         {days.map((day) => {
           const dayTasks = getTasksForDay(tasks, day);
           const isCurrentMonth = isSameMonth(day, currentDate);
+          const todayCell = isToday(day);
           const dateKey = format(day, "yyyy-MM-dd");
           const visible = dayTasks.slice(0, 3);
           const overflow = dayTasks.length - 3;
@@ -73,21 +74,28 @@ export function MonthView({ currentDate, tasks, onSelectTask, onSelectDay }: Mon
               key={dateKey}
               id={dateKey}
               className={cn(
-                "min-h-[110px] bg-white p-1.5",
-                !isCurrentMonth && "bg-gray-50"
+                "min-h-[110px] p-1.5",
+                todayCell ? "bg-blue-50" : isCurrentMonth ? "bg-white" : "bg-gray-50"
               )}
             >
-              {/* Day number */}
-              <button
-                onClick={() => onSelectDay(day)}
-                className={cn(
-                  "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-gray-100",
-                  isToday(day) && "bg-primary text-primary-foreground hover:bg-primary/90",
-                  !isCurrentMonth && "text-gray-400"
+              {/* Day number row */}
+              <div className="mb-1 flex items-center justify-between">
+                <button
+                  onClick={() => onSelectDay(day)}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-gray-100",
+                    todayCell && "bg-primary text-primary-foreground hover:bg-primary/90",
+                    !isCurrentMonth && "text-gray-400"
+                  )}
+                >
+                  {format(day, "d")}
+                </button>
+                {dayTasks.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground tabular-nums">
+                    {dayTasks.length}
+                  </span>
                 )}
-              >
-                {format(day, "d")}
-              </button>
+              </div>
 
               {/* Events */}
               <div className="space-y-0.5">
