@@ -300,7 +300,10 @@ export interface IWorkflowTransition {
 export interface INotification {
   _id: Types.ObjectId;
   recipient: Types.ObjectId;
-  type: string;
+  type:
+    | "task_assigned" | "task_updated" | "status_changed" | "comment_added"
+    | "deadline_approaching" | "task_overdue" | "approval_needed" | "approval_resolved"
+    | "mention" | "system" | "lead_stagnation" | "field_inactive";
   title: string;
   message: string;
   relatedTask?: Types.ObjectId;

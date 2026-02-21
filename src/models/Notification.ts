@@ -12,6 +12,8 @@ const NOTIFICATION_TYPES = [
   "approval_resolved",
   "mention",
   "system",
+  "lead_stagnation",
+  "field_inactive",
 ] as const;
 
 const NotificationSchema = new Schema<INotification>(

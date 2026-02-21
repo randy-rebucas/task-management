@@ -373,6 +373,9 @@ export default function SettingsPage() {
                   <SelectItem value="task-commented">Task Commented</SelectItem>
                   <SelectItem value="task-due-soon">Task Due Soon</SelectItem>
                   <SelectItem value="task-overdue">Task Overdue</SelectItem>
+                  <SelectItem value="lead-stagnation">Lead Stagnation</SelectItem>
+                  <SelectItem value="field-inactive">Field Coordinator Inactive</SelectItem>
+                  <SelectItem value="weekly-summary">Weekly Summary</SelectItem>
                 </SelectContent>
               </Select>
             </div>
