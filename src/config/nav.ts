@@ -15,6 +15,9 @@ import {
   Briefcase,
   UserPlus,
   KanbanSquare,
+  CalendarDays,
+  Trophy,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +39,11 @@ export const navItems: NavItem[] = [
     title: "My Tasks",
     href: "/my-tasks",
     icon: CheckSquare,
+  },
+  {
+    title: "Calendar",
+    href: "/calendar",
+    icon: CalendarDays,
   },
   {
     title: "All Tasks",
@@ -98,6 +106,18 @@ export const navItems: NavItem[] = [
     title: "KPI Dashboard",
     href: "/kpi",
     icon: TrendingUp,
+  },
+  {
+    title: "Performance",
+    href: "/performance",
+    icon: Trophy,
+    permission: "performance:view",
+  },
+  {
+    title: "Proof of Work",
+    href: "/proof-of-work",
+    icon: ShieldCheck,
+    permission: "proof_of_work:view",
   },
   {
     title: "CRM",

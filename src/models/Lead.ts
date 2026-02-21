@@ -5,6 +5,10 @@ const LeadSchema = new Schema<ILead>(
   {
     name: { type: String, required: true, trim: true },
     company: { type: String, trim: true },
+    industry: { type: String, trim: true },
+    address: { type: String, trim: true },
+    website: { type: String, trim: true },
+    contactPersonTitle: { type: String, trim: true },
     email: { type: String, lowercase: true, trim: true },
     phone: { type: String, trim: true },
     source: {
@@ -20,6 +24,7 @@ const LeadSchema = new Schema<ILead>(
     assignedTo: { type: Schema.Types.ObjectId, ref: "User" },
     convertedToClient: { type: Schema.Types.ObjectId, ref: "Client" },
     notes: { type: String },
+    followUpDate: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

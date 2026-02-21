@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateClientSchema } from "@/features/auth/validators";
 import Client from "@/models/Client";
+import { triggerNotification } from "@/features/users/notification-service";
 
 export const GET = withPermission("crm:view", async (_req, ctx) => {
   const { clientId } = await ctx.params;
@@ -12,7 +13,7 @@ export const GET = withPermission("crm:view", async (_req, ctx) => {
   return apiSuccess(client);
 });
 
-export const PUT = withPermission("crm:update", async (req, ctx) => {
+export const PUT = withPermission("crm:update", async (req, ctx, session) => {
   const { clientId } = await ctx.params;
   const body = await req.json();
   const parsed = updateClientSchema.safeParse(body);
@@ -20,6 +21,16 @@ export const PUT = withPermission("crm:update", async (req, ctx) => {
 
   const client = await Client.findByIdAndUpdate(clientId, parsed.data, { new: true });
   if (!client) return apiError("Client not found", 404);
+
+  if (parsed.data.followUpDate) {
+    await triggerNotification("follow_up_reminder", {
+      actorId: session.user.id,
+      resourceType: "client",
+      resourceId: clientId,
+      data: { name: client.name, followUpDate: parsed.data.followUpDate },
+    });
+  }
+
   return apiSuccess(client);
 });
 

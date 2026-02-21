@@ -232,6 +232,23 @@ const FIELD_TASK_TYPES_SET = new Set([
   "partner_onboarding",
 ]);
 
+export const createInteractionSchema = z.object({
+  type: z.enum(["call", "email", "meeting", "note", "visit"]),
+  date: z.string().min(1, "Date is required"),
+  summary: z.string().min(1, "Summary is required"),
+  outcome: z.string().optional(),
+  nextAction: z.string().optional(),
+});
+
+export const createCrmAttachmentSchema = z.object({
+  fileName: z.string().min(1, "File name is required"),
+  fileUrl: z.string().min(1, "File URL is required"),
+  fileSize: z.number().optional(),
+  mimeType: z.string().optional(),
+  documentType: z.enum(["proposal", "contract", "other"]).optional(),
+  notes: z.string().optional(),
+});
+
 export const createClientSchema = z.object({
   name: z.string().min(1).max(200),
   company: z.string().optional(),
@@ -240,6 +257,10 @@ export const createClientSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   website: z.string().optional(),
+  contactPersonName: z.string().optional(),
+  contactPersonTitle: z.string().optional(),
+  contactPersonPhone: z.string().optional(),
+  followUpDate: z.string().optional(),
   assignedTo: z.string().optional(),
   department: z.string().optional(),
   status: z.enum(["active", "inactive"]).optional(),
@@ -251,17 +272,26 @@ export const updateClientSchema = createClientSchema.partial();
 export const createLeadSchema = z.object({
   name: z.string().min(1).max(200),
   company: z.string().optional(),
+  industry: z.string().optional(),
+  address: z.string().optional(),
+  website: z.string().optional(),
+  contactPersonTitle: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   source: z.enum(["referral", "cold_call", "social_media", "website", "event", "other"]),
   status: z.enum(["new", "contacted", "qualified", "unqualified", "converted"]).optional(),
   assignedTo: z.string().optional(),
   notes: z.string().optional(),
+  followUpDate: z.string().optional(),
 });
 
 export const updateLeadSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   company: z.string().optional(),
+  industry: z.string().optional(),
+  address: z.string().optional(),
+  website: z.string().optional(),
+  contactPersonTitle: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
   source: z.enum(["referral", "cold_call", "social_media", "website", "event", "other"]).optional(),
@@ -269,6 +299,7 @@ export const updateLeadSchema = z.object({
   assignedTo: z.string().optional(),
   convertedToClient: z.string().optional(),
   notes: z.string().optional(),
+  followUpDate: z.string().optional(),
 });
 
 export const createDealSchema = z.object({
@@ -285,3 +316,64 @@ export const createDealSchema = z.object({
 });
 
 export const updateDealSchema = createDealSchema.partial();
+
+// Performance & Incentives
+export const createCommissionRuleSchema = z.object({
+  department: z.string().optional(),
+  jobTitle: z.string().optional(),
+  dealCommissionRate: z.number().min(0).max(100).default(5),
+  leadConversionBonus: z.number().min(0).default(0),
+  bonusThresholds: z.array(z.object({
+    minScore: z.number().min(0).max(100),
+    bonusAmount: z.number().min(0),
+  })).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateCommissionRuleSchema = createCommissionRuleSchema.partial();
+
+export const createPerformanceTargetSchema = z.object({
+  user: z.string().min(1, "User is required"),
+  month: z.number().min(1).max(12),
+  year: z.number().min(2020),
+  targetRevenue: z.number().min(0).default(0),
+  targetDeals: z.number().min(0).default(0),
+  targetTasks: z.number().min(0).default(0),
+  targetLeads: z.number().min(0).default(0),
+});
+
+export const updatePerformanceTargetSchema = z.object({
+  targetRevenue: z.number().min(0).optional(),
+  targetDeals: z.number().min(0).optional(),
+  targetTasks: z.number().min(0).optional(),
+  targetLeads: z.number().min(0).optional(),
+});
+// Proof of Work schemas
+export const createPartnerLocationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  address: z.string().optional(),
+  lat: z.number(),
+  lng: z.number(),
+  radius: z.number().min(10).default(100),
+  isActive: z.boolean().optional(),
+});
+
+export const updatePartnerLocationSchema = createPartnerLocationSchema.partial();
+
+export const submitProofSchema = z.object({
+  task: z.string().min(1, "Task is required"),
+  photos: z.array(z.string()).min(1, "At least one photo is required"),
+  signatureUrl: z.string().optional(),
+  capturedAt: z.string().datetime(),
+  capturedLocation: z.object({ lat: z.number(), lng: z.number() }).optional(),
+  qrCheckIn: z.object({
+    partnerLocation: z.string(),
+    scannedAt: z.string().datetime(),
+  }).optional(),
+  notes: z.string().optional(),
+});
+
+export const verifyProofSchema = z.object({
+  verificationStatus: z.enum(["verified", "rejected"]),
+  rejectionReason: z.string().optional(),
+});

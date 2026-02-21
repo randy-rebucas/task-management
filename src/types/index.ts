@@ -108,10 +108,14 @@ export interface IClient {
   phone?: string;
   address?: string;
   website?: string;
+  contactPersonName?: string;
+  contactPersonTitle?: string;
+  contactPersonPhone?: string;
   assignedTo?: Types.ObjectId;
   department?: Types.ObjectId;
   status: "active" | "inactive";
   notes?: string;
+  followUpDate?: Date;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -121,6 +125,10 @@ export interface ILead {
   _id: Types.ObjectId;
   name: string;
   company?: string;
+  industry?: string;
+  address?: string;
+  website?: string;
+  contactPersonTitle?: string;
   email?: string;
   phone?: string;
   source: LeadSource;
@@ -128,7 +136,40 @@ export interface ILead {
   assignedTo?: Types.ObjectId;
   convertedToClient?: Types.ObjectId;
   notes?: string;
+  followUpDate?: Date;
   createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CrmInteractionType = "call" | "email" | "meeting" | "note" | "visit";
+
+export interface ICrmInteraction {
+  _id: Types.ObjectId;
+  lead?: Types.ObjectId;
+  client?: Types.ObjectId;
+  type: CrmInteractionType;
+  date: Date;
+  summary: string;
+  outcome?: string;
+  nextAction?: string;
+  loggedBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ICrmAttachment {
+  _id: Types.ObjectId;
+  lead?: Types.ObjectId;
+  client?: Types.ObjectId;
+  deal?: Types.ObjectId;
+  uploadedBy: Types.ObjectId;
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number;
+  mimeType?: string;
+  documentType: "proposal" | "contract" | "other";
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -349,4 +390,67 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   error: string;
   details?: unknown;
+}
+
+export interface ICommissionRule {
+  _id: Types.ObjectId;
+  department?: Types.ObjectId;
+  jobTitle?: string;
+  dealCommissionRate: number;
+  leadConversionBonus: number;
+  bonusThresholds: Array<{ minScore: number; bonusAmount: number }>;
+  isActive: boolean;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPerformanceTarget {
+  _id: Types.ObjectId;
+  user: Types.ObjectId;
+  month: number;
+  year: number;
+  targetRevenue: number;
+  targetDeals: number;
+  targetTasks: number;
+  targetLeads: number;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPartnerLocation {
+  _id: Types.ObjectId;
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+  radius: number;
+  isActive: boolean;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IProofOfWork {
+  _id: Types.ObjectId;
+  task: Types.ObjectId;
+  submittedBy: Types.ObjectId;
+  photos: string[];
+  signatureUrl?: string;
+  capturedAt: Date;
+  capturedLocation?: { lat: number; lng: number };
+  qrCheckIn?: {
+    partnerLocation: Types.ObjectId;
+    scannedAt: Date;
+    isWithinRadius: boolean;
+    distanceMetres: number;
+  };
+  verificationStatus: "pending" | "verified" | "rejected";
+  verifiedBy?: Types.ObjectId;
+  verifiedAt?: Date;
+  rejectionReason?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

@@ -15,10 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Edit, Clock, Paperclip, GitBranch, RefreshCw, Mic, CheckSquare, Plus, X, Briefcase } from "lucide-react";
+import { Edit, Clock, Paperclip, GitBranch, RefreshCw, Mic, CheckSquare, Plus, X, Briefcase, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import LogTimeForm from "@/components/LogTimeForm";
-import { TASK_TYPES, DEAL_STAGES } from "@/config/constants";
+import { TASK_TYPES, DEAL_STAGES, FIELD_TASK_TYPES } from "@/config/constants";
+import SubmitProofModal from "@/components/proof/submit-proof-modal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -58,6 +59,12 @@ export default function TaskDetailPage({
 
   const [selectedTransition, setSelectedTransition] = useState<string>("");
   const [statusUpdating, setStatusUpdating] = useState(false);
+
+  const [proofModalOpen, setProofModalOpen] = useState(false);
+  const { data: proofSubmissions, mutate: mutateProofs } = useSWR(
+    `/api/proof-of-work/submissions?taskId=${taskId}`,
+    fetcher
+  );
 
   async function handleStatusPatch() {
     if (!selectedTransition) return;
@@ -222,6 +229,7 @@ export default function TaskDetailPage({
   if (!task) return <div>Task not found</div>;
 
   const taskTypeLabel = TASK_TYPES.find((t) => t.value === task.taskType)?.label;
+  const isFieldTask = FIELD_TASK_TYPES.includes(task.taskType as typeof FIELD_TASK_TYPES[number]);
   const subtasks: any[] = task.subtasks || [];
   const completedSubtasks = subtasks.filter((s: any) => s.completed).length;
   const voiceNotes = (attachments || []).filter((a: any) => a.attachmentType === "voice_note");
@@ -233,6 +241,15 @@ export default function TaskDetailPage({
         title={`${task.taskNumber}: ${task.title}`}
         action={
           <div className="flex gap-2">
+            {isFieldTask && (
+              <Button
+                variant="outline"
+                onClick={() => setProofModalOpen(true)}
+                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                <ShieldCheck className="mr-2 h-4 w-4" /> Submit Proof
+              </Button>
+            )}
             {can("tasks:update") && (
               <Button asChild variant="outline">
                 <Link href={`/tasks/${taskId}/edit`}>
@@ -772,6 +789,56 @@ export default function TaskDetailPage({
             </CardContent>
           </Card>
 
+          {/* Proof of Work */}
+          {isFieldTask && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" /> Proof of Work
+                    {Array.isArray(proofSubmissions) && proofSubmissions.length > 0 && (
+                      <span className="text-muted-foreground font-normal">
+                        ({proofSubmissions.length})
+                      </span>
+                    )}
+                  </CardTitle>
+                  <Button size="sm" variant="outline" onClick={() => setProofModalOpen(true)}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Submit
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(!Array.isArray(proofSubmissions) || proofSubmissions.length === 0) ? (
+                  <p className="text-sm text-muted-foreground">No submissions yet.</p>
+                ) : (
+                  proofSubmissions.map((p: any) => {
+                    const statusMap: Record<string, { label: string; icon: typeof CheckCircle2; cls: string }> = {
+                      pending:  { label: "Pending",  icon: Clock,         cls: "text-yellow-600" },
+                      verified: { label: "Verified", icon: CheckCircle2,  cls: "text-green-600"  },
+                      rejected: { label: "Rejected", icon: XCircle,       cls: "text-red-600"    },
+                    };
+                    const st = statusMap[p.verificationStatus] ?? statusMap.pending;
+                    const Icon = st.icon;
+                    return (
+                      <div key={p._id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-muted-foreground text-xs">
+                          {format(new Date(p.createdAt), "MMM d, HH:mm")}
+                          {" · "}{p.photos?.length ?? 0} photo{p.photos?.length !== 1 ? "s" : ""}
+                          {p.signatureUrl ? " · Signed" : ""}
+                          {p.qrCheckIn ? (p.qrCheckIn.isWithinRadius ? " · QR ✓" : " · QR ✗") : ""}
+                        </span>
+                        <span className={`flex items-center gap-1 text-xs font-medium ${st.cls}`}>
+                          <Icon className="h-3.5 w-3.5" />
+                          {st.label}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* CRM Links */}
           {(task?.lead || task?.client || task?.deal) && (
             <Card>
@@ -831,6 +898,13 @@ export default function TaskDetailPage({
           )}
         </div>
       </div>
+
+      <SubmitProofModal
+        taskId={taskId}
+        open={proofModalOpen}
+        onClose={() => setProofModalOpen(false)}
+        onSubmitted={() => mutateProofs()}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateLeadSchema } from "@/features/auth/validators";
 import Lead from "@/models/Lead";
+import { triggerNotification } from "@/features/users/notification-service";
 
 export const GET = withPermission("crm:view", async (_req, ctx) => {
   const { leadId } = await ctx.params;
@@ -12,7 +13,7 @@ export const GET = withPermission("crm:view", async (_req, ctx) => {
   return apiSuccess(lead);
 });
 
-export const PUT = withPermission("crm:update", async (req, ctx) => {
+export const PUT = withPermission("crm:update", async (req, ctx, session) => {
   const { leadId } = await ctx.params;
   const body = await req.json();
   const parsed = updateLeadSchema.safeParse(body);
@@ -20,6 +21,16 @@ export const PUT = withPermission("crm:update", async (req, ctx) => {
 
   const lead = await Lead.findByIdAndUpdate(leadId, parsed.data, { new: true });
   if (!lead) return apiError("Lead not found", 404);
+
+  if (parsed.data.followUpDate) {
+    await triggerNotification("follow_up_reminder", {
+      actorId: session.user.id,
+      resourceType: "lead",
+      resourceId: leadId,
+      data: { name: lead.name, followUpDate: parsed.data.followUpDate },
+    });
+  }
+
   return apiSuccess(lead);
 });
 

@@ -23,6 +23,8 @@ export const GET = withAuth(async (req, ctx, session) => {
   const assignee = url.searchParams.get("assignee");
   const department = url.searchParams.get("department");
   const isArchived = url.searchParams.get("isArchived") === "true";
+  const dueDateFrom = url.searchParams.get("dueDateFrom");
+  const dueDateTo   = url.searchParams.get("dueDateTo");
 
   const filter: Record<string, unknown> = { isArchived };
 
@@ -38,6 +40,12 @@ export const GET = withAuth(async (req, ctx, session) => {
   if (priority) filter.priority = priority;
   if (assignee) filter.assignees = assignee;
   if (department) filter.department = department;
+  if (dueDateFrom || dueDateTo) {
+    filter.dueDate = {
+      ...(dueDateFrom && { $gte: new Date(dueDateFrom) }),
+      ...(dueDateTo   && { $lte: new Date(dueDateTo) }),
+    };
+  }
 
   const [data, total] = await Promise.all([
     Task.find(filter)

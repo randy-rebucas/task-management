@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Mail, Phone, Building2, Briefcase } from "lucide-react";
+import { Edit, Mail, Phone, Building2, Briefcase, Trophy, TrendingUp, Target } from "lucide-react";
 import { format } from "date-fns";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -24,6 +24,14 @@ export default function StaffDetailPage({
   const { userId } = use(params);
   const { can } = usePermissions();
   const { data: user, isLoading } = useSWR(`/api/users/${userId}`, fetcher);
+
+  const now = new Date();
+  const { data: perfData } = useSWR(
+    userId
+      ? `/api/performance/summary?userId=${userId}&month=${now.getMonth() + 1}&year=${now.getFullYear()}`
+      : null,
+    fetcher
+  );
 
   if (isLoading) return <LoadingSkeleton />;
   if (!user) return <div>Staff member not found</div>;
@@ -108,6 +116,64 @@ export default function StaffDetailPage({
                   tasks page
                 </Link>.
               </p>
+            </CardContent>
+          </Card>
+
+          {/* Performance this month */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  Performance · {format(now, "MMMM yyyy")}
+                </CardTitle>
+                <Link
+                  href={`/performance?userId=${userId}`}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Full report →
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!perfData ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3" /> KPI Score
+                    </p>
+                    <p className="text-2xl font-bold">{perfData.performanceScore}</p>
+                    <p className="text-xs text-muted-foreground">/ 100</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Trophy className="h-3 w-3" /> Total Incentive
+                    </p>
+                    <p className="text-2xl font-bold">
+                      ₱{(perfData.totalIncentive ?? 0).toLocaleString("en-PH")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">commission + bonus</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Target className="h-3 w-3" /> Tasks Done
+                    </p>
+                    <p className="text-2xl font-bold">{perfData.tasksCompleted}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {perfData.completionRate}% completion
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                    <p className="text-xs text-muted-foreground">Deals Closed</p>
+                    <p className="text-2xl font-bold">{perfData.dealsClosed}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ₱{(perfData.dealRevenue ?? 0).toLocaleString("en-PH")} revenue
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -10,6 +10,8 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-table": "^8.21.3",
@@ -21,6 +23,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
+    "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.563.0",
     "mongoose": "^9.1.5",
@@ -30,6 +33,7 @@
     "nodemailer": "^7.0.13",
     "papaparse": "^5.5.3",
     "pdfmake": "^0.3.3",
+    "qrcode.react": "^4.2.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",

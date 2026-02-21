@@ -38,7 +38,9 @@ export default function EditRolePage({
       setForm({
         name: role.name || "",
         description: role.description || "",
-        permissions: role.permissions || [],
+        permissions: (role.permissions || []).map((p: { _id?: string; resource?: string; action?: string } | string) =>
+          typeof p === "string" ? p : String((p as { _id?: string })._id)
+        ),
       });
     }
   }, [role]);
@@ -94,10 +96,10 @@ export default function EditRolePage({
   const grouped: Record<string, { key: string; label: string; description?: string }[]> =
     permissionsData?.permissions?.reduce(
       (acc: Record<string, { key: string; label: string; description?: string }[]>, p: {
-        action: string; key: string; resource: string; group: string; description?: string
+        _id: string; action: string; resource: string; group: string; description?: string
       }) => {
         if (!acc[p.group]) acc[p.group] = [];
-        acc[p.group].push({ key: `${p.resource}:${p.action}`, label: p.resource, description: p.description });
+        acc[p.group].push({ key: String(p._id), label: `${p.resource}:${p.action}`, description: p.description });
         return acc;
       },
       {} as Record<string, { key: string; label: string; description?: string }[]>

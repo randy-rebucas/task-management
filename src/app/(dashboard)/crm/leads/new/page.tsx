@@ -29,12 +29,17 @@ export default function NewLeadPage() {
 
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
+  const [contactPersonTitle, setContactPersonTitle] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [source, setSource] = useState("referral");
   const [status, setStatus] = useState("new");
   const [assignedTo, setAssignedTo] = useState("");
   const [notes, setNotes] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.SyntheticEvent) {
@@ -44,7 +49,13 @@ export default function NewLeadPage() {
     const res = await fetch("/api/crm/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, company, email, phone, source, status, assignedTo: assignedTo || undefined, notes }),
+      body: JSON.stringify({
+        name, company, industry, address, website, contactPersonTitle,
+        email, phone, source, status,
+        assignedTo: assignedTo || undefined,
+        notes,
+        followUpDate: followUpDate || undefined,
+      }),
     });
     setSaving(false);
     if (!res.ok) { toast.error("Failed to create lead"); return; }
@@ -75,12 +86,28 @@ export default function NewLeadPage() {
                 <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company name" />
               </div>
               <div className="space-y-1.5">
+                <Label>Industry</Label>
+                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Real Estate" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Contact Person Title</Label>
+                <Input value={contactPersonTitle} onChange={(e) => setContactPersonTitle(e.target.value)} placeholder="e.g. CEO" />
+              </div>
+              <div className="space-y-1.5">
                 <Label>Email</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
               </div>
               <div className="space-y-1.5">
                 <Label>Phone</Label>
                 <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+63 9XX XXX XXXX" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Website</Label>
+                <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://example.com" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Address</Label>
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City" />
               </div>
               <div className="space-y-1.5">
                 <Label>Source *</Label>
@@ -104,19 +131,23 @@ export default function NewLeadPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5">
                 <Label>Assigned To</Label>
                 <Select value={assignedTo || "none"} onValueChange={(v) => setAssignedTo(v === "none" ? "" : v)}>
                   <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Unassigned</SelectItem>
-                    {users.map((u: any) => (
+                    {users.map((u: { _id: string; firstName: string; lastName: string }) => (
                       <SelectItem key={u._id} value={u._id}>
                         {u.firstName} {u.lastName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Next Follow-up Date</Label>
+                <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} />
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label>Notes</Label>
