@@ -26,6 +26,20 @@ export async function middleware(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
   const { pathname } = req.nextUrl;
 
+  // Enforce www for apex domain
+  const hostname = host.split(":")[0];
+  if (
+    hostname === "tasksmgr.solutions" ||
+    (hostname.endsWith("tasksmgr.solutions") && hostname.split(".").length === 2)
+  ) {
+    // Allow localhost and www itself
+    if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "www.tasksmgr.solutions") {
+      const url = req.nextUrl.clone();
+      url.hostname = "www.tasksmgr.solutions";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Pass through static assets and auth API without any modifications
   if (
     pathname.startsWith("/_next") ||
@@ -54,10 +68,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── No subdomain → apex / platform pages ──────────────────────────────────
+  // ── No valid subdomain → show tenant-not-found ────────────────────────────
   if (!subdomain || RESERVED_SUBDOMAINS.has(subdomain)) {
-    // Landing page, /register-company, /pricing etc. served normally
-    return NextResponse.next();
+    // Allow apex domain for landing, register-company, pricing, etc.
+    if (
+      pathname === "/" ||
+      pathname.startsWith("/register-company") ||
+      pathname.startsWith("/pricing") ||
+      pathname.startsWith("/api/")
+    ) {
+      return NextResponse.next();
+    }
+    // Otherwise, show tenant-not-found
+    return NextResponse.rewrite(new URL("/tenant-not-found", req.url));
   }
 
   // ── Tenant subdomain → look up tenant in platform DB ─────────────────────
