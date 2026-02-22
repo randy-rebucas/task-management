@@ -1,10 +1,10 @@
-import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { cancelPayPalSubscription } from "@/lib/paypal";
 
-export const POST = withAuth(async (_req, _ctx, session, models) => {
+export const POST = withPermission("subscriptions:manage", async (_req, _ctx, session, models) => {
   // Only the account owner can cancel
   const currentUser = await models.User.findById(session.user.id).select("owner").lean() as any;
-  if (currentUser?.owner) {
+  if (!currentUser?.owner) {
     return apiError("Only the account owner can cancel the subscription", 403);
   }
 

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { getTenantPermissions } from "@/features/auth/rbac";
 import { submitProofSchema } from "@/features/auth/validators";
 function haversineMetres(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -19,19 +20,19 @@ export const GET = withPermission("proof_of_work:view", async (req, _ctx, sessio
   const userId = url.searchParams.get("userId");
 
   // Non-managers can only view their own submissions
-  const hasManage = true; // permission check happens via withPermission; filter by session for non-managers
+  const perms = await getTenantPermissions(session.user.roles, models);
+  const hasManage = perms.has("proof_of_work:manage");
   const filter: Record<string, unknown> = {};
   if (status) filter.verificationStatus = status;
   if (taskId) filter.task = taskId;
-  if (userId) {
+  if (userId && hasManage) {
+    // Only managers can filter by arbitrary userId
     filter.submittedBy = userId;
-  }
-  // If no userId param and no manage capability, default to own submissions
-  // We pass userId=me from front-end for own view; admin passes any userId or none
-  if (!userId && !taskId) {
-    // show own by default (front-end controls this via userId param)
+  } else if (!hasManage) {
+    // Regular submitters always see only their own
     filter.submittedBy = session.user.id;
   }
+  // If manager and no userId filter, they see all — no extra constraint needed
 
   const submissions = await models.ProofOfWork.find(filter)
     .sort({ createdAt: -1 })

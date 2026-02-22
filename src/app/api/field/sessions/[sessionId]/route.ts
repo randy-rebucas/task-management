@@ -1,7 +1,9 @@
 import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { getTenantPermissions } from "@/features/auth/rbac";
 export const GET = withAuth(async (req, ctx, session, models) => {
   const { sessionId } = await ctx.params;
-  const canViewAll = session.user.permissions?.includes("visit_logs:view_all");
+  const perms = await getTenantPermissions(session.user.roles, models);
+  const canViewAll = perms.has("visit_logs:view_all");
 
   const filter: Record<string, unknown> = { _id: sessionId };
   if (!canViewAll) filter.user = session.user.id;

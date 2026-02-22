@@ -1,5 +1,5 @@
-import { withAuth, apiSuccess } from "@/features/auth/api-helpers";
-export const GET = withAuth(async (req, ctx, session, models) => {
+import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
+export const GET = withPermission("dashboard:staff", async (req, ctx, session, models) => {
   const now = new Date();
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 

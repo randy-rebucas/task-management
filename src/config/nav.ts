@@ -7,6 +7,7 @@ import {
   Building2,
   GitBranch,
   Bell,
+  BellRing,
   BarChart3,
   ScrollText,
   Settings,
@@ -90,10 +91,11 @@ export const navItems: NavItem[] = [
     href: "/settings",
     icon: Settings,
     children: [
-      { title: "General",      href: "/settings",              icon: Settings,    permission: "settings:manage" },
-      { title: "Profile",      href: "/settings/profile",      icon: UserCircle },
-      { title: "Subscription", href: "/settings/subscription", icon: Zap, permission: "subscriptions:manage" },
-      { title: "Billing",      href: "/settings/billing",      icon: CreditCard,  permission: "settings:manage" },
+      { title: "General",            href: "/settings",                    icon: Settings,    permission: "settings:manage" },
+      { title: "Profile",            href: "/settings/profile",            icon: UserCircle },
+      { title: "Notification Rules", href: "/settings/notification-rules", icon: BellRing,    permission: "notifications:manage_rules" },
+      { title: "Subscription",       href: "/settings/subscription",       icon: Zap,         permission: "subscriptions:manage" },
+      { title: "Billing",            href: "/settings/billing",            icon: CreditCard,  permission: "settings:manage" },
     ],
   },
 ];

@@ -1,5 +1,6 @@
 
-import { withAuth, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
+import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
+import { getTenantPermissions } from "@/features/auth/rbac";
 import { createVisitLogSchema } from "@/features/auth/validators";
 import path from "path";
 import fs from "fs/promises";
@@ -8,7 +9,7 @@ import crypto from "crypto";
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 
 
-export const POST = withAuth(async (req, ctx, session, models) => {
+export const POST = withPermission("visit_logs:create", async (req, ctx, session, models) => {
   const contentType = req.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
@@ -52,12 +53,21 @@ export const POST = withAuth(async (req, ctx, session, models) => {
   }
 });
 
-export const GET = withAuth(async (req, ctx, session, models) => {
+export const GET = withPermission("visit_logs:view", async (req, ctx, session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
   const search = url.searchParams.get("search") || "";
+  const requestedUser = url.searchParams.get("userId");
 
-  const filter: Record<string, unknown> = { user: session.user.id };
+  const perms = await getTenantPermissions(session.user.roles, models);
+  const canViewAll = perms.has("visit_logs:view_all");
+
+  const filter: Record<string, unknown> = {};
+  if (canViewAll && requestedUser) {
+    filter.user = requestedUser;
+  } else if (!canViewAll) {
+    filter.user = session.user.id;
+  }
   if (search) {
     filter.$or = [
       { placesVisited: { $regex: search, $options: "i" } },
