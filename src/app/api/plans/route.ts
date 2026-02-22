@@ -18,6 +18,22 @@ export interface PlanInfo {
   maxUsers: number;
 }
 
+const DEFAULT_PRICES: Record<PlanKey, number> = {
+  trial:      0,
+  starter:    49,
+  growth:     149,
+  business:   299,
+  enterprise: 0,
+};
+
+const DEFAULT_LIMITS: Record<PlanKey, number> = {
+  trial:      5,
+  starter:    25,
+  growth:     50,
+  business:   150,
+  enterprise: 9999,
+};
+
 export const GET = withAuth(async () => {
   const pdb = await getPlatformDb();
   const Setting = getPlatformSettingModel(pdb);
@@ -38,8 +54,8 @@ export const GET = withAuth(async () => {
   const plans: PlanInfo[] = PLAN_KEYS.map((key) => ({
     key,
     label:    String(map[`plan_label.${key}`]  ?? key.charAt(0).toUpperCase() + key.slice(1)),
-    amount:   Number(map[`plan_price.${key}`]  ?? 0),
-    maxUsers: Number(map[`plan_limits.${key}`] ?? 0),
+    amount:   Number(map[`plan_price.${key}`]  ?? DEFAULT_PRICES[key]),
+    maxUsers: Number(map[`plan_limits.${key}`] ?? DEFAULT_LIMITS[key]),
   }));
 
   return NextResponse.json({ plans });
