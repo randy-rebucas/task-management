@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatformDb } from "@/lib/platform-db";
 import { getPlatformSettingModel, DEFAULT_PLATFORM_SETTINGS } from "@/models/platform/PlatformSetting";
+import { invalidatePlatformConfigCache } from "@/lib/platform-config";
 
 function checkAuth(req: NextRequest) {
   return req.headers.get("x-super-admin-secret") === process.env.SUPER_ADMIN_SECRET;
@@ -39,6 +40,9 @@ export async function PATCH(req: NextRequest) {
     { value: body.value },
     { new: true, upsert: true }
   ).lean();
+
+  // Bust the in-process config cache so the new value is picked up immediately
+  invalidatePlatformConfigCache();
 
   return NextResponse.json({ setting });
 }

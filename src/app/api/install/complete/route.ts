@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatformDb } from "@/lib/platform-db";
 import { getPlatformSettingModel } from "@/models/platform/PlatformSetting";
+import { invalidatePlatformConfigCache } from "@/lib/platform-config";
 
 interface InstallPayload {
   // Email
@@ -83,6 +84,9 @@ export async function POST(req: NextRequest) {
         )
       )
     );
+
+    // Bust the platform config cache so every service picks up new settings immediately
+    invalidatePlatformConfigCache();
 
     return NextResponse.json({ success: true });
   } catch (err) {

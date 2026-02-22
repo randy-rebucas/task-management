@@ -1,28 +1,32 @@
 import nodemailer from "nodemailer";
+import { getPlatformConfig } from "@/lib/platform-config";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
+/**
+ * Send an email using SMTP credentials loaded from the platform DB
+ * (with env var fallbacks for local dev / pre-install).
+ */
 export async function sendEmail(params: {
   to: string;
   subject: string;
   text: string;
   html?: string;
 }) {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn("Email not configured. Skipping email send.");
+  const { smtp } = await getPlatformConfig();
+
+  if (!smtp.user || !smtp.password) {
+    console.warn("[email] SMTP not configured. Skipping email send.");
     return;
   }
 
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.port === 465,
+    auth: { user: smtp.user, pass: smtp.password },
+  });
+
   return transporter.sendMail({
-    from: process.env.EMAIL_FROM || "noreply@taskmanagement.com",
+    from: smtp.from,
     to: params.to,
     subject: params.subject,
     text: params.text,

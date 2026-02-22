@@ -5,6 +5,34 @@ import { RESERVED_SUBDOMAINS } from "@/config/constants";
 // Explicitly use Node.js runtime (required for Mongoose DB calls)
 export const runtime = "nodejs";
 
+// ── Install-check cache ────────────────────────────────────────────────────────
+// Cached so we only hit the DB once per process lifetime.
+// Reset on server restart (which is fine — newly deployed code means a fresh check).
+let _installChecked = false;
+let _installCompleted = false;
+
+async function isInstallCompleted(): Promise<boolean> {
+  if (_installChecked) return _installCompleted;
+  try {
+    const { getPlatformDb } = await import("@/lib/platform-db");
+    const { getPlatformSettingModel } = await import("@/models/platform/PlatformSetting");
+    const conn = await getPlatformDb();
+    const Setting = getPlatformSettingModel(conn);
+    const record = await Setting.findOne({ key: "install.completed" }).lean() as
+      | { value: unknown }
+      | null;
+    _installCompleted = record?.value === true;
+  } catch {
+    // DB unreachable → treat as not yet installed
+    _installCompleted = false;
+  }
+  // Only cache positively — once completed we never need to re-check.
+  // While still incomplete, re-query each request so the wizard completion
+  // is reflected immediately without a server restart.
+  if (_installCompleted) _installChecked = true;
+  return _installCompleted;
+}
+
 /**
  * Extract the tenant subdomain from the host header.
  * Only treats a hostname as having a subdomain if it belongs to the app domain
@@ -39,6 +67,19 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();
+  }
+
+  // ── Install gate ──────────────────────────────────────────────────────────
+  // Allow the install wizard and its API routes to load freely.
+  // For every other request, redirect to /install if setup is not yet complete.
+  const isInstallRoute =
+    pathname.startsWith("/install") || pathname.startsWith("/api/install");
+
+  if (!isInstallRoute) {
+    const completed = await isInstallCompleted();
+    if (!completed) {
+      return NextResponse.redirect(new URL("/install", req.url));
+    }
   }
 
   // ── Enforce www on apex domain ────────────────────────────────────────────
