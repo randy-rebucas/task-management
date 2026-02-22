@@ -1,9 +1,11 @@
 import "@/models/Role";
+import "@/models/LoginHistory";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { dbConnect } from "@/lib/db";
-import User from "@/models/User";
-import LoginHistory from "@/models/LoginHistory";
+import { getTenantConnection } from "@/lib/tenant-db";
+import { getTenantModels } from "@/lib/tenant-models";
+import { getPlatformDb } from "@/lib/platform-db";
+import getTenantModel from "@/models/platform/Tenant";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -11,13 +13,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        tenantSlug: { label: "Tenant", type: "text" },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+      async authorize(credentials, request) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        // Resolve tenant: from credentials (login form), request headers (set by middleware),
+        // or the hostname-derived slug forwarded via x-tenant-slug header.
+        let tenantSlug =
+          (credentials.tenantSlug as string) ||
+          request?.headers?.get("x-tenant-slug") ||
+          null;
+
+        // Fallback for local dev: extract from ?__tenant query param
+        if (!tenantSlug && request?.url) {
+          const url = new URL(request.url);
+          tenantSlug = url.searchParams.get("__tenant");
+        }
+
+        if (!tenantSlug) {
+          console.error("[auth] No tenantSlug found during authorize");
           return null;
         }
 
-        await dbConnect();
+        // Look up tenant in platform DB
+        const platformDb = await getPlatformDb();
+        const Tenant = getTenantModel(platformDb);
+        const tenant = await Tenant.findOne({
+          slug: tenantSlug,
+          status: "active",
+        }).lean();
+
+        if (!tenant) {
+          console.error(`[auth] Tenant "${tenantSlug}" not found or inactive`);
+          return null;
+        }
+
+        // Get tenant-specific DB and models
+        const tenantConn = await getTenantConnection(tenant.dbName);
+        const { User, LoginHistory } = getTenantModels(tenantConn);
 
         const user = await User.findOne({
           email: (credentials.email as string).toLowerCase(),
@@ -34,7 +68,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const isValid = await user.comparePassword(credentials.password as string);
+        const isValid = await (user as any).comparePassword(
+          credentials.password as string
+        );
         if (!isValid) {
           await LoginHistory.create({
             user: user._id,
@@ -44,24 +80,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        await LoginHistory.create({
-          user: user._id,
-          success: true,
-        }).catch(() => {});
-
-        await User.findByIdAndUpdate(user._id, {
-          lastLoginAt: new Date(),
-        });
+        await LoginHistory.create({ user: user._id, success: true }).catch(() => {});
+        await User.findByIdAndUpdate(user._id, { lastLoginAt: new Date() });
 
         return {
           id: user._id.toString(),
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          roles: (user.roles as { _id: unknown }[]).map((r) =>
+          email: (user as any).email,
+          name: `${(user as any).firstName} ${(user as any).lastName}`,
+          roles: ((user as any).roles as { _id: unknown }[]).map((r) =>
             typeof r._id === "string"
               ? r._id
               : (r._id as any)?.toString?.() ?? ""
           ),
+          tenantId:     tenant._id.toString(),
+          tenantSlug:   tenant.slug,
+          tenantDbName: tenant.dbName,
+          tenantName:   tenant.name,
         };
       },
     }),
@@ -73,33 +107,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.userId = user.id;
-        token.roles = (user as unknown as { roles: string[] }).roles;
+        token.userId      = user.id;
+        token.roles       = (user as any).roles;
+        token.tenantId    = (user as any).tenantId;
+        token.tenantSlug  = (user as any).tenantSlug;
+        token.tenantDbName = (user as any).tenantDbName;
+        token.tenantName  = (user as any).tenantName;
       }
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.userId as string;
-      session.user.roles = token.roles as string[];
+      session.user.id          = token.userId as string;
+      session.user.roles       = token.roles as string[];
+      session.user.tenantId    = token.tenantId as string;
+      session.user.tenantSlug  = token.tenantSlug as string;
+      session.user.tenantDbName = token.tenantDbName as string;
+      session.user.tenantName  = token.tenantName as string;
       return session;
     },
-    authorized({ auth: session, request: { nextUrl } }) {
-      const isLoggedIn = !!session?.user;
-      const isOnAuth = nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/register") ||
-        nextUrl.pathname.startsWith("/forgot-password") ||
-        nextUrl.pathname.startsWith("/reset-password");
-
-      if (isOnAuth) {
-        if (isLoggedIn) return Response.redirect(new URL("/dashboard", nextUrl));
-        return true;
-      }
-
-      if (!isLoggedIn) {
-        return false; // Redirect to login
-      }
-
-      return true;
+    authorized({ auth: session }) {
+      // Basic check — detailed routing handled in middleware
+      return !!session?.user;
     },
   },
   pages: {

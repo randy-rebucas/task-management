@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
 import { getSubscriptionDetails, PLAN_CONFIG, PlanKey } from "@/lib/paypal";
 import { Subscription } from "@/models/Subscription";
 
@@ -28,9 +27,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    await dbConnect();
-
     // Get user session if logged in
     const session = await auth();
     const userId = session?.user?.id;
@@ -41,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Upsert subscription record
-    const subscription = await Subscription.findOneAndUpdate(
+    const subscription = await models.Subscription.findOneAndUpdate(
       { paypalSubscriptionId: subscriptionId },
       {
         user: userId ?? undefined,

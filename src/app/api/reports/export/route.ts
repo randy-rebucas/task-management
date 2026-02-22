@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { withPermission, apiError } from "@/features/auth/api-helpers";
 import { exportReportSchema } from "@/features/auth/validators";
-import Task from "@/models/Task";
 import ExcelJS from "exceljs";
 
-export const POST = withPermission("reports:export", async (req) => {
+export const POST = withPermission("reports:export", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const parsed = exportReportSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
@@ -12,7 +11,7 @@ export const POST = withPermission("reports:export", async (req) => {
   const { format } = parsed.data;
 
   // Fetch data based on report type
-  const tasks = await Task.find({ isArchived: false })
+  const tasks = await models.Task.find({ isArchived: false })
     .populate("status", "name")
     .populate("assignees", "firstName lastName email")
     .populate("createdBy", "firstName lastName")

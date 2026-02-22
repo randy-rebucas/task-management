@@ -1,15 +1,13 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
 import { DEAL_STAGES } from "@/config/constants";
-import Deal from "@/models/Deal";
-
-export const GET = withPermission("crm:view", async (req) => {
+export const GET = withPermission("crm:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const assignedTo = url.searchParams.get("assignedTo") || "";
 
   const filter: Record<string, unknown> = {};
   if (assignedTo) filter.assignedTo = assignedTo;
 
-  const deals = await Deal.find(filter)
+  const deals = await models.Deal.find(filter)
     .populate("lead", "name company")
     .populate("client", "name company")
     .populate("assignedTo", "firstName lastName avatar")

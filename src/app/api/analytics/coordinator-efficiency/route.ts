@@ -1,13 +1,9 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import User from "@/models/User";
-import FieldSession from "@/models/FieldSession";
-import Task from "@/models/Task";
-
 export const GET = withPermission("reports:view", async () => {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   // Find field coordinators (role slug contains "field")
-  const allUsers = await User.find({ isActive: true })
+  const allUsers = await models.User.find({ isActive: true })
     .populate("roles", "slug name")
     .select("_id firstName lastName email avatar roles")
     .lean();
@@ -24,7 +20,7 @@ export const GET = withPermission("reports:view", async () => {
   const userIds = fieldUsers.map((u) => u._id);
 
   // FieldSession stats per user (past 30 days)
-  const sessionStats = await FieldSession.aggregate([
+  const sessionStats = await models.FieldSession.aggregate([
     {
       $match: {
         user: { $in: userIds },
@@ -47,7 +43,7 @@ export const GET = withPermission("reports:view", async () => {
   );
 
   // Task completion stats per user (past 30 days)
-  const taskStats = await Task.aggregate([
+  const taskStats = await models.Task.aggregate([
     {
       $match: {
         assignees: { $in: userIds },

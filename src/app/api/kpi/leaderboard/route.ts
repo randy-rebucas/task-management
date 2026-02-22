@@ -1,11 +1,5 @@
 import mongoose from "mongoose";
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-import FieldSession from "@/models/FieldSession";
-import VisitLog from "@/models/VisitLog";
-import WorkflowStatus from "@/models/WorkflowStatus";
-import User from "@/models/User";
-
 function getPeriodRange(period: string) {
   const now = new Date();
   if (period === "month") {
@@ -29,17 +23,17 @@ function calcScore(a: number, c: number, o: number, v: number, l: number, period
   return Math.max(0, Math.round(completionScore + visitScore + leadScore + 10 - overdueDeduct));
 }
 
-export const GET = withPermission("visit_logs:view_all", async (req) => {
+export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _session, models) => {
   const period = new URL(req.url).searchParams.get("period") || "week";
   const { start, end } = getPeriodRange(period);
   const now = new Date();
 
-  const finalStatuses = await WorkflowStatus.find({ isFinal: true }).select("_id").lean();
+  const finalStatuses = await models.WorkflowStatus.find({ isFinal: true }).select("_id").lean();
   const finalIds = finalStatuses.map((s) => s._id as mongoose.Types.ObjectId);
 
   // Batch aggregations for efficiency
   const [taskAgg, overdueAgg, visitAgg, visitLogAgg, users] = await Promise.all([
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { isArchived: false } },
       { $unwind: "$assignees" },
       {
@@ -69,20 +63,20 @@ export const GET = withPermission("visit_logs:view_all", async (req) => {
         },
       },
     ]),
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { isArchived: false, dueDate: { $lt: now }, status: { $nin: finalIds } } },
       { $unwind: "$assignees" },
       { $group: { _id: "$assignees", overdue: { $sum: 1 } } },
     ]),
-    FieldSession.aggregate([
+    models.FieldSession.aggregate([
       { $match: { date: { $gte: start, $lte: end } } },
       { $group: { _id: "$user", visits: { $sum: 1 } } },
     ]),
-    VisitLog.aggregate([
+    models.VisitLog.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       { $group: { _id: "$user", visits: { $sum: 1 } } },
     ]),
-    User.find({ isActive: true }).select("firstName lastName email department avatar").lean(),
+    models.User.find({ isActive: true }).select("firstName lastName email department avatar").lean(),
   ]);
 
   const taskMap     = Object.fromEntries(taskAgg.map((r: any)      => [r._id.toString(), r]));

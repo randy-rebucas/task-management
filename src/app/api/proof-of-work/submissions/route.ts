@@ -1,9 +1,6 @@
 import mongoose from "mongoose";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { submitProofSchema } from "@/features/auth/validators";
-import ProofOfWork from "@/models/ProofOfWork";
-import PartnerLocation from "@/models/PartnerLocation";
-
 function haversineMetres(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
   const φ1 = (lat1 * Math.PI) / 180;
@@ -36,7 +33,7 @@ export const GET = withPermission("proof_of_work:view", async (req, _ctx, sessio
     filter.submittedBy = session.user.id;
   }
 
-  const submissions = await ProofOfWork.find(filter)
+  const submissions = await models.ProofOfWork.find(filter)
     .sort({ createdAt: -1 })
     .populate("submittedBy", "firstName lastName avatar")
     .populate("task", "title")
@@ -61,7 +58,7 @@ export const POST = withPermission("proof_of_work:submit", async (req, _ctx, ses
   } | undefined;
 
   if (qrCheckIn) {
-    const loc = await PartnerLocation.findById(qrCheckIn.partnerLocation);
+    const loc = await models.PartnerLocation.findById(qrCheckIn.partnerLocation);
     if (!loc) return apiError("Partner location not found", 404);
 
     let distanceMetres = -1;
@@ -82,7 +79,7 @@ export const POST = withPermission("proof_of_work:submit", async (req, _ctx, ses
     };
   }
 
-  const proof = await ProofOfWork.create({
+  const proof = await models.ProofOfWork.create({
     task,
     submittedBy: session.user.id,
     photos,

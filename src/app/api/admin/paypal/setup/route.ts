@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { withPermission } from "@/features/auth/api-helpers";
-import { dbConnect } from "@/lib/db";
-import AppSetting from "@/models/AppSetting";
 import { getPayPalAccessToken } from "@/lib/paypal";
 
 const PAYPAL_API_BASE =
@@ -94,13 +92,11 @@ export const POST = withPermission("settings:manage", async () => {
       createPlan(token, productId, "TaskMgr Growth",   "Up to 30 team members",  149),
       createPlan(token, productId, "TaskMgr Business", "Up to 100 team members", 299),
     ]);
-
-    await dbConnect();
     await Promise.all([
-      AppSetting.findOneAndUpdate({ key: "paypal.product.id" },      { value: productId  }, { upsert: true }),
-      AppSetting.findOneAndUpdate({ key: "paypal.plan.starter.id" }, { value: starterId  }, { upsert: true }),
-      AppSetting.findOneAndUpdate({ key: "paypal.plan.growth.id" },  { value: growthId   }, { upsert: true }),
-      AppSetting.findOneAndUpdate({ key: "paypal.plan.business.id" },{ value: businessId }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.product.id" },      { value: productId  }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.starter.id" }, { value: starterId  }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.growth.id" },  { value: growthId   }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.business.id" },{ value: businessId }, { upsert: true }),
     ]);
 
     return NextResponse.json({

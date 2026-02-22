@@ -1,7 +1,5 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateSubtaskSchema } from "@/features/auth/validators";
-import Task from "@/models/Task";
-
 export const PATCH = withPermission("tasks:update", async (req, ctx) => {
   const { taskId, subtaskId } = await ctx.params;
   const body = await req.json();
@@ -19,7 +17,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx) => {
     update["subtasks.$.completedAt"] = null;
   }
 
-  const task = await Task.findOneAndUpdate(
+  const task = await models.Task.findOneAndUpdate(
     { _id: taskId, "subtasks._id": subtaskId },
     { $set: update },
     { new: true }
@@ -32,7 +30,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx) => {
 export const DELETE = withPermission("tasks:update", async (req, ctx) => {
   const { taskId, subtaskId } = await ctx.params;
 
-  const task = await Task.findByIdAndUpdate(
+  const task = await models.Task.findByIdAndUpdate(
     taskId,
     { $pull: { subtasks: { _id: subtaskId } } },
     { new: true }

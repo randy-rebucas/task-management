@@ -1,19 +1,18 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateRoleSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-import Role from "@/models/Role";
 import slugify from "slugify";
 
 export const GET = withPermission("roles:view", async (req, ctx) => {
   const { roleId } = await ctx.params;
-  const role = await Role.findById(roleId).populate("permissions").lean();
+  const role = await models.Role.findById(roleId).populate("permissions").lean();
   if (!role) return apiError("Role not found", 404);
   return apiSuccess(role);
 });
 
-export const PUT = withPermission("roles:update", async (req, ctx, session) => {
+export const PUT = withPermission("roles:update", async (req, ctx, session, models) => {
   const { roleId } = await ctx.params;
-  const role = await Role.findById(roleId);
+  const role = await models.Role.findById(roleId);
   if (!role) return apiError("Role not found", 404);
 
   const body = await req.json();
@@ -45,13 +44,13 @@ export const PUT = withPermission("roles:update", async (req, ctx, session) => {
   return apiSuccess(role);
 });
 
-export const DELETE = withPermission("roles:delete", async (req, ctx, session) => {
+export const DELETE = withPermission("roles:delete", async (req, ctx, session, models) => {
   const { roleId } = await ctx.params;
-  const role = await Role.findById(roleId);
+  const role = await models.Role.findById(roleId);
   if (!role) return apiError("Role not found", 404);
   if (role.isSystem) return apiError("Cannot delete system roles", 403);
 
-  await Role.findByIdAndDelete(roleId);
+  await models.Role.findByIdAndDelete(roleId);
 
   await logActivity({
     actor: session.user.id,

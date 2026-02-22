@@ -1,7 +1,5 @@
 import { withPermission, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-
-export const GET = withPermission("reports:view", async (req) => {
+export const GET = withPermission("reports:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
   const department = url.searchParams.get("department");
@@ -14,7 +12,7 @@ export const GET = withPermission("reports:view", async (req) => {
   if (department) filter.department = department;
 
   const [data, total] = await Promise.all([
-    Task.find(filter)
+    models.Task.find(filter)
       .populate("status", "name slug color")
       .populate("assignees", "firstName lastName email")
       .populate("department", "name code")
@@ -22,7 +20,7 @@ export const GET = withPermission("reports:view", async (req) => {
       .skip(skip)
       .limit(limit)
       .lean(),
-    Task.countDocuments(filter),
+    models.Task.countDocuments(filter),
   ]);
 
   return apiSuccess({

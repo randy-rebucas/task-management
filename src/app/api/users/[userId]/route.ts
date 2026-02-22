@@ -1,12 +1,9 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import Department from "@/models/Department";
 import { updateUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-import User from "@/models/User";
-
 export const GET = withPermission("users:view", async (req, ctx) => {
   const { userId } = await ctx.params;
-  const user = await User.findById(userId)
+  const user = await models.User.findById(userId)
     .populate("roles", "name slug")
     .populate("department", "name code")
     .lean();
@@ -15,7 +12,7 @@ export const GET = withPermission("users:view", async (req, ctx) => {
   return apiSuccess(user);
 });
 
-export const PUT = withPermission("users:update", async (req, ctx, session) => {
+export const PUT = withPermission("users:update", async (req, ctx, session, models) => {
   const { userId } = await ctx.params;
   const body = await req.json();
   const parsed = updateUserSchema.safeParse(body);
@@ -23,7 +20,7 @@ export const PUT = withPermission("users:update", async (req, ctx, session) => {
     return apiError(parsed.error.issues[0].message);
   }
 
-  const user = await User.findById(userId);
+  const user = await models.User.findById(userId);
   if (!user) return apiError("User not found", 404);
 
   Object.assign(user, parsed.data);
@@ -41,9 +38,9 @@ export const PUT = withPermission("users:update", async (req, ctx, session) => {
   return apiSuccess(user);
 });
 
-export const DELETE = withPermission("users:delete", async (req, ctx, session) => {
+export const DELETE = withPermission("users:delete", async (req, ctx, session, models) => {
   const { userId } = await ctx.params;
-  const user = await User.findById(userId);
+  const user = await models.User.findById(userId);
   if (!user) return apiError("User not found", 404);
 
   user.isActive = false;

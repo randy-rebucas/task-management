@@ -1,14 +1,12 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-
-export const GET = withPermission("reports:view", async (req) => {
+export const GET = withPermission("reports:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const department = url.searchParams.get("department");
 
   const match: Record<string, unknown> = { isArchived: false };
   if (department) match.department = department;
 
-  const workload = await Task.aggregate([
+  const workload = await models.Task.aggregate([
     { $match: match },
     { $unwind: "$assignees" },
     {

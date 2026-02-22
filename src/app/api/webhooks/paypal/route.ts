@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbConnect } from "@/lib/db";
 import { verifyWebhookSignature } from "@/lib/paypal";
 import { Subscription, SubscriptionStatus } from "@/models/Subscription";
 
@@ -26,9 +25,6 @@ export async function POST(req: NextRequest) {
   const event = JSON.parse(rawBody);
   const eventType: string = event.event_type;
   const resource = event.resource;
-
-  await dbConnect();
-
   // Handle subscription status changes
   if (STATUS_MAP[eventType]) {
     const subscriptionId: string =
@@ -49,7 +45,7 @@ export async function POST(req: NextRequest) {
         update.cancelledAt = new Date();
       }
 
-      await Subscription.findOneAndUpdate(
+      await models.Subscription.findOneAndUpdate(
         { paypalSubscriptionId: subscriptionId },
         update
       );
@@ -60,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (eventType === "PAYMENT.SALE.COMPLETED") {
     const subscriptionId: string = resource.billing_agreement_id;
     if (subscriptionId) {
-      await Subscription.findOneAndUpdate(
+      await models.Subscription.findOneAndUpdate(
         { paypalSubscriptionId: subscriptionId },
         { status: "ACTIVE" }
       );

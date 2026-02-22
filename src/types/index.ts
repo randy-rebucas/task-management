@@ -1,5 +1,26 @@
 import { Types } from "mongoose";
 
+// ─── Multi-tenant ────────────────────────────────────────────────────────────
+export type TenantPlan = "trial" | "starter" | "growth" | "business" | "enterprise";
+export type TenantStatus = "active" | "suspended" | "cancelled" | "pending";
+
+export interface ITenant {
+  _id: Types.ObjectId;
+  slug: string;
+  name: string;
+  dbName: string;
+  adminEmail: string;
+  plan: TenantPlan;
+  status: TenantStatus;
+  trialEndsAt?: Date;
+  logoUrl?: string;
+  primaryColor?: string;
+  maxUsers: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface IVisitLog {
   _id: Types.ObjectId;
   user: Types.ObjectId;

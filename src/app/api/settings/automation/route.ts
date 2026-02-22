@@ -1,5 +1,3 @@
-import AppSetting from "@/models/AppSetting";
-import { dbConnect } from "@/lib/db";
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
 import { NextResponse } from "next/server";
 
@@ -20,26 +18,24 @@ const DEFAULTS: Record<string, unknown> = {
 };
 
 export const GET = async () => {
-  await dbConnect();
-  const rows = await AppSetting.find({ key: { $in: AUTOMATION_KEYS } }).lean();
+  const rows = await models.AppSetting.find({ key: { $in: AUTOMATION_KEYS } }).lean();
   const result: Record<string, unknown> = { ...DEFAULTS };
   for (const row of rows) result[row.key] = row.value;
   return NextResponse.json(result);
 };
 
-export const PUT = withPermission("settings:manage", async (req) => {
-  await dbConnect();
+export const PUT = withPermission("settings:manage", async (req, _ctx, _session, models) => {
   const body = await req.json();
   for (const key of AUTOMATION_KEYS) {
     if (body[key] !== undefined) {
-      await AppSetting.findOneAndUpdate(
+      await models.AppSetting.findOneAndUpdate(
         { key },
         { value: body[key] },
         { upsert: true, new: true }
       );
     }
   }
-  const rows = await AppSetting.find({ key: { $in: AUTOMATION_KEYS } }).lean();
+  const rows = await models.AppSetting.find({ key: { $in: AUTOMATION_KEYS } }).lean();
   const result: Record<string, unknown> = { ...DEFAULTS };
   for (const row of rows) result[row.key] = row.value;
   return apiSuccess(result);

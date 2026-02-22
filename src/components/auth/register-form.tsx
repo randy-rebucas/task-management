@@ -1,9 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+
+/** True when running on the root domain (no tenant subdomain). */
+function isRootDomain(): boolean {
+  if (typeof window === "undefined") return false;
+  const parts = window.location.hostname.split(".");
+  // localhost / 127.0.0.1 — treat as root
+  if (parts.length < 3) return true;
+  // Explicit override for dev
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("__tenant")) return false;
+  return false;
+}
 
 export function RegisterForm() {
   const router = useRouter();
@@ -11,6 +23,11 @@ export function RegisterForm() {
   const fromSubscription = searchParams.get("subscribed") === "1";
   const planLabel = searchParams.get("plan");
   const prefilledEmail = searchParams.get("email") ?? "";
+  const [onRoot, setOnRoot] = useState(false);
+
+  useEffect(() => {
+    setOnRoot(isRootDomain());
+  }, []);
 
   const [form, setForm] = useState({
     email: prefilledEmail,
@@ -80,6 +97,18 @@ export function RegisterForm() {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-600/20 rounded-3xl blur-2xl -z-10" />
 
       <div className="relative rounded-2xl border border-white/[0.09] bg-[#0d1426]/90 backdrop-blur-sm p-8">
+
+        {/* Root-domain banner: nudge users to create a company instead */}
+        {onRoot && (
+          <div className="mb-6 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-center text-sm text-blue-300">
+            Looking to create a new workspace?{" "}
+            <Link href="/register-company" className="font-semibold underline underline-offset-2 hover:text-blue-200">
+              Register your company here
+            </Link>
+            .
+          </div>
+        )}
+
         {/* Logo & heading */}
         <div className="text-center mb-8">
           <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 items-center justify-center shadow-xl shadow-blue-500/25 mb-4">

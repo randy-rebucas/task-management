@@ -1,10 +1,8 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createDepartmentSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-import Department from "@/models/Department";
-
 export const GET = withPermission("departments:view", async () => {
-  const departments = await Department.find()
+  const departments = await models.Department.find()
     .populate("head", "firstName lastName email")
     .populate("parentDepartment", "name code")
     .sort({ name: 1 })
@@ -13,7 +11,7 @@ export const GET = withPermission("departments:view", async () => {
   return apiSuccess(departments);
 });
 
-export const POST = withPermission("departments:create", async (req, ctx, session) => {
+export const POST = withPermission("departments:create", async (req, ctx, session, models) => {
   const body = await req.json();
   const parsed = createDepartmentSchema.safeParse(body);
   if (!parsed.success) {
@@ -23,12 +21,12 @@ export const POST = withPermission("departments:create", async (req, ctx, sessio
     return apiError(fallbackMsg);
   }
 
-  const existing = await Department.findOne({
+  const existing = await models.Department.findOne({
     $or: [{ name: parsed.data.name }, { code: parsed.data.code }],
   });
   if (existing) return apiError("Department name or code already exists", 409);
 
-  const dept = await Department.create(parsed.data);
+  const dept = await models.Department.create(parsed.data);
 
   await logActivity({
     actor: session.user.id,

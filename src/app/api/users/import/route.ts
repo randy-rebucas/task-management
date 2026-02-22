@@ -1,10 +1,8 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import Department from "@/models/Department";
 import { logActivity } from "@/features/users/activity-logger";
-import User from "@/models/User";
 import Papa from "papaparse";
 
-export const POST = withPermission("users:import", async (req, ctx, session) => {
+export const POST = withPermission("users:import", async (req, ctx, session, models) => {
   const formData = await req.formData();
   const file = formData.get("file") as File;
 
@@ -27,14 +25,14 @@ export const POST = withPermission("users:import", async (req, ctx, session) => 
         continue;
       }
 
-      const exists = await User.findOne({ email: row.email.toLowerCase() });
+      const exists = await models.User.findOne({ email: row.email.toLowerCase() });
       if (exists) {
         results.errors.push(`User ${row.email} already exists`);
         results.skipped++;
         continue;
       }
 
-      await User.create({
+      await models.User.create({
         email: row.email.toLowerCase(),
         password: row.password,
         firstName: row.firstName,

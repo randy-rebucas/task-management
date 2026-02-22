@@ -1,21 +1,20 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { logActivity } from "@/features/users/activity-logger";
-import Role from "@/models/Role";
 import slugify from "slugify";
 
-export const POST = withPermission("roles:clone", async (req, ctx, session) => {
+export const POST = withPermission("roles:clone", async (req, ctx, session, models) => {
   const { roleId } = await ctx.params;
-  const sourceRole = await Role.findById(roleId);
+  const sourceRole = await models.Role.findById(roleId);
   if (!sourceRole) return apiError("Role not found", 404);
 
   const body = await req.json();
   const name = body.name || `${sourceRole.name} (Copy)`;
   const slug = slugify(name, { lower: true, strict: true });
 
-  const existing = await Role.findOne({ slug });
+  const existing = await models.Role.findOne({ slug });
   if (existing) return apiError("A role with this name already exists", 409);
 
-  const cloned = await Role.create({
+  const cloned = await models.Role.create({
     name,
     slug,
     description: body.description || sourceRole.description,

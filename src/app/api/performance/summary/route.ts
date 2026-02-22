@@ -1,12 +1,5 @@
 import mongoose from "mongoose";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-import Deal from "@/models/Deal";
-import WorkflowStatus from "@/models/WorkflowStatus";
-import CommissionRule from "@/models/CommissionRule";
-import PerformanceTarget from "@/models/PerformanceTarget";
-import User from "@/models/User";
-
 function calcScore(stats: {
   tasksAssigned: number;
   tasksCompleted: number;
@@ -37,25 +30,25 @@ async function computeForPeriod(
   const now = new Date();
 
   const [tasksCompleted, tasksAssigned, tasksOverdue, newLeads, dealResult] = await Promise.all([
-    Task.countDocuments({
+    models.Task.countDocuments({
       assignees: uid,
       status: { $in: finalStatusIds },
       updatedAt: { $gte: start, $lte: end },
       isArchived: false,
     }),
-    Task.countDocuments({ assignees: uid, isArchived: false }),
-    Task.countDocuments({
+    models.Task.countDocuments({ assignees: uid, isArchived: false }),
+    models.Task.countDocuments({
       assignees: uid,
       dueDate: { $lt: now },
       status: { $nin: finalStatusIds },
       isArchived: false,
     }),
-    Task.countDocuments({
+    models.Task.countDocuments({
       assignees: uid,
       taskType: "lead_follow_up",
       createdAt: { $gte: start, $lte: end },
     }),
-    Deal.aggregate([
+    models.Deal.aggregate([
       { $match: { assignedTo: uid, stage: "closed_won", updatedAt: { $gte: start, $lte: end } } },
       { $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } } },
     ]),
@@ -82,8 +75,8 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
   const uid = new mongoose.Types.ObjectId(targetUserId);
 
   const [user, finalStatuses] = await Promise.all([
-    User.findById(uid).select("firstName lastName email avatar department jobTitle").lean(),
-    WorkflowStatus.find({ isFinal: true }).select("_id").lean(),
+    models.User.findById(uid).select("firstName lastName email avatar department jobTitle").lean(),
+    models.WorkflowStatus.find({ isFinal: true }).select("_id").lean(),
   ]);
 
   if (!user) return apiError("User not found", 404);
@@ -102,7 +95,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
   });
 
   // Commission rule lookup — match by department or jobTitle
-  const rule = await CommissionRule.findOne({
+  const rule = await models.CommissionRule.findOne({
     $or: [
       ...(user.department ? [{ department: user.department }] : []),
       ...(user.jobTitle ? [{ jobTitle: user.jobTitle }] : []),
@@ -126,7 +119,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
   const totalIncentive = commissionEarned + leadBonus + scoreBonus;
 
   // Targets
-  const target = await PerformanceTarget.findOne({ user: uid, month, year }).lean();
+  const target = await models.PerformanceTarget.findOne({ user: uid, month, year }).lean();
 
   const achievementRate = {
     revenue: target?.targetRevenue ? Math.round((current.dealRevenue / target.targetRevenue) * 100) : null,

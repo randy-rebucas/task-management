@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { withPermission } from "@/features/auth/api-helpers";
-import { dbConnect } from "@/lib/db";
-import AppSetting from "@/models/AppSetting";
 import { PLAN_CONFIG } from "@/lib/paypal";
 
 const KEYS = [
@@ -13,8 +11,7 @@ const KEYS = [
 ] as const;
 
 export const GET = withPermission("settings:manage", async () => {
-  await dbConnect();
-  const rows = await AppSetting.find({ key: { $in: KEYS } }).lean();
+  const rows = await models.AppSetting.find({ key: { $in: KEYS } }).lean();
   const stored: Record<string, string> = {};
   for (const r of rows) stored[r.key] = r.value as string;
 
@@ -28,8 +25,7 @@ export const GET = withPermission("settings:manage", async () => {
   });
 });
 
-export const PUT = withPermission("settings:manage", async (req) => {
-  await dbConnect();
+export const PUT = withPermission("settings:manage", async (req, _ctx, _session, models) => {
   const body = await req.json() as Record<string, string>;
 
   const mapping: Record<string, string> = {
@@ -42,7 +38,7 @@ export const PUT = withPermission("settings:manage", async (req) => {
 
   for (const [field, key] of Object.entries(mapping)) {
     if (body[field] !== undefined) {
-      await AppSetting.findOneAndUpdate(
+      await models.AppSetting.findOneAndUpdate(
         { key },
         { value: body[field] },
         { upsert: true, new: true }

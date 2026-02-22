@@ -1,17 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+/** Extract the subdomain from the current window location. */
+function getTenantSlug(): string {
+  if (typeof window === "undefined") return "";
+  const parts = window.location.hostname.split(".");
+  if (parts.length >= 3) return parts[0];
+  // Local dev: ?__tenant=slug
+  const params = new URLSearchParams(window.location.search);
+  return params.get("__tenant") ?? "";
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [tenantSlug, setTenantSlug] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setTenantSlug(getTenantSlug());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,6 +36,7 @@ export function LoginForm() {
     const result = await signIn("credentials", {
       email,
       password,
+      tenantSlug,
       redirect: false,
     });
 

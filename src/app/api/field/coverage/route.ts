@@ -1,15 +1,13 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import FieldSession from "@/models/FieldSession";
-
 // GET /api/field/coverage - all check-in locations for heatmap
-export const GET = withPermission("visit_logs:view_all", async (req) => {
+export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const days = parseInt(url.searchParams.get("days") || "30", 10);
 
   const since = new Date();
   since.setDate(since.getDate() - Math.min(days, 90));
 
-  const sessions = await FieldSession.find({
+  const sessions = await models.FieldSession.find({
     date: { $gte: since },
   })
     .populate("user", "firstName lastName")

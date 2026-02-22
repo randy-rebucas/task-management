@@ -1,9 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createTransitionSchema } from "@/features/auth/validators";
-import WorkflowTransition from "@/models/WorkflowTransition";
-
 export const GET = withPermission("workflow:configure", async () => {
-  const transitions = await WorkflowTransition.find({ isActive: true })
+  const transitions = await models.WorkflowTransition.find({ isActive: true })
     .populate("fromStatus", "name slug color")
     .populate("toStatus", "name slug color")
     .populate("allowedRoles", "name slug")
@@ -13,36 +11,36 @@ export const GET = withPermission("workflow:configure", async () => {
   return apiSuccess(transitions);
 });
 
-export const POST = withPermission("workflow:configure", async (req) => {
+export const POST = withPermission("workflow:configure", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const parsed = createTransitionSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const existing = await WorkflowTransition.findOne({
+  const existing = await models.WorkflowTransition.findOne({
     fromStatus: parsed.data.fromStatus,
     toStatus: parsed.data.toStatus,
   });
   if (existing) return apiError("This transition already exists", 409);
 
-  const transition = await WorkflowTransition.create(parsed.data);
+  const transition = await models.WorkflowTransition.create(parsed.data);
   return apiSuccess(transition, 201);
 });
 
-export const PUT = withPermission("workflow:configure", async (req) => {
+export const PUT = withPermission("workflow:configure", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const { id, ...data } = body;
   if (!id) return apiError("Transition ID required");
 
-  const transition = await WorkflowTransition.findByIdAndUpdate(id, data, { new: true });
+  const transition = await models.WorkflowTransition.findByIdAndUpdate(id, data, { new: true });
   if (!transition) return apiError("Transition not found", 404);
   return apiSuccess(transition);
 });
 
-export const DELETE = withPermission("workflow:configure", async (req) => {
+export const DELETE = withPermission("workflow:configure", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return apiError("Transition ID required");
 
-  await WorkflowTransition.findByIdAndUpdate(id, { isActive: false });
+  await models.WorkflowTransition.findByIdAndUpdate(id, { isActive: false });
   return apiSuccess({ message: "Transition deactivated" });
 });

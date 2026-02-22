@@ -1,8 +1,6 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Lead from "@/models/Lead";
-
 export const GET = withPermission("reports:view", async () => {
-  const rows = await Lead.aggregate([
+  const rows = await models.Lead.aggregate([
     {
       $group: {
         _id: { $ifNull: ["$industry", "(unspecified)"] },

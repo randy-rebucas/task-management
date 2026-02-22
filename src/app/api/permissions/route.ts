@@ -1,8 +1,6 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Permission from "@/models/Permission";
-
 export const GET = withPermission("roles:view", async () => {
-  const permissions = await Permission.find().sort({ group: 1, resource: 1, action: 1 }).lean();
+  const permissions = await models.Permission.find().sort({ group: 1, resource: 1, action: 1 }).lean();
 
   // Group by group field
   const grouped = permissions.reduce((acc, perm) => {

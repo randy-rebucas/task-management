@@ -6,6 +6,7 @@ import User from "@/models/User";
 import NotificationRule from "@/models/NotificationRule";
 import { deliverNotification } from "@/features/notifications/deliver";
 import { INotification } from "@/types";
+import type { TenantModels } from "@/lib/tenant-models";
 
 // Maps internal event name → NotificationRule event slug (as configured in Settings UI)
 const EVENT_TO_RULE: Record<string, string> = {
@@ -54,10 +55,19 @@ type PopulatedUser = { _id: { toString(): string }; email: string; firstName: st
 
 export async function triggerNotification(
   event: string,
-  payload?: Record<string, unknown>
+  payload?: Record<string, unknown>,
+  tenantModels?: TenantModels
 ) {
   try {
-    await dbConnect();
+    if (!tenantModels) {
+      await dbConnect();
+    }
+
+    const TaskModel          = tenantModels?.Task          ?? Task;
+    const LeadModel          = tenantModels?.Lead          ?? Lead;
+    const ClientModel        = tenantModels?.Client        ?? Client;
+    const UserModel          = tenantModels?.User          ?? User;
+    const NotificationRuleModel = tenantModels?.NotificationRule ?? NotificationRule;
 
     const actorId      = payload?.actorId as string | undefined;
     const taskId       = payload?.taskId as string | undefined;
@@ -67,41 +77,37 @@ export async function triggerNotification(
 
     // Resolve notification channels from matching rule (fall back to in_app)
     const ruleEvent = EVENT_TO_RULE[event] ?? event;
-    const rule = await NotificationRule.findOne({ event: ruleEvent, isActive: true }).lean();
+    const rule = await NotificationRuleModel.findOne({ event: ruleEvent, isActive: true }).lean();
     const channels = (rule?.channels?.length ? rule.channels : ["in_app"]) as ("in_app" | "email")[];
 
     // ── Task-based events ──────────────────────────────────────────────────────
     if (taskId) {
-      const task = await Task.findById(taskId)
+      const task = await TaskModel.findById(taskId)
         .populate("assignees", "email firstName lastName")
         .populate("createdBy", "email firstName lastName")
         .lean();
       if (!task) return;
 
-      const assignees = (task.assignees as unknown as PopulatedUser[]) ?? [];
-      const creator   = task.createdBy as unknown as PopulatedUser | null;
+      const assignees = ((task as any).assignees as unknown as PopulatedUser[]) ?? [];
+      const creator   = (task as any).createdBy as unknown as PopulatedUser | null;
 
       let recipientIds: string[];
 
       if (event === "task_assigned" && payload?.additionalRecipients) {
-        // Explicit recipient list (from /assign route)
         recipientIds = (payload.additionalRecipients as string[]).map(String);
       } else if (event === "status_changed" || event === "comment_added") {
-        // Notify assignees + creator
         recipientIds = [
           ...assignees.map((a) => a._id.toString()),
           ...(creator ? [creator._id.toString()] : []),
         ];
       } else {
-        // task_assigned (new task), task_updated → notify assignees
         recipientIds = assignees.map((a) => a._id.toString());
       }
 
-      // Deduplicate and exclude the actor
       const uniqueIds = [...new Set(recipientIds)].filter((id) => id !== actorId);
       if (!uniqueIds.length) return;
 
-      const recipients = await User.find({ _id: { $in: uniqueIds }, isActive: true })
+      const recipients = await UserModel.find({ _id: { $in: uniqueIds }, isActive: true })
         .select("email firstName")
         .lean();
 
@@ -111,8 +117,8 @@ export async function triggerNotification(
 
       for (const user of recipients) {
         await deliverNotification({
-          recipient:      user._id.toString(),
-          recipientEmail: user.email,
+          recipient:      (user as any)._id.toString(),
+          recipientEmail: (user as any).email,
           type,
           title,
           message,
@@ -128,15 +134,15 @@ export async function triggerNotification(
       let assignedUser: PopulatedUser | null = null;
 
       if (resourceType === "lead") {
-        const lead = await Lead.findById(resourceId)
+        const lead = await LeadModel.findById(resourceId)
           .populate("assignedTo", "email firstName lastName")
           .lean();
-        assignedUser = lead?.assignedTo as unknown as PopulatedUser | null;
+        assignedUser = (lead as any)?.assignedTo as unknown as PopulatedUser | null;
       } else if (resourceType === "client") {
-        const client = await Client.findById(resourceId)
+        const client = await ClientModel.findById(resourceId)
           .populate("assignedTo", "email firstName lastName")
           .lean();
-        assignedUser = client?.assignedTo as unknown as PopulatedUser | null;
+        assignedUser = (client as any)?.assignedTo as unknown as PopulatedUser | null;
       }
 
       if (!assignedUser || assignedUser._id.toString() === actorId) return;

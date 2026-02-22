@@ -1,17 +1,11 @@
-import Department from "@/models/Department";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateTaskSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
-import Task from "@/models/Task";
 // Ensure CRM models are registered before populate
-import "@/models/Lead";
-import "@/models/Client";
-import "@/models/Deal";
-
 export const GET = withPermission("tasks:view", async (req, ctx) => {
   const { taskId } = await ctx.params;
-  const task = await Task.findById(taskId)
+  const task = await models.Task.findById(taskId)
     .populate("status")
     .populate("assignees", "firstName lastName email avatar")
     .populate("createdBy", "firstName lastName email")
@@ -25,7 +19,7 @@ export const GET = withPermission("tasks:view", async (req, ctx) => {
 
   // Get allowed transitions for the current status
   const WorkflowTransition = (await import("@/models/WorkflowTransition")).default;
-  const transitions = await WorkflowTransition.find({
+  const transitions = await models.WorkflowTransition.find({
     fromStatus: task.status._id,
     isActive: true,
   })
@@ -43,7 +37,7 @@ export const GET = withPermission("tasks:view", async (req, ctx) => {
   return apiSuccess({ ...task, allowedTransitions });
 });
 
-export const PUT = withPermission("tasks:update", async (req, ctx, session) => {
+export const PUT = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = updateTaskSchema.safeParse(body);
@@ -61,7 +55,7 @@ export const PUT = withPermission("tasks:update", async (req, ctx, session) => {
   const mongoUpdate: Record<string, unknown> = { $set: updateData };
   if (Object.keys(unsetFields).length) mongoUpdate.$unset = unsetFields;
 
-  const task = await Task.findByIdAndUpdate(taskId, mongoUpdate, { new: true });
+  const task = await models.Task.findByIdAndUpdate(taskId, mongoUpdate, { new: true });
   if (!task) return apiError("Task not found", 404);
 
   await logActivity({
@@ -77,14 +71,14 @@ export const PUT = withPermission("tasks:update", async (req, ctx, session) => {
     taskId,
     actorId: session.user.id,
     data: { taskTitle: task.title, actorName: session.user.name },
-  });
+  }, models);
 
   return apiSuccess(task);
 });
 
-export const DELETE = withPermission("tasks:delete", async (req, ctx, session) => {
+export const DELETE = withPermission("tasks:delete", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
-  const task = await Task.findByIdAndUpdate(taskId, { isArchived: true }, { new: true });
+  const task = await models.Task.findByIdAndUpdate(taskId, { isArchived: true }, { new: true });
   if (!task) return apiError("Task not found", 404);
 
   await logActivity({

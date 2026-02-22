@@ -1,20 +1,16 @@
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import Department from "@/models/Department";
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
-import { getUserPermissions } from "@/features/auth/rbac";
-import User from "@/models/User";
 
 export async function GET(req: NextRequest) {
-  await dbConnect();
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await User.findById(session.user.id)
+  const user = await models.User.findById(session.user.id)
     .populate("roles")
     .populate("department")
     .lean();
@@ -23,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const permissions = await getUserPermissions(session.user.roles);
+  const permissions = await getTenantPermissions(session.user.roles, models);
 
   return NextResponse.json({
     ...user,
@@ -41,7 +37,6 @@ const profileSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
-  await dbConnect();
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -56,7 +51,7 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const user = await User.findById(session.user.id);
+  const user = await models.User.findById(session.user.id);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -73,7 +68,6 @@ const passwordSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
-  await dbConnect();
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -88,7 +82,7 @@ export async function PUT(req: NextRequest) {
     );
   }
 
-  const user = await User.findById(session.user.id).select("+password");
+  const user = await models.User.findById(session.user.id).select("+password");
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }

@@ -2,13 +2,11 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import TaskAttachment from "@/models/TaskAttachment";
-import Task from "@/models/Task";
 import { FILE_UPLOAD } from "@/config/constants";
 
 export const GET = withPermission("tasks:view", async (req, ctx) => {
   const { taskId } = await ctx.params;
-  const attachments = await TaskAttachment.find({ task: taskId })
+  const attachments = await models.TaskAttachment.find({ task: taskId })
     .populate("uploadedBy", "firstName lastName email")
     .sort({ createdAt: -1 })
     .lean();
@@ -16,10 +14,10 @@ export const GET = withPermission("tasks:view", async (req, ctx) => {
   return apiSuccess(attachments);
 });
 
-export const POST = withPermission("tasks:update", async (req, ctx, session) => {
+export const POST = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
 
-  const task = await Task.findById(taskId);
+  const task = await models.Task.findById(taskId);
   if (!task) return apiError("Task not found", 404);
 
   const formData = await req.formData();
@@ -46,7 +44,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
 
-  const attachment = await TaskAttachment.create({
+  const attachment = await models.TaskAttachment.create({
     task: taskId,
     uploadedBy: session.user.id,
     fileName: file.name,

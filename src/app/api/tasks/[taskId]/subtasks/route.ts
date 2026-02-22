@@ -1,10 +1,8 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createSubtaskSchema } from "@/features/auth/validators";
-import Task from "@/models/Task";
-
 export const GET = withPermission("tasks:view", async (req, ctx) => {
   const { taskId } = await ctx.params;
-  const task = await Task.findById(taskId).select("subtasks").lean();
+  const task = await models.Task.findById(taskId).select("subtasks").lean();
   if (!task) return apiError("Task not found", 404);
   return apiSuccess(task.subtasks);
 });
@@ -17,7 +15,7 @@ export const POST = withPermission("tasks:update", async (req, ctx) => {
     return apiError(parsed.error.issues[0].message, 400);
   }
 
-  const task = await Task.findByIdAndUpdate(
+  const task = await models.Task.findByIdAndUpdate(
     taskId,
     { $push: { subtasks: { title: parsed.data.title, completed: false } } },
     { new: true }

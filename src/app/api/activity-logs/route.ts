@@ -1,7 +1,5 @@
 import { withPermission, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
-import ActivityLog from "@/models/ActivityLog";
-
-export const GET = withPermission("activity_logs:view", async (req) => {
+export const GET = withPermission("activity_logs:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
   const resource = url.searchParams.get("resource");
@@ -16,13 +14,13 @@ export const GET = withPermission("activity_logs:view", async (req) => {
   if (action) filter.action = { $regex: action, $options: "i" };
 
   const [data, total] = await Promise.all([
-    ActivityLog.find(filter)
+    models.ActivityLog.find(filter)
       .populate("actor", "firstName lastName email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    ActivityLog.countDocuments(filter),
+    models.ActivityLog.countDocuments(filter),
   ]);
 
   return apiSuccess({

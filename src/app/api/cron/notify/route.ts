@@ -15,16 +15,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { dbConnect } from "@/lib/db";
-import Task from "@/models/Task";
-import Lead from "@/models/Lead";
-import FieldSession from "@/models/FieldSession";
-import User from "@/models/User";
-import Notification from "@/models/Notification";
-import NotificationRule from "@/models/NotificationRule";
-import AppSetting from "@/models/AppSetting";
 import { sendEmail } from "@/lib/email";
 import { deliverNotification } from "@/features/notifications/deliver";
+import { getPlatformDb } from "@/lib/platform-db";
+import { getTenantConnection } from "@/lib/tenant-db";
+import { getTenantModels } from "@/lib/tenant-models";
+import { getTenantModel } from "@/models/platform/Tenant";
+import type { TenantModels } from "@/lib/tenant-models";
 
 const INACTIVE_HOURS = Number(process.env.FIELD_INACTIVE_HOURS ?? 8);
 
@@ -50,8 +47,8 @@ function startOfWeek() {
 }
 
 /** Resolve channels for a named event rule, falling back to ["in_app"]. */
-async function getChannels(event: string): Promise<("in_app" | "email")[]> {
-  const rule = await NotificationRule.findOne({ event, isActive: true }).lean();
+async function getChannels(models: TenantModels, event: string): Promise<("in_app" | "email")[]> {
+  const rule = await models.NotificationRule.findOne({ event, isActive: true }).lean() as { channels?: string[] } | null;
   if (rule && rule.channels && rule.channels.length > 0) {
     return rule.channels as ("in_app" | "email")[];
   }
@@ -59,19 +56,19 @@ async function getChannels(event: string): Promise<("in_app" | "email")[]> {
 }
 
 // ─── Job 1: Deadline reminders ───────────────────────────────────────────────
-async function runDeadlineReminders() {
+async function runDeadlineReminders(models: TenantModels) {
   const now = new Date();
   const in25h = new Date(Date.now() + 25 * 60 * 60 * 1000);
 
   const [channels, tasks] = await Promise.all([
-    getChannels("task-due-soon"),
-    Task.find({
+    getChannels(models, "task-due-soon"),
+    models.Task.find({
       dueDate: { $gt: now, $lt: in25h },
       completedAt: { $exists: false },
       assignees: { $exists: true, $not: { $size: 0 } },
     })
       .populate("assignees", "email firstName lastName")
-      .lean(),
+      .lean() as unknown as Promise<{ _id: { toString(): string }; title: string; dueDate?: Date; assignees: unknown[] }[]>,
   ]);
 
   if (!tasks.length) return 0;
@@ -79,11 +76,11 @@ async function runDeadlineReminders() {
   type Assignee = { _id: { toString(): string }; email: string; firstName: string; lastName: string };
 
   // Batch dedup: one query for all recently-notified (recipient, task) combos
-  const recentNotifs = await Notification.find({
+  const recentNotifs = await (models.Notification.find({
     type: "deadline_approaching",
     createdAt: { $gt: hoursAgo(20) },
     relatedTask: { $in: tasks.map((t) => t._id) },
-  }).select("recipient relatedTask").lean();
+  }).select("recipient relatedTask").lean() as unknown) as { recipient: unknown; relatedTask: unknown }[];
 
   const notifiedSet = new Set(recentNotifs.map((n) => `${n.recipient}:${n.relatedTask}`));
 
@@ -111,31 +108,31 @@ async function runDeadlineReminders() {
 }
 
 // ─── Job 2: Overdue alerts ────────────────────────────────────────────────────
-async function runOverdueAlerts() {
+async function runOverdueAlerts(models: TenantModels) {
   const now = new Date();
   const todayStart = startOfToday();
 
   const [channels, tasks] = await Promise.all([
-    getChannels("task-overdue"),
-    Task.find({
+    getChannels(models, "task-overdue"),
+    models.Task.find({
       dueDate: { $lt: now },
       completedAt: { $exists: false },
       assignees: { $exists: true, $not: { $size: 0 } },
     })
       .populate("assignees", "email firstName lastName")
-      .lean(),
+      .lean() as unknown as Promise<{ _id: { toString(): string }; title: string; dueDate?: Date; assignees: unknown[] }[]>,
   ]);
 
   if (!tasks.length) return 0;
 
   type Assignee = { _id: { toString(): string }; email: string; firstName: string; lastName: string };
 
-  // Batch dedup: one query for all already-alerted (recipient, task) combos today
-  const recentNotifs = await Notification.find({
+  // Batch dedup: already-alerted (recipient, task) combos today
+  const recentNotifs = await (models.Notification.find({
     type: "task_overdue",
     createdAt: { $gte: todayStart },
     relatedTask: { $in: tasks.map((t) => t._id) },
-  }).select("recipient relatedTask").lean();
+  }).select("recipient relatedTask").lean() as unknown) as { recipient: unknown; relatedTask: unknown }[];
 
   const notifiedSet = new Set(recentNotifs.map((n) => `${n.recipient}:${n.relatedTask}`));
 
@@ -162,13 +159,13 @@ async function runOverdueAlerts() {
 }
 
 // ─── Job 3: Lead stagnation ───────────────────────────────────────────────────
-async function runLeadStagnation() {
+async function runLeadStagnation(models: TenantModels) {
   const sevenDaysAgo = daysAgo(7);
   const now = new Date();
 
   const [channels, leads] = await Promise.all([
-    getChannels("lead-stagnation"),
-    Lead.find({
+    getChannels(models, "lead-stagnation"),
+    models.Lead.find({
       status: { $nin: ["converted", "unqualified"] },
       assignedTo: { $exists: true },
       $or: [
@@ -177,7 +174,7 @@ async function runLeadStagnation() {
       ],
     })
       .populate("assignedTo", "email firstName lastName")
-      .lean(),
+      .lean() as unknown as Promise<{ _id: { toString(): string }; name: string; assignedTo: unknown }[]>,
   ]);
 
   if (!leads.length) return 0;
@@ -188,11 +185,11 @@ async function runLeadStagnation() {
   const assigneeIds = leads
     .map((l) => (l.assignedTo as unknown as Assignee | null)?._id?.toString())
     .filter((id): id is string => id != null);
-  const recentNotifs = await Notification.find({
+  const recentNotifs = await (models.Notification.find({
     type: "lead_stagnation",
     recipient: { $in: assigneeIds },
     createdAt: { $gt: hoursAgo(24) },
-  }).select("recipient message").lean();
+  }).select("recipient message").lean() as unknown) as { recipient: unknown; message?: string }[];
 
   const notifiedSet = new Set<string>();
   for (const n of recentNotifs) {
@@ -222,13 +219,13 @@ async function runLeadStagnation() {
 }
 
 // ─── Job 4: Inactive field coordinator ───────────────────────────────────────
-async function runFieldInactive() {
+async function runFieldInactive(models: TenantModels) {
   const todayStart = startOfToday();
   const cutoff = hoursAgo(INACTIVE_HOURS);
 
   const [channels, allUsers] = await Promise.all([
-    getChannels("field-inactive"),
-    User.find({ isActive: true }).populate("roles", "slug name").lean(),
+    getChannels(models, "field-inactive"),
+    models.User.find({ isActive: true }).populate("roles", "slug name").lean(),
   ]);
 
   const fieldUsers = allUsers.filter((u) =>
@@ -243,7 +240,7 @@ async function runFieldInactive() {
   const fieldUserIds = fieldUsers.map((u) => u._id);
 
   // Batch: latest check-in per field user via aggregation (replaces N findOne calls)
-  const sessions = await FieldSession.aggregate([
+  const sessions = await models.FieldSession.aggregate([
     { $match: { user: { $in: fieldUserIds }, "checkIn.time": { $gte: todayStart } } },
     { $sort: { "checkIn.time": -1 } },
     { $group: { _id: "$user", checkIn: { $first: "$checkIn" }, checkOut: { $first: "$checkOut" } } },
@@ -251,7 +248,7 @@ async function runFieldInactive() {
   const sessionMap = new Map(sessions.map((s) => [String(s._id), s]));
 
   // Batch dedup for coordinators
-  const recentCoordIds = await Notification.distinct("recipient", {
+  const recentCoordIds = await models.Notification.distinct("recipient", {
     type: "field_inactive",
     createdAt: { $gt: hoursAgo(23) },
     recipient: { $in: fieldUserIds },
@@ -259,11 +256,11 @@ async function runFieldInactive() {
   const notifiedCoordsSet = new Set(recentCoordIds.map(String));
 
   // Batch dedup for admins
-  const recentAdminNotifs = await Notification.find({
+  const recentAdminNotifs = await (models.Notification.find({
     type: "field_inactive",
     createdAt: { $gt: hoursAgo(23) },
     recipient: { $in: adminUsers.map((u) => u._id) },
-  }).select("recipient message").lean();
+  }).select("recipient message").lean() as unknown) as { recipient: unknown; message?: string }[];
   const notifiedAdminSet = new Set<string>();
   for (const n of recentAdminNotifs) {
     const match = n.message?.match(/ID: ([a-f0-9]{24})/);
@@ -316,8 +313,8 @@ async function runFieldInactive() {
 }
 
 // ─── Job 5: Weekly summary ────────────────────────────────────────────────────
-async function runWeeklySummary() {
-  const setting = await AppSetting.findOne({ key: "weekly_summary_last_sent" }).lean();
+async function runWeeklySummary(models: TenantModels) {
+  const setting = await models.AppSetting.findOne({ key: "weekly_summary_last_sent" }).lean() as { value?: string } | null;
   if (setting?.value && new Date(setting.value as string) > daysAgo(6)) return 0;
 
   const weekStart = startOfWeek();
@@ -326,27 +323,27 @@ async function runWeeklySummary() {
 
   // Fetch users + team-wide stats in parallel
   const [allUsers, teamCompleted, teamOverdue, teamNewLeads] = await Promise.all([
-    User.find({ isActive: true }).populate("roles", "slug").lean(),
-    Task.countDocuments({ completedAt: { $gte: weekStart, $lte: now } }),
-    Task.countDocuments({ dueDate: { $lt: now }, completedAt: { $exists: false } }),
-    Lead.countDocuments({ createdAt: { $gte: weekStart, $lte: now } }),
+    models.User.find({ isActive: true }).populate("roles", "slug").lean(),
+    models.Task.countDocuments({ completedAt: { $gte: weekStart, $lte: now } }),
+    models.Task.countDocuments({ dueDate: { $lt: now }, completedAt: { $exists: false } }),
+    models.Lead.countDocuments({ createdAt: { $gte: weekStart, $lte: now } }),
   ]);
 
   if (!allUsers.length) return 0;
 
   // Per-user stats via 3 aggregations instead of N×3 countDocuments calls
   const [completedAgg, overdueAgg, leadsAgg] = await Promise.all([
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { completedAt: { $gte: weekStart, $lte: now } } },
       { $unwind: "$assignees" },
       { $group: { _id: "$assignees", count: { $sum: 1 } } },
     ]),
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { dueDate: { $lt: now }, completedAt: { $exists: false } } },
       { $unwind: "$assignees" },
       { $group: { _id: "$assignees", count: { $sum: 1 } } },
     ]),
-    Lead.aggregate([
+    models.Lead.aggregate([
       { $match: { assignedTo: { $exists: true }, createdAt: { $gte: weekStart, $lte: now } } },
       { $group: { _id: "$assignedTo", count: { $sum: 1 } } },
     ]),
@@ -422,7 +419,7 @@ async function runWeeklySummary() {
 
   await Promise.all(emailTasks);
 
-  await AppSetting.findOneAndUpdate(
+  await models.AppSetting.findOneAndUpdate(
     { key: "weekly_summary_last_sent" },
     { key: "weekly_summary_last_sent", value: now.toISOString() },
     { upsert: true }
@@ -439,29 +436,46 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await dbConnect();
+  // Fetch all active tenants from platform DB
+  const platformDb = await getPlatformDb();
+  const TenantModel = getTenantModel(platformDb);
+  const tenants = await TenantModel.find({ status: "active" }).select("slug dbName name").lean();
 
-  const [deadlineResult, overdueResult, stagnationResult, fieldResult, weeklyResult] =
-    await Promise.allSettled([
-      runDeadlineReminders(),
-      runOverdueAlerts(),
-      runLeadStagnation(),
-      runFieldInactive(),
-      runWeeklySummary(),
-    ]);
+  const allResults: Record<string, unknown>[] = [];
 
-  const pick = (r: PromiseSettledResult<number>) =>
-    r.status === "fulfilled" ? r.value : `error: ${String((r as PromiseRejectedResult).reason)}`;
+  for (const tenant of tenants) {
+    try {
+      const conn = await getTenantConnection(tenant.dbName as string);
+      const models = getTenantModels(conn);
+
+      const [deadlineResult, overdueResult, stagnationResult, fieldResult, weeklyResult] =
+        await Promise.allSettled([
+          runDeadlineReminders(models),
+          runOverdueAlerts(models),
+          runLeadStagnation(models),
+          runFieldInactive(models),
+          runWeeklySummary(models),
+        ]);
+
+      const pick = (r: PromiseSettledResult<number>) =>
+        r.status === "fulfilled" ? r.value : `error: ${String((r as PromiseRejectedResult).reason)}`;
+
+      allResults.push({
+        tenant: tenant.slug,
+        deadline_reminders: pick(deadlineResult),
+        overdue_alerts:     pick(overdueResult),
+        lead_stagnation:    pick(stagnationResult),
+        field_inactive:     pick(fieldResult),
+        weekly_summary:     pick(weeklyResult),
+      });
+    } catch (err) {
+      allResults.push({ tenant: tenant.slug, error: String(err) });
+    }
+  }
 
   return NextResponse.json({
     ok: true,
     ts: new Date().toISOString(),
-    results: {
-      deadline_reminders: pick(deadlineResult),
-      overdue_alerts:     pick(overdueResult),
-      lead_stagnation:    pick(stagnationResult),
-      field_inactive:     pick(fieldResult),
-      weekly_summary:     pick(weeklyResult),
-    },
+    tenants: allResults,
   });
 }

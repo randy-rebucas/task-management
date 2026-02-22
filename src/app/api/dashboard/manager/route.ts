@@ -1,27 +1,23 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-import User from "@/models/User";
-import WorkflowStatus from "@/models/WorkflowStatus";
-
-export const GET = withPermission("dashboard:manager", async (req, ctx, session) => {
-  const user = await User.findById(session.user.id);
+export const GET = withPermission("dashboard:manager", async (req, ctx, session, models) => {
+  const user = await models.User.findById(session.user.id);
   const departmentFilter = user?.department
     ? { department: user.department }
     : {};
 
   const [teamMembers, totalTasks, overdueTasks, statuses] = await Promise.all([
-    User.countDocuments({ ...departmentFilter, isActive: true }),
-    Task.countDocuments({ ...departmentFilter, isArchived: false }),
-    Task.countDocuments({
+    models.User.countDocuments({ ...departmentFilter, isActive: true }),
+    models.Task.countDocuments({ ...departmentFilter, isArchived: false }),
+    models.Task.countDocuments({
       ...departmentFilter,
       dueDate: { $lt: new Date() },
       isArchived: false,
     }),
-    WorkflowStatus.find({ isActive: true }).lean(),
+    models.WorkflowStatus.find({ isActive: true }).lean(),
   ]);
 
   // Workload by assignee
-  const workloadByAssignee = await Task.aggregate([
+  const workloadByAssignee = await models.Task.aggregate([
     { $match: { isArchived: false, ...departmentFilter } },
     { $unwind: "$assignees" },
     { $group: { _id: "$assignees", count: { $sum: 1 } } },
@@ -45,7 +41,7 @@ export const GET = withPermission("dashboard:manager", async (req, ctx, session)
   ]);
 
   // Tasks by status
-  const tasksByStatus = await Task.aggregate([
+  const tasksByStatus = await models.Task.aggregate([
     { $match: { isArchived: false, ...departmentFilter } },
     { $group: { _id: "$status", count: { $sum: 1 } } },
   ]);

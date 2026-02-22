@@ -1,8 +1,6 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Deal from "@/models/Deal";
-
 export const GET = withPermission("reports:view", async () => {
-  const rows = await Deal.aggregate([
+  const rows = await models.Deal.aggregate([
     { $match: { stage: "closed_won" } },
     {
       $lookup: {

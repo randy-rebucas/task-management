@@ -7,14 +7,9 @@
  */
 
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import { dbConnect } from "@/lib/db";
-import Permission from "@/models/Permission";
-import Role from "@/models/Role";
 import { PERMISSIONS, ROLE_DEFINITIONS } from "@/config/permissions";
 
 export const POST = withPermission("settings:manage", async () => {
-  await dbConnect();
-
   const results = {
     permissions: { added: 0, updated: 0, total: 0 },
     roles: { created: 0, updated: 0 },
@@ -22,19 +17,19 @@ export const POST = withPermission("settings:manage", async () => {
 
   // ── 1. Upsert permissions ───────────────────────────────────────────────
   for (const perm of PERMISSIONS) {
-    const existing = await Permission.findOne({
+    const existing = await models.Permission.findOne({
       resource: perm.resource,
       action: perm.action,
     });
 
     if (!existing) {
-      await Permission.create({ ...perm });
+      await models.Permission.create({ ...perm });
       results.permissions.added++;
     } else if (
       existing.description !== perm.description ||
       existing.group !== perm.group
     ) {
-      await Permission.updateOne(
+      await models.Permission.updateOne(
         { _id: existing._id },
         { description: perm.description, group: perm.group }
       );
@@ -42,7 +37,7 @@ export const POST = withPermission("settings:manage", async () => {
     }
   }
 
-  const allPermissions = await Permission.find().lean();
+  const allPermissions = await models.Permission.find().lean();
   results.permissions.total = allPermissions.length;
 
   // ── 2. Upsert system roles ──────────────────────────────────────────────
@@ -53,10 +48,10 @@ export const POST = withPermission("settings:manage", async () => {
       )
       .map((p) => p._id);
 
-    const existing = await Role.findOne({ slug });
+    const existing = await models.Role.findOne({ slug });
 
     if (!existing) {
-      await Role.create({
+      await models.Role.create({
         name: def.name,
         slug,
         description: def.description,
@@ -66,7 +61,7 @@ export const POST = withPermission("settings:manage", async () => {
       });
       results.roles.created++;
     } else {
-      await Role.updateOne(
+      await models.Role.updateOne(
         { _id: existing._id },
         {
           name: def.name,

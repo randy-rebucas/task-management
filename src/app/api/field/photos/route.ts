@@ -5,7 +5,7 @@ import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, _ctx, _session, models) => {
   const formData = await req.formData();
   const file = formData.get("file") as File;
 

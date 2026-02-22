@@ -1,12 +1,9 @@
-import AppSetting from "@/models/AppSetting";
-import { dbConnect } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { withAuth, withPermission } from "@/features/auth/api-helpers";
 
 export const GET = withAuth(async () => {
-  await dbConnect();
   const keys = ["theme", "paginationLimit", "fileUploadMaxSize"];
-  const settingsArr = await AppSetting.find({ key: { $in: keys } }).lean();
+  const settingsArr = await models.AppSetting.find({ key: { $in: keys } }).lean();
   const settings: Record<string, any> = {};
   for (const s of settingsArr) {
     settings[s.key] = s.value;
@@ -18,13 +15,12 @@ export const GET = withAuth(async () => {
   return NextResponse.json(settings);
 });
 
-export const PUT = withPermission("settings:manage", async (req) => {
-  await dbConnect();
+export const PUT = withPermission("settings:manage", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const keys = ["theme", "paginationLimit", "fileUploadMaxSize"];
   for (const key of keys) {
     if (body[key] !== undefined) {
-      await AppSetting.findOneAndUpdate(
+      await models.AppSetting.findOneAndUpdate(
         { key },
         { value: body[key] },
         { upsert: true, new: true }
@@ -32,7 +28,7 @@ export const PUT = withPermission("settings:manage", async (req) => {
     }
   }
   // Return updated settings
-  const settingsArr = await AppSetting.find({ key: { $in: keys } }).lean();
+  const settingsArr = await models.AppSetting.find({ key: { $in: keys } }).lean();
   const settings: Record<string, any> = {};
   for (const s of settingsArr) {
     settings[s.key] = s.value;
