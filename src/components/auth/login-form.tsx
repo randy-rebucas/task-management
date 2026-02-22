@@ -118,14 +118,20 @@ export function LoginForm() {
         {/* Divider */}
         <div className="my-6 border-t border-white/[0.07]" />
 
-        {/* Back link */}
-        <div className="text-center">
+        {/* Footer links */}
+        <div className="flex items-center justify-between">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-xs text-white/35 hover:text-white/60 transition-colors"
           >
             <ArrowLeft className="h-3 w-3" />
             Back to home
+          </Link>
+          <Link
+            href="/register"
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Create an account
           </Link>
         </div>
       </div>

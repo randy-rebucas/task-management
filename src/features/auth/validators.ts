@@ -65,6 +65,14 @@ export const resetPasswordSchema = z.object({
 	password: z.string().min(8),
 });
 
+// Self-registration (no roles required — default role assigned server-side)
+export const registerSchema = z.object({
+	email: z.string().email(),
+	password: z.string().min(8),
+	firstName: z.string().min(1).max(50),
+	lastName: z.string().min(1).max(50),
+});
+
 // Users
 export const createUserSchema = z.object({
 	email: z.string().email(),

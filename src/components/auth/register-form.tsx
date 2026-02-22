@@ -1,24 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromSubscription = searchParams.get("subscribed") === "1";
+  const planLabel = searchParams.get("plan");
+  const prefilledEmail = searchParams.get("email") ?? "";
+
   const [form, setForm] = useState({
-    email: "",
+    email: prefilledEmail,
     password: "",
     firstName: "",
     lastName: "",
@@ -46,9 +41,7 @@ export function RegisterForm() {
         throw new Error(err.error || "Registration failed");
       }
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
+      setTimeout(() => router.push(fromSubscription ? "/login?subscribed=1" : "/login"), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -56,95 +49,166 @@ export function RegisterForm() {
     }
   }
 
+  // ── Success state ──────────────────────────────────────────────────────────
   if (success) {
     return (
-      <Card className="mx-auto w-full max-w-md shadow-lg border border-border bg-white/90 dark:bg-card/90">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Registration successful</CardTitle>
-          <CardDescription>
-            You can now sign in with your credentials.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="justify-center">
-          <Link href="/login" className="text-sm text-primary hover:underline text-center">
-            Back to sign in
+      <div className="relative w-full">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-3xl blur-2xl -z-10" />
+        <div className="relative rounded-2xl border border-white/[0.09] bg-[#0d1426]/90 backdrop-blur-sm p-8 text-center">
+          <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 items-center justify-center shadow-xl shadow-emerald-500/25 mb-4">
+            <CheckCircle className="h-7 w-7 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-2">Account created!</h1>
+          <p className="text-sm text-white/45 mb-6">
+            Your account is ready. Redirecting you to sign in…
+          </p>
+          <Link
+            href="/login"
+            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Go to sign in now
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
+  // ── Register form ──────────────────────────────────────────────────────────
   return (
-    <Card className="mx-auto w-full max-w-md shadow-lg border border-border bg-white/90 dark:bg-card/90">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Register</CardTitle>
-        <CardDescription>Create your account</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <CardContent className="space-y-5 flex flex-col gap-4">
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive text-center font-medium">
-              {error}
+    <div className="relative w-full">
+      {/* Card glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-600/20 rounded-3xl blur-2xl -z-10" />
+
+      <div className="relative rounded-2xl border border-white/[0.09] bg-[#0d1426]/90 backdrop-blur-sm p-8">
+        {/* Logo & heading */}
+        <div className="text-center mb-8">
+          <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 items-center justify-center shadow-xl shadow-blue-500/25 mb-4">
+            <CheckCircle className="h-7 w-7 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            {fromSubscription ? "Almost there!" : "Create your account"}
+          </h1>
+          <p className="text-sm text-white/45 mt-1">
+            {fromSubscription
+              ? `Your ${planLabel ? planLabel.charAt(0).toUpperCase() + planLabel.slice(1) + " plan" : "subscription"} is ready — create your account to continue`
+              : "Join TaskMgr and start managing work"}
+          </p>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400 text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="firstName"
+                className="block text-sm font-medium text-white/65 mb-1.5"
+              >
+                First name
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                placeholder="Jane"
+                value={form.firstName}
+                onChange={(e) => handleChange("firstName", e.target.value)}
+                required
+                className="w-full h-11 px-4 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.09] transition-all"
+              />
             </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-left">Email</Label>
-            <Input
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-sm font-medium text-white/65 mb-1.5"
+              >
+                Last name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                placeholder="Doe"
+                value={form.lastName}
+                onChange={(e) => handleChange("lastName", e.target.value)}
+                required
+                className="w-full h-11 px-4 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.09] transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-white/65 mb-1.5"
+            >
+              Email address
+            </label>
+            <input
               id="email"
               type="email"
+              placeholder="you@example.com"
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               required
-              className="h-11"
+              className="w-full h-11 px-4 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.09] transition-all"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-left">Password</Label>
-            <Input
+
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-white/65 mb-1.5"
+            >
+              Password
+            </label>
+            <input
               id="password"
               type="password"
+              placeholder="Min. 8 characters"
               value={form.password}
               onChange={(e) => handleChange("password", e.target.value)}
               required
               minLength={8}
-              className="h-11"
+              className="w-full h-11 px-4 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.09] transition-all"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className="text-left">First Name</Label>
-            <Input
-              id="firstName"
-              type="text"
-              value={form.firstName}
-              onChange={(e) => handleChange("firstName", e.target.value)}
-              required
-              className="h-11"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName" className="text-left">Last Name</Label>
-            <Input
-              id="lastName"
-              type="text"
-              value={form.lastName}
-              onChange={(e) => handleChange("lastName", e.target.value)}
-              required
-              className="h-11"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3 mt-2">
-          <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
-            Register
-          </Button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 mt-1"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? "Creating account…" : "Create account"}
+          </button>
+        </form>
+
+        {/* Divider */}
+        <div className="my-6 border-t border-white/[0.07]" />
+
+        {/* Footer links */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-white/35 hover:text-white/60 transition-colors"
+          >
+            <ArrowLeft className="h-3 w-3" />
+            Back to home
+          </Link>
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-primary text-center"
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
             Already have an account?
           </Link>
-        </CardFooter>
-      </form>
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 }
