@@ -76,11 +76,14 @@ export async function middleware(req: NextRequest) {
   const subdomain =
     subdomainOverride ?? req.headers.get("x-tenant-slug") ?? extractSubdomain(host, appDomain);
 
-  // ── Super-admin panel (admin.yourdomain.com) — bypass install gate ────────
-  // The admin panel must always be reachable so the admin can complete setup.
-  if (subdomain === "admin") {
+  // ── Super-admin panel (admin.yourdomain.com OR direct /admin path) ─────────
+  // Accessible via subdomain in production or directly via /admin on localhost.
+  // Must run BEFORE the install gate — admin must always be reachable.
+  const isAdminPath = pathname.startsWith("/admin") || pathname.startsWith("/api/platform");
+  if (subdomain === "admin" || isAdminPath) {
     const url = req.nextUrl.clone();
-    if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/")) {
+    // On the admin subdomain, rewrite / → /admin so (admin) folder handles it
+    if (subdomain === "admin" && !pathname.startsWith("/admin") && !pathname.startsWith("/api/")) {
       url.pathname = `/admin${pathname === "/" ? "" : pathname}`;
       return NextResponse.rewrite(url);
     }

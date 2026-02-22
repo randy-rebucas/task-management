@@ -1,5 +1,4 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withPermission } from "@/features/auth/api-helpers";
 import { PLAN_CONFIG } from "@/lib/paypal";
 import { getPlatformDb } from "@/lib/platform-db";
 import { getPlatformSettingModel } from "@/models/platform/PlatformSetting";
@@ -11,9 +10,15 @@ const KEYS = [
   "paypal.webhook.id",
 ] as const;
 
+function checkAuth(req: NextRequest) {
+  return req.headers.get("x-super-admin-secret") === process.env.SUPER_ADMIN_SECRET;
+}
+
 // These are platform-wide settings (same PayPal plans for all tenants).
 // Read/write from the platform DB, not per-tenant AppSettings.
-export const GET = withPermission("settings:manage", async (_req, _ctx, _session, _models) => {
+export async function GET(req: NextRequest) {
+  if (!checkAuth(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const pdb = await getPlatformDb();
   const Setting = getPlatformSettingModel(pdb);
   const rows = await Setting.find({ key: { $in: KEYS } }).lean() as { key: string; value: unknown }[];
@@ -27,9 +32,11 @@ export const GET = withPermission("settings:manage", async (_req, _ctx, _session
     webhookId: stored["paypal.webhook.id"] || process.env.PAYPAL_WEBHOOK_ID || "",
     env: process.env.PAYPAL_ENV ?? "sandbox",
   });
-});
+}
 
-export const PUT = withPermission("settings:manage", async (req: NextRequest, _ctx, _session, _models) => {
+export async function PUT(req: NextRequest) {
+  if (!checkAuth(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const body = await req.json() as Record<string, string>;
 
   const mapping: Record<string, string> = {
@@ -53,5 +60,5 @@ export const PUT = withPermission("settings:manage", async (req: NextRequest, _c
   }
 
   return NextResponse.json({ ok: true });
-});
+}
 

@@ -1,6 +1,11 @@
-import { NextResponse } from "next/server";
-import { withPermission } from "@/features/auth/api-helpers";
+import { NextResponse, NextRequest } from "next/server";
 import { getPayPalAccessToken } from "@/lib/paypal";
+import { getPlatformDb } from "@/lib/platform-db";
+import { getPlatformSettingModel } from "@/models/platform/PlatformSetting";
+
+function checkAuth(req: NextRequest) {
+  return req.headers.get("x-super-admin-secret") === process.env.SUPER_ADMIN_SECRET;
+}
 
 const PAYPAL_API_BASE =
   process.env.PAYPAL_ENV === "production"
@@ -75,7 +80,9 @@ async function createPlan(
   return data.id as string;
 }
 
-export const POST = withPermission("settings:manage", async (_req, _ctx, _session, models) => {
+export async function POST(req: NextRequest) {
+  if (!checkAuth(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
     return NextResponse.json(
       { error: "PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in environment variables." },
@@ -92,11 +99,14 @@ export const POST = withPermission("settings:manage", async (_req, _ctx, _sessio
       createPlan(token, productId, "TaskMgr Growth",   "Up to 30 team members",  149),
       createPlan(token, productId, "TaskMgr Business", "Up to 100 team members", 299),
     ]);
+
+    const pdb = await getPlatformDb();
+    const Setting = getPlatformSettingModel(pdb);
     await Promise.all([
-      models.AppSetting.findOneAndUpdate({ key: "paypal.product.id" },      { value: productId  }, { upsert: true }),
-      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.starter.id" }, { value: starterId  }, { upsert: true }),
-      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.growth.id" },  { value: growthId   }, { upsert: true }),
-      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.business.id" },{ value: businessId }, { upsert: true }),
+      Setting.findOneAndUpdate({ key: "paypal.product.id" },       { value: productId  }, { upsert: true }),
+      Setting.findOneAndUpdate({ key: "paypal.plan.starter.id" },  { value: starterId  }, { upsert: true }),
+      Setting.findOneAndUpdate({ key: "paypal.plan.growth.id" },   { value: growthId   }, { upsert: true }),
+      Setting.findOneAndUpdate({ key: "paypal.plan.business.id" }, { value: businessId }, { upsert: true }),
     ]);
 
     return NextResponse.json({
@@ -112,4 +122,4 @@ export const POST = withPermission("settings:manage", async (_req, _ctx, _sessio
       { status: 500 }
     );
   }
-});
+}
