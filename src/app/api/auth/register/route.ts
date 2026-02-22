@@ -10,6 +10,15 @@ export async function POST(req: NextRequest) {
   }
   const { models } = tenantCtx;
 
+  // Enforce per-tenant self-registration flag (seeded as false — admin must enable it)
+  const selfRegSetting = await models.AppSetting.findOne({ key: "allow_self_registration" }).lean();
+  if (selfRegSetting && (selfRegSetting as any).value === false) {
+    return NextResponse.json(
+      { error: "Self-registration is disabled. Contact your administrator to get an account." },
+      { status: 403 }
+    );
+  }
+
   const body = await req.json();
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
