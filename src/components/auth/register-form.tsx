@@ -5,15 +5,26 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-/** True when running on the root domain (no tenant subdomain). */
+/** True when running on the root/www domain (no tenant subdomain). */
 function isRootDomain(): boolean {
   if (typeof window === "undefined") return false;
-  const parts = window.location.hostname.split(".");
-  // localhost / 127.0.0.1 — treat as root
-  if (parts.length < 3) return true;
-  // Explicit override for dev
+  const hostname = window.location.hostname;
+  const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions").replace(/^www\./, "");
+
+  // localhost / IP — treat as root
+  if (hostname === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return true;
+
+  // Apex domain or www — both are root
+  if (hostname === appDomain || hostname === `www.${appDomain}`) return true;
+
+  // Any host not on our domain (ngrok, Vercel preview, etc.) — treat as root
+  if (!hostname.endsWith(`.${appDomain}`)) return true;
+
+  // Has a real tenant subdomain (?__tenant override counts as tenant too)
   const params = new URLSearchParams(window.location.search);
   if (params.get("__tenant")) return false;
+
+  // subdomain present (e.g. acme.tasksmgr.solutions)
   return false;
 }
 

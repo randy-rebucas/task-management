@@ -1,19 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, ArrowLeft, Mail, CheckCircle } from "lucide-react";
 import Link from "next/link";
+
+/** Extract the tenant subdomain — consistent with login-form and middleware. */
+function getTenantSlug(): string {
+  if (typeof window === "undefined") return "";
+  const hostname = window.location.hostname;
+  const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions").replace(/^www\./, "");
+  const suffix = `.${appDomain}`;
+  if (hostname.endsWith(suffix)) {
+    const sub = hostname.slice(0, hostname.length - suffix.length);
+    if (sub && !sub.includes(".") && sub !== "www") return sub;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get("__tenant") ?? "";
+}
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [tenantSlug, setTenantSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTenantSlug(getTenantSlug());
+  }, []);
+
+  // Guard: only usable on a tenant subdomain (null = not yet determined, skip guard)
+  if (tenantSlug !== null && !tenantSlug) {
+    return (
+      <div className="relative w-full">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-600/20 rounded-3xl blur-2xl -z-10" />
+        <div className="relative rounded-2xl border border-white/[0.09] bg-[#0d1426]/90 backdrop-blur-sm p-8 text-center">
+          <p className="text-sm text-white/60">
+            Password reset is only available from your company workspace.<br />
+            Access via <span className="text-blue-400">https://[your-company].tasksmgr.solutions</span>
+          </p>
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-white/35 hover:text-white/60 transition-colors mt-6">
+            <ArrowLeft className="h-3 w-3" /> Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      await fetch("/api/auth/forgot-password", {
+      const url = tenantSlug
+        ? `/api/auth/forgot-password?__tenant=${encodeURIComponent(tenantSlug)}`
+        : "/api/auth/forgot-password";
+      await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

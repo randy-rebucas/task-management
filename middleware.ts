@@ -44,7 +44,8 @@ export async function middleware(req: NextRequest) {
   // ── Enforce www on apex domain ────────────────────────────────────────────
   // Redirect tasksmgr.solutions → www.tasksmgr.solutions (301 permanent)
   const hostname = host.split(":")[0];
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions";
+  // Strip any accidental "www." prefix — domain must be the bare root (e.g. tasksmgr.solutions)
+  const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions").replace(/^www\./, "");
   if (hostname === appDomain) {
     const url = req.nextUrl.clone();
     url.hostname = `www.${appDomain}`;

@@ -6,12 +6,24 @@ import { useRouter } from "next/navigation";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-/** Extract the subdomain from the current window location. */
+/** Extract the tenant subdomain from the current window location.
+ * Only treats hostnames matching *.NEXT_PUBLIC_APP_DOMAIN as having a tenant
+ * subdomain, so ngrok / Vercel preview / localhost URLs don't produce garbage slugs.
+ */
 function getTenantSlug(): string {
   if (typeof window === "undefined") return "";
-  const parts = window.location.hostname.split(".");
-  if (parts.length >= 3) return parts[0];
-  // Local dev: ?__tenant=slug
+  const hostname = window.location.hostname;
+  // Strip any accidental "www." prefix — domain must be the bare root (e.g. tasksmgr.solutions)
+  const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions").replace(/^www\./, "");
+  const suffix = `.${appDomain}`;
+
+  if (hostname.endsWith(suffix)) {
+    const sub = hostname.slice(0, hostname.length - suffix.length);
+    // Single-level subdomain only, not www
+    if (sub && !sub.includes(".") && sub !== "www") return sub;
+  }
+
+  // Local dev fallback: ?__tenant=slug
   const params = new URLSearchParams(window.location.search);
   return params.get("__tenant") ?? "";
 }
