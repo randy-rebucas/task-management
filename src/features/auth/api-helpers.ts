@@ -57,6 +57,13 @@ export function withAuth(handler: TenantHandler) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 400 });
     }
 
+    // Cross-tenant protection: reject sessions that don't belong to this tenant
+    const requestTenantSlug = req.headers.get("x-tenant-slug")
+      ?? req.nextUrl.searchParams.get("__tenant");
+    if (requestTenantSlug && session.user.tenantSlug !== requestTenantSlug) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     return handler(req, ctx, session as Session, result.models, result.conn);
   };
 }

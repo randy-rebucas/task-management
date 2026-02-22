@@ -18,6 +18,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        // Capture IP and user-agent for login history
+        const ipAddress = request?.headers?.get("x-forwarded-for")?.split(",")[0].trim()
+          ?? request?.headers?.get("x-real-ip")
+          ?? undefined;
+        const userAgent = request?.headers?.get("user-agent") ?? undefined;
+
         // Resolve tenant: from credentials (login form), request headers (set by middleware),
         // or the hostname-derived slug forwarded via x-tenant-slug header.
         let tenantSlug =
@@ -64,6 +70,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await LoginHistory.create({
             success: false,
             failureReason: "User not found",
+            ipAddress,
+            userAgent,
           }).catch(() => {});
           return null;
         }
@@ -76,11 +84,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             user: user._id,
             success: false,
             failureReason: "Invalid password",
+            ipAddress,
+            userAgent,
           }).catch(() => {});
           return null;
         }
 
-        await LoginHistory.create({ user: user._id, success: true }).catch(() => {});
+        await LoginHistory.create({ user: user._id, success: true, ipAddress, userAgent }).catch(() => {});
         await User.findByIdAndUpdate(user._id, { lastLoginAt: new Date() });
 
         return {
@@ -105,7 +115,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     maxAge: 8 * 60 * 60,
   },
   // In production, set the session cookie on the root domain so all tenant
-  // subdomains (e.g. acme.localpro.asia) share the same auth session.
+  // subdomains (e.g. acme.tasksmgr.solutions) share the same auth session.
   ...(process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_APP_DOMAIN
     ? {
         cookies: {

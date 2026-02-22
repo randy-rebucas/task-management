@@ -26,21 +26,7 @@ export async function middleware(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
   const { pathname } = req.nextUrl;
 
-  // Enforce www for apex domain
-  const hostname = host.split(":")[0];
-  if (
-    hostname === "tasksmgr.solutions" ||
-    (hostname.endsWith("tasksmgr.solutions") && hostname.split(".").length === 2)
-  ) {
-    // Allow localhost and www itself
-    if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "www.tasksmgr.solutions") {
-      const url = req.nextUrl.clone();
-      url.hostname = "www.tasksmgr.solutions";
-      return NextResponse.redirect(url);
-    }
-  }
-
-  // Pass through static assets and auth API without any modifications
+  // ── Pass through static assets (before any redirect logic) ───────────────
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
@@ -49,6 +35,16 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();
+  }
+
+  // ── Enforce www on apex domain ────────────────────────────────────────────
+  // Redirect tasksmgr.solutions → www.tasksmgr.solutions (301 permanent)
+  const hostname = host.split(":")[0];
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions";
+  if (hostname === appDomain) {
+    const url = req.nextUrl.clone();
+    url.hostname = `www.${appDomain}`;
+    return NextResponse.redirect(url, { status: 301 });
   }
 
   // Support ?__tenant=slug for local development override
@@ -68,19 +64,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── No valid subdomain → show tenant-not-found ────────────────────────────
+  // ── No subdomain → apex / platform pages ──────────────────────────────────
   if (!subdomain || RESERVED_SUBDOMAINS.has(subdomain)) {
-    // Allow apex domain for landing, register-company, pricing, etc.
-    if (
-      pathname === "/" ||
-      pathname.startsWith("/register-company") ||
-      pathname.startsWith("/pricing") ||
-      pathname.startsWith("/api/")
-    ) {
-      return NextResponse.next();
-    }
-    // Otherwise, show tenant-not-found
-    return NextResponse.rewrite(new URL("/tenant-not-found", req.url));
+    // Landing page, /register-company, /pricing etc. served normally
+    return NextResponse.next();
   }
 
   // ── Tenant subdomain → look up tenant in platform DB ─────────────────────
@@ -119,13 +106,22 @@ export async function middleware(req: NextRequest) {
     }
 
     const session = await auth();
-    if (!isOnAuth && !session?.user) {
+
+    // ── Cross-tenant protection ───────────────────────────────────────────────
+    // The session cookie is scoped to .tasksmgr.solutions so a session from
+    // acme.tasksmgr.solutions is technically valid on beta.tasksmgr.solutions.
+    // Reject any session whose tenantSlug does not match the current subdomain.
+    const sessionTenant = session?.user?.tenantSlug;
+    const isWrongTenant = session?.user && sessionTenant !== subdomain;
+
+    if (!isOnAuth && (!session?.user || isWrongTenant)) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    if (isOnAuth && session?.user) {
+    // Only redirect to dashboard if the session belongs to THIS tenant
+    if (isOnAuth && session?.user && !isWrongTenant) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
