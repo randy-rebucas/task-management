@@ -84,13 +84,6 @@ export async function seedTenant({
     );
   }
 
-  // 5. Seed default App Settings
-  await models.AppSetting.findOneAndUpdate(
-    { key: "allow_self_registration" },
-    { key: "allow_self_registration", value: false },
-    { upsert: true }
-  );
-
   // 6. Create the first admin user
   const superAdminRole = roleMap["super-admin"] ?? roleMap["admin"];
 

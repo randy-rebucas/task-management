@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { mutate } from "swr";
 import {
   Zap,
@@ -24,69 +24,47 @@ import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { useSubscription } from "@/hooks/use-subscription";
+import { usePlatformPlans } from "@/hooks/use-platform-plans";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-/* ── Plan metadata ─────────────────────────────────────────── */
+/* ── Plan feature lists (display only — pricing/limits come from platform DB) ── */
 
-const PLAN_META: Record<
-  string,
-  { label: string; amount: number; maxUsers: number; features: string[] }
-> = {
-  starter: {
-    label: "Starter",
-    amount: 49,
-    maxUsers: 10,
-    features: [
-      "Up to 10 team members",
-      "Task management & subtasks",
-      "Basic dashboard & reports",
-      "Email notifications",
-      "5 GB file storage",
-    ],
-  },
-  growth: {
-    label: "Growth",
-    amount: 149,
-    maxUsers: 30,
-    features: [
-      "Up to 30 team members",
-      "Everything in Starter",
-      "CRM & deal pipeline",
-      "KPI & performance tracking",
-      "Field monitoring & GPS",
-      "Proof of work submissions",
-      "PDF & Excel exports",
-      "Priority support",
-    ],
-  },
-  business: {
-    label: "Business",
-    amount: 299,
-    maxUsers: 100,
-    features: [
-      "Up to 100 team members",
-      "Everything in Growth",
-      "Advanced role permissions",
-      "Multi-department management",
-      "Custom workflow builder",
-      "50 GB storage",
-      "Dedicated onboarding",
-    ],
-  },
-  enterprise: {
-    label: "Enterprise",
-    amount: 0,
-    maxUsers: Infinity,
-    features: [
-      "Unlimited members",
-      "Everything in Business",
-      "Custom integrations & API",
-      "Dedicated account manager",
-      "SLA guarantee",
-      "On-premise option",
-    ],
-  },
+const PLAN_FEATURES: Record<string, string[]> = {
+  starter: [
+    "Up to 10 team members",
+    "Task management & subtasks",
+    "Basic dashboard & reports",
+    "Email notifications",
+    "5 GB file storage",
+  ],
+  growth: [
+    "Up to 30 team members",
+    "Everything in Starter",
+    "CRM & deal pipeline",
+    "KPI & performance tracking",
+    "Field monitoring & GPS",
+    "Proof of work submissions",
+    "PDF & Excel exports",
+    "Priority support",
+  ],
+  business: [
+    "Up to 100 team members",
+    "Everything in Growth",
+    "Advanced role permissions",
+    "Multi-department management",
+    "Custom workflow builder",
+    "50 GB storage",
+    "Dedicated onboarding",
+  ],
+  enterprise: [
+    "Unlimited members",
+    "Everything in Business",
+    "Custom integrations & API",
+    "Dedicated account manager",
+    "SLA guarantee",
+    "On-premise option",
+  ],
 };
 
 /* ── Status helpers ─────────────────────────────────────────── */
@@ -116,11 +94,25 @@ function fmt(dateStr?: string) {
 
 export default function SubscriptionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { subscription, isLoading, isActive, isTrialing, trialDaysLeft } =
     useSubscription();
+  const { plans, isLoading: plansLoading, getPlan } = usePlatformPlans();
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+
+  // Show success toast when redirected back after PayPal approval
+  useEffect(() => {
+    if (searchParams.get("subscribed") === "1") {
+      toast.success("Subscription activated! Welcome aboard 🎉");
+      mutate("/api/subscriptions/status");
+      // Clean URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete("subscribed");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
 
   async function handleCancel() {
     setCancelling(true);
@@ -141,7 +133,7 @@ export default function SubscriptionPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || plansLoading) {
     return (
       <div>
         <PageHeader title="Subscription" description="Manage your subscription and billing" />
@@ -171,7 +163,7 @@ export default function SubscriptionPage() {
                 </p>
               </div>
               <Button asChild className="mt-2">
-                <Link href="/#pricing">
+                <Link href="/settings/subscribe">
                   View plans <ArrowUpRight className="ml-1.5 h-4 w-4" />
                 </Link>
               </Button>
@@ -182,11 +174,12 @@ export default function SubscriptionPage() {
     );
   }
 
-  const plan = PLAN_META[subscription.plan] ?? {
-    label: subscription.plan,
-    amount: subscription.amount,
-    maxUsers: 0,
-    features: [],
+  const planInfo = getPlan(subscription.plan);
+  const plan = {
+    label:    planInfo?.label    ?? subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1),
+    amount:   planInfo?.amount   ?? subscription.amount ?? 0,
+    maxUsers: planInfo?.maxUsers ?? 0,
+    features: PLAN_FEATURES[subscription.plan] ?? [],
   };
 
   const statusCfg = STATUS_CONFIG[subscription.status] ?? {
@@ -323,12 +316,11 @@ export default function SubscriptionPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {(["starter", "growth", "business"] as const).map((key) => {
-                  const p = PLAN_META[key];
-                  const isCurrent = subscription.plan === key;
+                {plans.filter((p) => p.key !== "trial" && p.key !== "enterprise").map((p) => {
+                  const isCurrent = subscription.plan === p.key;
                   return (
                     <div
-                      key={key}
+                      key={p.key}
                       className={cn(
                         "rounded-xl border p-4 flex flex-col gap-2",
                         isCurrent
@@ -351,7 +343,7 @@ export default function SubscriptionPage() {
                       <p className="text-xs text-muted-foreground">Up to {p.maxUsers} members</p>
                       {!isCurrent && (
                         <Button asChild size="sm" variant="outline" className="mt-1 w-full">
-                          <Link href={`/subscribe/${key}`}>
+                          <Link href={`/settings/subscribe/${p.key}`}>
                             Switch <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                           </Link>
                         </Button>

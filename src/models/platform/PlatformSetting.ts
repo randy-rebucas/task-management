@@ -43,6 +43,17 @@ export const DEFAULT_PLATFORM_SETTINGS: SettingDef[] = [
   { key: "plan_limits.growth",     value: 50,   description: "Max users on the growth plan",     group: "plans" },
   { key: "plan_limits.business",   value: 150,  description: "Max users on the business plan",   group: "plans" },
   { key: "plan_limits.enterprise", value: 9999, description: "Max users on the enterprise plan", group: "plans" },
+  // Plan pricing (USD/month)
+  { key: "plan_price.starter",    value: 49,  description: "Monthly price for Starter plan (USD)",    group: "plans" },
+  { key: "plan_price.growth",     value: 149, description: "Monthly price for Growth plan (USD)",     group: "plans" },
+  { key: "plan_price.business",   value: 299, description: "Monthly price for Business plan (USD)",   group: "plans" },
+  { key: "plan_price.enterprise", value: 0,   description: "Monthly price for Enterprise plan (0 = custom pricing)", group: "plans" },
+  // Plan labels
+  { key: "plan_label.trial",      value: "Trial",      description: "Display label for the trial plan",      group: "plans" },
+  { key: "plan_label.starter",    value: "Starter",    description: "Display label for the starter plan",    group: "plans" },
+  { key: "plan_label.growth",     value: "Growth",     description: "Display label for the growth plan",     group: "plans" },
+  { key: "plan_label.business",   value: "Business",   description: "Display label for the business plan",   group: "plans" },
+  { key: "plan_label.enterprise", value: "Enterprise", description: "Display label for the enterprise plan", group: "plans" },
   // PayPal
   { key: "paypal.plan.starter.id",  value: "", description: "PayPal plan ID for Starter plan",  group: "paypal" },
   { key: "paypal.plan.growth.id",   value: "", description: "PayPal plan ID for Growth plan",   group: "paypal" },

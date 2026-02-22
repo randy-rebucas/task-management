@@ -2,22 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTenantModelsFromRequest } from "@/features/auth/api-helpers";
 import { registerSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
+import { getPlatformDb } from "@/lib/platform-db";
+import { getPlatformSettingModel } from "@/models/platform/PlatformSetting";
 
 export async function POST(req: NextRequest) {
+  // Check platform-level self-registration feature flag
+  const platformDb = await getPlatformDb();
+  const PlatformSetting = getPlatformSettingModel(platformDb);
+  const selfRegSetting = await PlatformSetting.findOne({ key: "feature.self_registration" }).lean();
+  if (selfRegSetting && selfRegSetting.value === false) {
+    return NextResponse.json(
+      { error: "Self-registration is currently disabled. Contact your administrator to get an account." },
+      { status: 403 }
+    );
+  }
+
   const tenantCtx = await getTenantModelsFromRequest(req);
   if (!tenantCtx) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 400 });
   }
   const { models } = tenantCtx;
-
-  // Enforce per-tenant self-registration flag (seeded as false — admin must enable it)
-  const selfRegSetting = await models.AppSetting.findOne({ key: "allow_self_registration" }).lean();
-  if (selfRegSetting && (selfRegSetting as any).value === false) {
-    return NextResponse.json(
-      { error: "Self-registration is disabled. Contact your administrator to get an account." },
-      { status: 403 }
-    );
-  }
 
   const body = await req.json();
   const parsed = registerSchema.safeParse(body);

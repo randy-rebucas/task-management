@@ -92,7 +92,7 @@ export default function BillingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/subscribe">
+              <Link href="/settings/subscribe">
                 <Button>
                   <Zap className="mr-2 h-4 w-4" />
                   View Plans & Subscribe
@@ -180,7 +180,7 @@ export default function BillingPage() {
                   <CardDescription>Upgrade your plan or cancel your subscription.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-3">
-                  <Link href="/subscribe">
+                  <Link href="/settings/subscribe">
                     <Button variant="outline">
                       <ArrowUpRight className="mr-2 h-4 w-4" />
                       Change Plan

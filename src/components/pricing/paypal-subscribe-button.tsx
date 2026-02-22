@@ -10,9 +10,10 @@ import {
 import { Loader2, Mail, ArrowRight } from "lucide-react";
 
 interface PayPalSubscribeButtonProps {
-  planId: string;         // PayPal plan ID (P-XXXX)
-  planKey: string;        // e.g. "growth"
-  email?: string;         // Pre-fill if user is already logged in
+  planId: string;           // PayPal plan ID (P-XXXX)
+  planKey: string;          // e.g. "growth"
+  email?: string;           // Pre-fill if user is already logged in
+  successRedirect?: string; // Where to go after activation (default: /register)
   onSuccess?: () => void;
 }
 
@@ -20,6 +21,7 @@ export function PayPalSubscribeButton({
   planId,
   planKey,
   email: propEmail,
+  successRedirect,
   onSuccess,
 }: PayPalSubscribeButtonProps) {
   const router = useRouter();
@@ -54,8 +56,12 @@ export function PayPalSubscribeButton({
       }
 
       onSuccess?.();
-      const emailParam = resolvedEmail ? `&email=${encodeURIComponent(resolvedEmail)}` : "";
-      router.push(`/register?plan=${planKey}&subscribed=1${emailParam}`);
+      if (successRedirect) {
+        router.push(successRedirect);
+      } else {
+        const emailParam = resolvedEmail ? `&email=${encodeURIComponent(resolvedEmail)}` : "";
+        router.push(`/register?plan=${planKey}&subscribed=1${emailParam}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
