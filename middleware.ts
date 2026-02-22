@@ -6,16 +6,24 @@ import { RESERVED_SUBDOMAINS } from "@/config/constants";
 export const runtime = "nodejs";
 
 /**
- * Extract the subdomain from the host header.
- * Returns null for the apex domain, "www", or IP addresses.
+ * Extract the tenant subdomain from the host header.
+ * Only treats a hostname as having a subdomain if it belongs to the app domain
+ * (e.g. acme.tasksmgr.solutions). Any other host (localhost, ngrok, Vercel
+ * preview URLs, etc.) is treated as the apex — no subdomain.
  */
-function extractSubdomain(host: string): string | null {
+function extractSubdomain(host: string, appDomain: string): string | null {
   const hostname = host.split(":")[0];
   if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return null;
   if (hostname === "localhost" || hostname === "127.0.0.1") return null;
-  const parts = hostname.split(".");
-  if (parts.length >= 3) return parts[0];
-  return null;
+
+  // Only extract subdomain for our own domain
+  const suffix = `.${appDomain}`;
+  if (!hostname.endsWith(suffix)) return null;
+
+  const sub = hostname.slice(0, hostname.length - suffix.length);
+  // Must be a single-level subdomain (no dots)
+  if (!sub || sub.includes(".")) return null;
+  return sub;
 }
 
 export async function middleware(req: NextRequest) {
@@ -46,7 +54,7 @@ export async function middleware(req: NextRequest) {
   // Support ?__tenant=slug for local development override
   const subdomainOverride = req.nextUrl.searchParams.get("__tenant");
   const subdomain =
-    subdomainOverride ?? req.headers.get("x-tenant-slug") ?? extractSubdomain(host);
+    subdomainOverride ?? req.headers.get("x-tenant-slug") ?? extractSubdomain(host, appDomain);
 
   // ── Super-admin panel (admin.yourdomain.com) ───────────────────────────────
   if (subdomain === "admin") {
