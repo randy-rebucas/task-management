@@ -3,7 +3,6 @@
  * Permissions, Roles, Departments, Workflow Statuses, App Settings, and the first admin user.
  */
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
 import { getTenantModels } from "@/lib/tenant-models";
 import { PERMISSIONS, ROLE_DEFINITIONS, DEFAULT_WORKFLOW_STATUSES } from "@/config/permissions";
 
@@ -94,7 +93,6 @@ export async function seedTenant({
 
   // 6. Create the first admin user
   const superAdminRole = roleMap["super-admin"] ?? roleMap["admin"];
-  const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
   const existingAdmin = await models.User.findOne({
     email: adminEmail.toLowerCase(),
@@ -102,7 +100,7 @@ export async function seedTenant({
   if (!existingAdmin) {
     await models.User.create({
       email: adminEmail.toLowerCase(),
-      password: hashedPassword,
+      password: adminPassword, // pre("save") hook in UserSchema will hash this
       firstName: adminFirstName,
       lastName: adminLastName,
       roles: superAdminRole ? [superAdminRole] : [],
