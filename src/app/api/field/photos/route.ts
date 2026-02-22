@@ -1,20 +1,33 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
-import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-export const POST = withAuth(async (req) => {
+export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file");
 
-    if (!file || typeof file === "string") return apiError("No file provided", 400);
-    if (file.size > MAX_SIZE) return apiError("File size exceeds 10MB limit", 400);
+    if (!file || typeof file === "string") {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: "File size exceeds 10MB limit" }, { status: 400 });
+    }
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      return apiError("Only JPEG, PNG and WebP images are allowed", 400);
+      return NextResponse.json(
+        { error: "Only JPEG, PNG and WebP images are allowed" },
+        { status: 400 }
+      );
     }
 
     const ext = file.type.split("/")[1];
@@ -26,9 +39,9 @@ export const POST = withAuth(async (req) => {
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filePath, buffer);
 
-    return apiSuccess({ url: `/uploads/field/${fileName}` }, 201);
+    return NextResponse.json({ url: `/uploads/field/${fileName}` }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/field/photos]", err);
-    return apiError("Failed to upload photo", 500);
+    return NextResponse.json({ error: "Failed to upload photo" }, { status: 500 });
   }
-});
+}

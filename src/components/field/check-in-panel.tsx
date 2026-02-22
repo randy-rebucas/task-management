@@ -53,9 +53,9 @@ export function CheckInPanel() {
     const form = new FormData();
     form.append("file", file);
     const res = await fetch("/api/field/photos", { method: "POST", body: form });
-    if (!res.ok) throw new Error("Photo upload failed");
     const data = await res.json();
-    return data.url;
+    if (!res.ok) throw new Error(data.error ?? "Photo upload failed");
+    return data.url as string;
   }
 
   async function handleCheckIn() {
