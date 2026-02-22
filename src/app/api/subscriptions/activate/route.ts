@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSubscriptionDetails, PLAN_CONFIG, PlanKey } from "@/lib/paypal";
-import { Subscription } from "@/models/Subscription";
+import { getTenantModelsFromRequest } from "@/features/auth/api-helpers";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    // Get user session if logged in
+
+    // Session is optional — user may not be logged in during PayPal return redirect
     const session = await auth();
     const userId = session?.user?.id;
     const email = (userId ? session?.user?.email : bodyEmail) ?? bodyEmail;
@@ -36,8 +37,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // Upsert subscription record
-    const subscription = await Subscription.findOneAndUpdate(
+    // Resolve tenant DB: middleware header → ?__tenant param → session JWT
+    const tenantResult = await getTenantModelsFromRequest(req, session?.user?.tenantDbName);
+    if (!tenantResult) {
+      return NextResponse.json({ error: "Tenant not found" }, { status: 400 });
+    }
+
+    // Upsert subscription record in the tenant DB
+    const subscription = await tenantResult.models.Subscription.findOneAndUpdate(
       { paypalSubscriptionId: subscriptionId },
       {
         user: userId ?? undefined,
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
         currency: "USD",
       },
       { upsert: true, new: true }
-    );
+    ) as any;
 
     return NextResponse.json({ ok: true, subscription: subscription._id });
   } catch (err) {

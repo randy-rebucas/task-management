@@ -1,42 +1,32 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { Subscription } from "@/models/Subscription";
-import User from "@/models/User";
+import { withAuth, apiSuccess } from "@/features/auth/api-helpers";
 
-export async function GET() {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    // Look up the current user to check if they're staff (have an owner)
-    const currentUser = await User.findById(session.user.id).select("owner").lean() as any;
-    const ownerId = currentUser?.owner ?? session.user.id;
-    const isOwner = !currentUser?.owner;
+export const GET = withAuth(async (req, ctx, session, models) => {
+  // Look up the current user to check if they're staff (have an owner)
+  const currentUser = await models.User.findById(session.user.id)
+    .select("owner")
+    .lean() as any;
+  const ownerId = currentUser?.owner ?? session.user.id;
+  const isOwner = !currentUser?.owner;
 
-    const subscription = await Subscription.findOne({
-      user: ownerId,
-      status: { $in: ["ACTIVE", "APPROVED", "APPROVAL_PENDING", "SUSPENDED"] },
-    }).sort({ createdAt: -1 });
+  const subscription = await models.Subscription.findOne({
+    user: ownerId,
+    status: { $in: ["ACTIVE", "APPROVED", "APPROVAL_PENDING", "SUSPENDED"] },
+  }).sort({ createdAt: -1 }).lean() as any;
 
-    if (!subscription) {
-      return NextResponse.json({ subscription: null, isOwner });
-    }
-
-    return NextResponse.json({
-      subscription: {
-        id: subscription._id,
-        plan: subscription.plan,
-        status: subscription.status,
-        amount: subscription.amount,
-        nextBillingTime: subscription.nextBillingTime,
-        trialEndTime: subscription.trialEndTime,
-        startTime: subscription.startTime,
-      },
-      isOwner,
-    });
-  } catch (err) {
-    console.error("[subscriptions/status]", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  if (!subscription) {
+    return apiSuccess({ subscription: null, isOwner });
   }
-}
+
+  return apiSuccess({
+    subscription: {
+      id: subscription._id,
+      plan: subscription.plan,
+      status: subscription.status,
+      amount: subscription.amount,
+      nextBillingTime: subscription.nextBillingTime,
+      trialEndTime: subscription.trialEndTime,
+      startTime: subscription.startTime,
+    },
+    isOwner,
+  });
+});

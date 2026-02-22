@@ -20,14 +20,20 @@ type TenantHandler = (
  * Resolves the tenant DB connection and models from request headers.
  * Returns null if the tenant cannot be resolved.
  */
+/**
+ * Resolve tenant DB from request headers, ?__tenant param, or a pre-known dbName fallback.
+ * Pass `tenantDbName` from the session JWT as the fallback so this works in every
+ * environment (local dev, ngrok, Vercel preview) even when middleware headers are absent.
+ */
 export async function getTenantModelsFromRequest(
-  req: NextRequest
+  req: NextRequest,
+  tenantDbNameFallback?: string | null
 ): Promise<{ conn: mongoose.Connection; models: TenantModels } | null> {
-  // Headers injected by middleware for subdomain requests
+  // 1. Headers injected by middleware for subdomain requests
   let dbName = req.headers.get("x-tenant-db");
 
+  // 2. Local dev fallback via ?__tenant=slug
   if (!dbName) {
-    // Local dev fallback via ?__tenant=slug
     const slug = new URL(req.url).searchParams.get("__tenant");
     if (slug) {
       const { getPlatformDb } = await import("@/lib/platform-db");
@@ -37,6 +43,11 @@ export async function getTenantModelsFromRequest(
       const t = await T.findOne({ slug }).lean();
       dbName = t ? (t as any).dbName : null;
     }
+  }
+
+  // 3. Session JWT fallback — always available for authenticated requests
+  if (!dbName && tenantDbNameFallback) {
+    dbName = tenantDbNameFallback;
   }
 
   if (!dbName) return null;
@@ -52,7 +63,8 @@ export function withAuth(handler: TenantHandler) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await getTenantModelsFromRequest(req);
+    const result = await getTenantModelsFromRequest(req, session.user.tenantDbName);
+
     if (!result) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 400 });
     }
