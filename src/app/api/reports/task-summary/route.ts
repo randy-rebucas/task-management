@@ -1,8 +1,5 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-import WorkflowStatus from "@/models/WorkflowStatus";
-
-export const GET = withPermission("reports:view", async (req) => {
+export const GET = withPermission("reports:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
@@ -17,16 +14,16 @@ export const GET = withPermission("reports:view", async (req) => {
   if (department) match.department = department;
 
   const [statuses, tasksByStatus, tasksByPriority, completionTrend] = await Promise.all([
-    WorkflowStatus.find({ isActive: true }).lean(),
-    Task.aggregate([
+    models.WorkflowStatus.find({ isActive: true }).lean(),
+    models.Task.aggregate([
       { $match: match },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]),
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: match },
       { $group: { _id: "$priority", count: { $sum: 1 } } },
     ]),
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { ...match, completedAt: { $exists: true } } },
       {
         $group: {

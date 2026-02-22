@@ -1,3 +1,4 @@
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 
 
 import { NextRequest } from "next/server";
@@ -5,17 +6,11 @@ import { withAuth, withPermission, apiSuccess, apiError, getPaginationParams } f
 import { createTaskSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
-import { getUserPermissions } from "@/features/auth/rbac";
-import Task from "@/models/Task";
-import WorkflowStatus from "@/models/WorkflowStatus";
-// Register CRM models so Mongoose populate works
-import "@/models/Lead";
-import "@/models/Client";
-import "@/models/Deal";
 
-export const GET = withAuth(async (req, ctx, session) => {
+// Register CRM models so Mongoose populate works
+export const GET = withAuth(async (req, ctx, session, models) => {
   try {
-    const perms = await getUserPermissions(session.user.roles);
+    const perms = await getTenantPermissions(session.user.roles, models);
     const url = new URL(req.url);
     const { page, limit, skip } = getPaginationParams(url);
 
@@ -50,7 +45,7 @@ export const GET = withAuth(async (req, ctx, session) => {
     }
 
     const [data, total] = await Promise.all([
-      Task.find(filter)
+      models.Task.find(filter)
         .populate("status", "name slug color")
         .populate("assignees", "firstName lastName email avatar")
         .populate("createdBy", "firstName lastName email")
@@ -59,7 +54,7 @@ export const GET = withAuth(async (req, ctx, session) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      Task.countDocuments(filter),
+      models.Task.countDocuments(filter),
     ]);
 
     return apiSuccess({
@@ -75,22 +70,23 @@ export const GET = withAuth(async (req, ctx, session) => {
   }
 });
 
-export const POST = withPermission("tasks:create", async (req, ctx, session) => {
+export const POST = withPermission("tasks:create", async (req, ctx, session, models) => {
   const body = await req.json();
   const parsed = createTaskSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const defaultStatus = await WorkflowStatus.findOne({ isDefault: true });
+  const defaultStatus = await models.WorkflowStatus.findOne({ isDefault: true });
   if (!defaultStatus) return apiError("No default workflow status configured", 500);
 
-  const taskNumber = await Task.countDocuments() + 1;
+  const taskNumber = await models.Task.countDocuments() + 1;
 
-  const task = new Task({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const task = new models.Task({
     ...parsed.data,
     taskNumber: `TASK-${String(taskNumber).padStart(4, "0")}`,
     status: defaultStatus._id,
     createdBy: session.user.id,
-  });
+  }) as any;
   await task.save();
 
   await logActivity({
@@ -107,7 +103,7 @@ export const POST = withPermission("tasks:create", async (req, ctx, session) => 
       taskId: task._id.toString(),
       actorId: session.user.id,
       data: { taskTitle: task.title, actorName: session.user.name },
-    });
+    }, models);
   }
 
   // Ensure taskNumber is included in the response

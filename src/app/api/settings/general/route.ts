@@ -1,13 +1,14 @@
-import AppSetting from "@/models/AppSetting";
-import { dbConnect } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { withAuth, withPermission } from "@/features/auth/api-helpers";
+import type { IAppSetting } from "@/models/AppSetting";
+import mongoose from "mongoose";
 
-export const GET = withAuth(async () => {
-  await dbConnect();
+type LeanSetting = IAppSetting & { _id: mongoose.Types.ObjectId };
+
+export const GET = withAuth(async (_req, _ctx, _session, models) => {
   const keys = ["theme", "paginationLimit", "fileUploadMaxSize"];
-  const settingsArr = await AppSetting.find({ key: { $in: keys } }).lean();
-  const settings: Record<string, any> = {};
+  const settingsArr = await models.AppSetting.find({ key: { $in: keys } }).lean() as unknown as LeanSetting[];
+  const settings: Record<string, unknown> = {};
   for (const s of settingsArr) {
     settings[s.key] = s.value;
   }
@@ -18,23 +19,21 @@ export const GET = withAuth(async () => {
   return NextResponse.json(settings);
 });
 
-export const PUT = withPermission("settings:manage", async (req) => {
-  await dbConnect();
+export const PUT = withPermission("settings:manage", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const keys = ["theme", "paginationLimit", "fileUploadMaxSize"];
   for (const key of keys) {
     if (body[key] !== undefined) {
-      await AppSetting.findOneAndUpdate(
+      await models.AppSetting.findOneAndUpdate(
         { key },
         { value: body[key] },
         { upsert: true, new: true }
       );
     }
   }
-  // Return updated settings
-  const settingsArr = await AppSetting.find({ key: { $in: keys } }).lean();
-  const settings: Record<string, any> = {};
-  for (const s of settingsArr) {
+  const settingsArr2 = await models.AppSetting.find({ key: { $in: keys } }).lean() as unknown as LeanSetting[];
+  const settings: Record<string, unknown> = {};
+  for (const s of settingsArr2) {
     settings[s.key] = s.value;
   }
   return NextResponse.json(settings);

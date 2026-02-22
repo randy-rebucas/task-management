@@ -1,22 +1,19 @@
 import { withAuth, apiSuccess } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-import WorkflowStatus from "@/models/WorkflowStatus";
-
-export const GET = withAuth(async (req, ctx, session) => {
+export const GET = withAuth(async (req, ctx, session, models) => {
   const now = new Date();
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const [totalAssigned, overdue, dueSoon, statuses] = await Promise.all([
-    Task.countDocuments({
+    models.Task.countDocuments({
       assignees: session.user.id,
       isArchived: false,
     }),
-    Task.countDocuments({
+    models.Task.countDocuments({
       assignees: session.user.id,
       dueDate: { $lt: now },
       isArchived: false,
     }),
-    Task.find({
+    models.Task.find({
       assignees: session.user.id,
       dueDate: { $gte: now, $lte: nextWeek },
       isArchived: false,
@@ -25,11 +22,11 @@ export const GET = withAuth(async (req, ctx, session) => {
       .sort({ dueDate: 1 })
       .limit(5)
       .lean(),
-    WorkflowStatus.find({ isActive: true }).lean(),
+    models.WorkflowStatus.find({ isActive: true }).lean(),
   ]);
 
   // My tasks by status
-  const tasksByStatus = await Task.aggregate([
+  const tasksByStatus = await models.Task.aggregate([
     {
       $match: {
         assignees: { $in: [session.user.id] },

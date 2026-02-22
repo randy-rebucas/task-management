@@ -1,16 +1,10 @@
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import { getUserPermissions, checkPermission } from "@/features/auth/rbac";
+
 import { statusTransitionSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
-import Task from "@/models/Task";
-import WorkflowStatus from "@/models/WorkflowStatus";
-import WorkflowTransition from "@/models/WorkflowTransition";
-import TaskComment from "@/models/TaskComment";
-import Role from "@/models/Role";
-import AppSetting from "@/models/AppSetting";
-
-export const PATCH = withPermission("tasks:update", async (req, ctx, session) => {
+export const PATCH = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = statusTransitionSchema.safeParse(body);
@@ -19,19 +13,19 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
     return apiError(firstError);
   }
 
-  const task = await Task.findById(taskId).populate("status");
+  const task = await models.Task.findById(taskId).populate("status") as any;
   if (!task) return apiError("Task not found", 404);
 
   const fromStatus = task.status as unknown as { name?: string } | null;
-  const toStatus = await WorkflowStatus.findById(parsed.data.toStatusId);
+  const toStatus = await models.WorkflowStatus.findById(parsed.data.toStatusId) as any;
   if (!toStatus) return apiError("Invalid target status", 400);
 
   // Check transition is allowed
-  const transition = await WorkflowTransition.findOne({
+  const transition = await models.WorkflowTransition.findOne({
     fromStatus: task.status,
     toStatus: parsed.data.toStatusId,
     isActive: true,
-  }).populate("allowedRoles");
+  }).populate("allowedRoles") as any;
 
   if (!transition) {
     return apiError(`Transition from "${fromStatus?.name}" to "${toStatus.name}" is not allowed`, 403);
@@ -39,9 +33,9 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
 
   // Check role is allowed for this transition
   if (transition.allowedRoles.length > 0) {
-    const userRoles = await Role.find({ _id: { $in: session.user.roles } });
-    const userRoleIds = userRoles.map((r) => r._id.toString());
-    const allowedRoleIds = transition.allowedRoles.map((r) => (r as { _id: { toString(): string } })._id.toString());
+    const userRoles = await models.Role.find({ _id: { $in: session.user.roles } }) as any[];
+    const userRoleIds = userRoles.map((r: any) => r._id.toString());
+    const allowedRoleIds = transition.allowedRoles.map((r: any) => r._id.toString());
     const hasRole = userRoleIds.some((id) => allowedRoleIds.includes(id));
     if (!hasRole) {
       return apiError("Your role is not allowed to perform this transition", 403);
@@ -59,7 +53,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
       (a) => a.toString() === session.user.id
     );
     if (!isAssignee) {
-      const userPerms = await getUserPermissions(session.user.roles);
+      const userPerms = await getTenantPermissions(session.user.roles, models);
       if (!checkPermission(userPerms, "tasks:approve")) {
         return apiError("Only task assignees or users with approval permission can close tasks", 403);
       }
@@ -76,12 +70,12 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
   await task.save();
 
   // Auto-create a follow-up task when a client_meeting is completed (if enabled)
-  const followUpEnabled = await AppSetting.findOne({ key: "automation.followUpTask" }).lean();
+  const followUpEnabled = await models.AppSetting.findOne({ key: "automation.followUpTask" }).lean() as any;
   if (toStatus.isFinal && task.taskType === "client_meeting" && (followUpEnabled ? Boolean(followUpEnabled.value) : true)) {
-    const defaultStatus = await WorkflowStatus.findOne({ isDefault: true, isActive: true });
+    const defaultStatus = await models.WorkflowStatus.findOne({ isDefault: true, isActive: true }) as any;
     if (defaultStatus) {
-      const taskCount = await Task.countDocuments();
-      const followUp = await Task.create({
+      const taskCount = await models.Task.countDocuments();
+      const followUp = await models.Task.create({
         taskNumber: `TASK-${String(taskCount + 1).padStart(4, "0")}`,
         title: `Follow-up: ${task.title}`,
         description: `Auto-generated follow-up from completed meeting: ${task.taskNumber}`,
@@ -94,18 +88,18 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
         ...(task.client && { client: task.client }),
         ...(task.lead   && { lead:   task.lead   }),
         ...(task.deal   && { deal:   task.deal   }),
-      });
+      }) as any;
       await triggerNotification("task_assigned", {
         taskId: followUp._id.toString(),
         actorId: session.user.id,
         data: { taskTitle: followUp.title, actorName: session.user.name },
-      });
+      }, models);
     }
   }
 
   // Add system comment for the transition
   if (parsed.data.remarks) {
-    await TaskComment.create({
+    await models.TaskComment.create({
       task: taskId,
       author: session.user.id,
       content: `Status changed from "${previousStatusName}" to "${toStatus.name}": ${parsed.data.remarks}`,
@@ -135,7 +129,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session) =>
       toStatus: toStatus.name,
       actorName: session.user.name,
     },
-  });
+  }, models);
 
   return apiSuccess(task);
 });

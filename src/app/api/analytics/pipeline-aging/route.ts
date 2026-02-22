@@ -1,6 +1,4 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Deal from "@/models/Deal";
-
 const STAGE_ORDER = [
   "prospect",
   "contacted",
@@ -9,10 +7,10 @@ const STAGE_ORDER = [
   "negotiation",
 ];
 
-export const GET = withPermission("reports:view", async () => {
+export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   const now = new Date();
 
-  const rows = await Deal.aggregate([
+  const rows = await models.Deal.aggregate([
     { $match: { stage: { $nin: ["closed_won", "closed_lost"] } } },
     {
       $addFields: {

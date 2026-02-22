@@ -1,10 +1,5 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-import User from "@/models/User";
-import WorkflowStatus from "@/models/WorkflowStatus";
-import ActivityLog from "@/models/ActivityLog";
-
-export const GET = withPermission("dashboard:admin", async () => {
+export const GET = withPermission("dashboard:admin", async (_req, _ctx, _session, models) => {
   const [
     totalUsers,
     activeUsers,
@@ -13,23 +8,23 @@ export const GET = withPermission("dashboard:admin", async () => {
     recentActivity,
     overdueTasks,
   ] = await Promise.all([
-    User.countDocuments(),
-    User.countDocuments({ isActive: true }),
-    Task.countDocuments({ isArchived: false }),
-    WorkflowStatus.find({ isActive: true }).lean(),
-    ActivityLog.find()
+    models.User.countDocuments(),
+    models.User.countDocuments({ isActive: true }),
+    models.Task.countDocuments({ isArchived: false }),
+    models.WorkflowStatus.find({ isActive: true }).lean(),
+    models.ActivityLog.find()
       .populate("actor", "firstName lastName email")
       .sort({ createdAt: -1 })
       .limit(10)
       .lean(),
-    Task.countDocuments({
+    models.Task.countDocuments({
       dueDate: { $lt: new Date() },
       isArchived: false,
     }),
   ]);
 
   // Tasks by status
-  const tasksByStatus = await Task.aggregate([
+  const tasksByStatus = await models.Task.aggregate([
     { $match: { isArchived: false } },
     { $group: { _id: "$status", count: { $sum: 1 } } },
   ]);
@@ -45,7 +40,7 @@ export const GET = withPermission("dashboard:admin", async () => {
   }));
 
   // Tasks by priority
-  const tasksByPriority = await Task.aggregate([
+  const tasksByPriority = await models.Task.aggregate([
     { $match: { isArchived: false } },
     { $group: { _id: "$priority", count: { $sum: 1 } } },
   ]);

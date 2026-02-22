@@ -1,10 +1,8 @@
-import "@/models/Department"; // register schema so User.populate("department") works
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-import User from "@/models/User";
-
-export const GET = withPermission("users:view", async (req) => {
+import type { IUser } from "@/types";
+export const GET = withPermission("users:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
   const search = url.searchParams.get("search") || "";
@@ -23,14 +21,14 @@ export const GET = withPermission("users:view", async (req) => {
   }
 
   const [data, total] = await Promise.all([
-    User.find(filter)
+    models.User.find(filter)
       .populate("roles", "name slug")
       .populate("department", "name code")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    User.countDocuments(filter),
+    models.User.countDocuments(filter),
   ]);
 
   return apiSuccess({
@@ -42,14 +40,14 @@ export const GET = withPermission("users:view", async (req) => {
   });
 });
 
-export const POST = withPermission("users:create", async (req, _ctx, session) => {
+export const POST = withPermission("users:create", async (req, _ctx, session, models) => {
   const body = await req.json();
   const parsed = createUserSchema.safeParse(body);
   if (!parsed.success) {
     return apiError(parsed.error.issues[0].message);
   }
 
-  const existing = await User.findOne({ email: parsed.data.email });
+  const existing = await models.User.findOne({ email: parsed.data.email });
   if (existing) {
     return apiError("A user with this email already exists", 409);
   }
@@ -57,10 +55,10 @@ export const POST = withPermission("users:create", async (req, _ctx, session) =>
   // Determine the root owner for this account.
   // If the creator is already staff (has an owner), propagate that owner;
   // otherwise the creator is the owner.
-  const creator = await User.findById(session.user.id).select("owner").lean();
+  const creator = await models.User.findById(session.user.id).select("owner").lean();
   const ownerId = creator?.owner ?? session.user.id;
 
-  const user = await User.create({ ...parsed.data, owner: ownerId });
+  const user = await models.User.create({ ...parsed.data, owner: ownerId }) as unknown as IUser & { _id: { toString: () => string } };
 
   await logActivity({
     actor: session.user.id,

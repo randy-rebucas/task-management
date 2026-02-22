@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
-import User from "@/models/User";
 import { Subscription } from "@/models/Subscription";
+import User from "@/models/User";
 
 export async function GET() {
   try {
@@ -10,11 +9,8 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    await dbConnect();
-
     // Look up the current user to check if they're staff (have an owner)
-    const currentUser = await User.findById(session.user.id).select("owner").lean();
+    const currentUser = await User.findById(session.user.id).select("owner").lean() as any;
     const ownerId = currentUser?.owner ?? session.user.id;
     const isOwner = !currentUser?.owner;
 

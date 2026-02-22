@@ -1,7 +1,5 @@
 import { withAuth, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
-import Task from "@/models/Task";
-
-export const GET = withAuth(async (req, ctx, session) => {
+export const GET = withAuth(async (req, ctx, session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
   const status = url.searchParams.get("status");
@@ -16,7 +14,7 @@ export const GET = withAuth(async (req, ctx, session) => {
   if (priority) filter.priority = priority;
 
   const [data, total] = await Promise.all([
-    Task.find(filter)
+    models.Task.find(filter)
       .populate("status", "name slug color")
       .populate("assignees", "firstName lastName email avatar")
       .populate("createdBy", "firstName lastName email")
@@ -24,7 +22,7 @@ export const GET = withAuth(async (req, ctx, session) => {
       .skip(skip)
       .limit(limit)
       .lean(),
-    Task.countDocuments(filter),
+    models.Task.countDocuments(filter),
   ]);
 
   return apiSuccess({

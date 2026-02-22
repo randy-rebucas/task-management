@@ -1,46 +1,44 @@
 import { withPermission, withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createWorkflowStatusSchema } from "@/features/auth/validators";
-import WorkflowStatus from "@/models/WorkflowStatus";
-
-export const GET = withAuth(async () => {
-  const statuses = await WorkflowStatus.find({ isActive: true })
+export const GET = withAuth(async (_req, _ctx, _session, models) => {
+  const statuses = await models.WorkflowStatus.find({ isActive: true })
     .sort({ order: 1 })
     .lean();
   return apiSuccess(statuses);
 });
 
-export const POST = withPermission("workflow:configure", async (req) => {
+export const POST = withPermission("workflow:configure", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const parsed = createWorkflowStatusSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   if (parsed.data.isDefault) {
-    await WorkflowStatus.updateMany({}, { isDefault: false });
+    await models.WorkflowStatus.updateMany({}, { isDefault: false });
   }
 
-  const status = await WorkflowStatus.create(parsed.data);
+  const status = await models.WorkflowStatus.create(parsed.data);
   return apiSuccess(status, 201);
 });
 
-export const PUT = withPermission("workflow:configure", async (req) => {
+export const PUT = withPermission("workflow:configure", async (req, _ctx, _session, models) => {
   const body = await req.json();
   const { id, ...data } = body;
   if (!id) return apiError("Status ID required");
 
   if (data.isDefault) {
-    await WorkflowStatus.updateMany({ _id: { $ne: id } }, { isDefault: false });
+    await models.WorkflowStatus.updateMany({ _id: { $ne: id } }, { isDefault: false });
   }
 
-  const status = await WorkflowStatus.findByIdAndUpdate(id, data, { new: true });
+  const status = await models.WorkflowStatus.findByIdAndUpdate(id, data, { new: true });
   if (!status) return apiError("Status not found", 404);
   return apiSuccess(status);
 });
 
-export const DELETE = withPermission("workflow:configure", async (req) => {
+export const DELETE = withPermission("workflow:configure", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return apiError("Status ID required");
 
-  await WorkflowStatus.findByIdAndUpdate(id, { isActive: false });
+  await models.WorkflowStatus.findByIdAndUpdate(id, { isActive: false });
   return apiSuccess({ message: "Status deactivated" });
 });

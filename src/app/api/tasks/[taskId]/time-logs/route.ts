@@ -1,12 +1,8 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createTimeLogSchema } from "@/features/auth/validators";
-import TaskTimeLog from "@/models/TaskTimeLog";
-import Department from "@/models/Department";
-import Task from "@/models/Task";
-
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
-  const logs = await TaskTimeLog.find({ task: taskId })
+  const logs = await models.TaskTimeLog.find({ task: taskId })
     .populate("user", "firstName lastName email")
     .sort({ startTime: -1 })
     .lean();
@@ -14,16 +10,16 @@ export const GET = withPermission("tasks:view", async (req, ctx) => {
   return apiSuccess(logs);
 });
 
-export const POST = withPermission("tasks:update", async (req, ctx, session) => {
+export const POST = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = createTimeLogSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const task = await Task.findById(taskId);
+  const task = await models.Task.findById(taskId) as any;
   if (!task) return apiError("Task not found", 404);
 
-  const timeLog = await TaskTimeLog.create({
+  const timeLog = await models.TaskTimeLog.create({
     task: taskId,
     user: session.user.id,
     startTime: parsed.data.startTime,
@@ -33,7 +29,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
   });
 
   // Update actual hours on task
-  const totalMinutes = await TaskTimeLog.aggregate([
+  const totalMinutes = await models.TaskTimeLog.aggregate([
     { $match: { task: task._id } },
     { $group: { _id: null, total: { $sum: "$duration" } } },
   ]);

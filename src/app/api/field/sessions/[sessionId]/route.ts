@@ -1,14 +1,12 @@
 import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import FieldSession from "@/models/FieldSession";
-
-export const GET = withAuth(async (req, ctx, session) => {
+export const GET = withAuth(async (req, ctx, session, models) => {
   const { sessionId } = await ctx.params;
   const canViewAll = session.user.permissions?.includes("visit_logs:view_all");
 
   const filter: Record<string, unknown> = { _id: sessionId };
   if (!canViewAll) filter.user = session.user.id;
 
-  const fieldSession = await FieldSession.findOne(filter)
+  const fieldSession = await models.FieldSession.findOne(filter)
     .populate("user", "firstName lastName email")
     .populate("task", "taskNumber title")
     .lean();
@@ -17,15 +15,15 @@ export const GET = withAuth(async (req, ctx, session) => {
   return apiSuccess(fieldSession);
 });
 
-export const PATCH = withAuth(async (req, ctx, session) => {
+export const PATCH = withAuth(async (req, ctx, session, models) => {
   const { sessionId } = await ctx.params;
   const body = await req.json();
   const { action, lat, lng, photo, notes } = body;
 
-  const fieldSession = await FieldSession.findOne({
+  const fieldSession = await models.FieldSession.findOne({
     _id: sessionId,
     user: session.user.id,
-  });
+  }) as any;
   if (!fieldSession) return apiError("Session not found", 404);
 
   if (action === "checkout") {

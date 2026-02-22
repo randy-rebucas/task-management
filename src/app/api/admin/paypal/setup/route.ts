@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { withPermission } from "@/features/auth/api-helpers";
-import { dbConnect } from "@/lib/db";
-import AppSetting from "@/models/AppSetting";
 import { getPayPalAccessToken } from "@/lib/paypal";
 
 const PAYPAL_API_BASE =
@@ -77,7 +75,7 @@ async function createPlan(
   return data.id as string;
 }
 
-export const POST = withPermission("settings:manage", async () => {
+export const POST = withPermission("settings:manage", async (_req, _ctx, _session, models) => {
   if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
     return NextResponse.json(
       { error: "PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in environment variables." },
@@ -94,13 +92,11 @@ export const POST = withPermission("settings:manage", async () => {
       createPlan(token, productId, "TaskMgr Growth",   "Up to 30 team members",  149),
       createPlan(token, productId, "TaskMgr Business", "Up to 100 team members", 299),
     ]);
-
-    await dbConnect();
     await Promise.all([
-      AppSetting.findOneAndUpdate({ key: "paypal.product.id" },      { value: productId  }, { upsert: true }),
-      AppSetting.findOneAndUpdate({ key: "paypal.plan.starter.id" }, { value: starterId  }, { upsert: true }),
-      AppSetting.findOneAndUpdate({ key: "paypal.plan.growth.id" },  { value: growthId   }, { upsert: true }),
-      AppSetting.findOneAndUpdate({ key: "paypal.plan.business.id" },{ value: businessId }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.product.id" },      { value: productId  }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.starter.id" }, { value: starterId  }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.growth.id" },  { value: growthId   }, { upsert: true }),
+      models.AppSetting.findOneAndUpdate({ key: "paypal.plan.business.id" },{ value: businessId }, { upsert: true }),
     ]);
 
     return NextResponse.json({

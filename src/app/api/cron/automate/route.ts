@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbConnect } from "@/lib/db";
-import Task from "@/models/Task";
-import User from "@/models/User";
-import Role from "@/models/Role";
-import Notification from "@/models/Notification";
-import FieldSession from "@/models/FieldSession";
-import VisitLog from "@/models/VisitLog";
-import AppSetting from "@/models/AppSetting";
 import { sendEmail } from "@/lib/email";
 import { deliverNotification } from "@/features/notifications/deliver";
+import { getPlatformDb } from "@/lib/platform-db";
+import { getTenantConnection } from "@/lib/tenant-db";
+import { getTenantModels } from "@/lib/tenant-models";
+import { getTenantModel } from "@/models/platform/Tenant";
+import type { TenantModels } from "@/lib/tenant-models";
 
-async function isEnabled(key: string, defaultVal = true): Promise<boolean> {
-  const row = await AppSetting.findOne({ key }).lean();
+async function isEnabled(models: TenantModels, key: string, defaultVal = true): Promise<boolean> {
+  const row = await models.AppSetting.findOne({ key }).lean() as { value?: unknown } | null;
   return row ? Boolean(row.value) : defaultVal;
 }
 
@@ -46,12 +43,12 @@ type LeanUser = {
 
 // ── Job A: Escalate overdue tasks to Operations Manager ──────────────────────
 
-async function runEscalation(): Promise<number> {
-  if (!await isEnabled("automation.escalation")) return 0;
+async function runEscalation(models: TenantModels): Promise<number> {
+  if (!await isEnabled(models, "automation.escalation")) return 0;
 
   const [escalationDaysRow, opsRole] = await Promise.all([
-    AppSetting.findOne({ key: "automation.escalationDays" }).lean(),
-    Role.findOne({ slug: "operations-manager" }).lean(),
+    models.AppSetting.findOne({ key: "automation.escalationDays" }).lean() as Promise<{ _id: unknown; value?: unknown } | null>,
+    models.Role.findOne({ slug: "operations-manager" }).lean() as Promise<{ _id: unknown } | null>,
   ]);
 
   if (!opsRole) return 0;
@@ -63,18 +60,18 @@ async function runEscalation(): Promise<number> {
   const yesterday = daysAgo(1);
 
   const [overdueTasks, opsManagers, recentlyEscalated] = await Promise.all([
-    Task.find({
+    models.Task.find({
       dueDate: { $lt: cutoff },
       completedAt: { $exists: false },
       isArchived: false,
     })
       .populate("assignees", "firstName lastName")
-      .lean(),
-    User.find({ roles: opsRole._id, isActive: true })
+      .lean() as unknown as Promise<{ _id: { toString(): string }; title: string; dueDate?: Date; assignees: unknown[] }[]>,
+    models.User.find({ roles: (opsRole as { _id: unknown })._id as any, isActive: true })
       .select("email firstName lastName")
       .lean() as Promise<LeanUser[]>,
     // Batch-fetch all task IDs already escalated in the past 24 h
-    Notification.distinct("relatedTask", {
+    models.Notification.distinct("relatedTask", {
       type: "system",
       title: /escalated/i,
       createdAt: { $gte: yesterday },
@@ -123,8 +120,8 @@ async function runEscalation(): Promise<number> {
 
 // ── Job B: Weekly performance report (Saturdays only) ───────────────────────
 
-async function runPerformanceReport(): Promise<number> {
-  if (!await isEnabled("automation.performanceReport")) return 0;
+async function runPerformanceReport(models: TenantModels): Promise<number> {
+  if (!await isEnabled(models, "automation.performanceReport")) return 0;
   // Only send on Saturday (day 6)
   if (new Date().getDay() !== 6) return 0;
 
@@ -134,19 +131,19 @@ async function runPerformanceReport(): Promise<number> {
   // Parallelise the three aggregations
   const [completedRows, overdueRows, sessionRows] = await Promise.all([
     // Completed tasks per user this week
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { completedAt: { $gte: weekStart, $lte: now }, isArchived: false } },
       { $unwind: "$assignees" },
       { $group: { _id: "$assignees", completed: { $sum: 1 } } },
     ]),
     // Overdue tasks per user
-    Task.aggregate([
+    models.Task.aggregate([
       { $match: { dueDate: { $lt: now }, completedAt: { $exists: false }, isArchived: false } },
       { $unwind: "$assignees" },
       { $group: { _id: "$assignees", overdue: { $sum: 1 } } },
     ]),
     // Field session hours per user this week
-    FieldSession.aggregate([
+    models.FieldSession.aggregate([
       { $match: { date: { $gte: weekStart } } },
       { $group: { _id: "$user", totalHours: { $sum: "$duration" }, sessions: { $sum: 1 } } },
     ]),
@@ -158,7 +155,7 @@ async function runPerformanceReport(): Promise<number> {
   const sessionMap   = new Map(sessionRows.map((r)   => [r._id.toString(), { hours: (r.totalHours as number) ?? 0, sessions: r.sessions as number }]));
 
   // All active users
-  const allUsers = await User.find({ isActive: true })
+  const allUsers = await models.User.find({ isActive: true })
     .select("email firstName lastName")
     .lean() as LeanUser[];
 
@@ -217,7 +214,7 @@ async function runPerformanceReport(): Promise<number> {
     .join("\n");
 
   // Find admins + managers
-  const recipients = await User.find({ isActive: true })
+  const recipients = await models.User.find({ isActive: true })
     .populate("roles", "slug")
     .lean() as (LeanUser & { roles: { slug: string }[] })[];
 
@@ -232,15 +229,15 @@ async function runPerformanceReport(): Promise<number> {
 
 // ── Job C: AI summary of daily field reports ─────────────────────────────────
 
-async function runFieldSummary(): Promise<number> {
-  if (!await isEnabled("automation.fieldSummary")) return 0;
+async function runFieldSummary(models: TenantModels): Promise<number> {
+  if (!await isEnabled(models, "automation.fieldSummary")) return 0;
   const today = startOfToday();
 
   const [visitLogs, fieldSessions] = await Promise.all([
-    VisitLog.find({ createdAt: { $gte: today } })
+    models.VisitLog.find({ createdAt: { $gte: today } })
       .populate("user", "firstName lastName")
       .lean() as Promise<unknown> as Promise<(Record<string, unknown> & { user: LeanUser })[]>,
-    FieldSession.find({ date: { $gte: today }, status: "completed" })
+    models.FieldSession.find({ date: { $gte: today }, status: "completed" })
       .populate("user", "firstName lastName")
       .lean() as Promise<unknown> as Promise<(Record<string, unknown> & { user: LeanUser; duration?: number; notes?: string })[]>,
   ]);
@@ -305,7 +302,7 @@ ${sessionText || "(none)"}`;
   }
 
   // Find admins + ops managers
-  const allUsers = await User.find({ isActive: true })
+  const allUsers = await models.User.find({ isActive: true })
     .populate("roles", "slug")
     .select("email firstName lastName roles")
     .lean() as (LeanUser & { roles: { slug: string }[] })[];
@@ -338,21 +335,36 @@ export async function GET(req: NextRequest) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  await dbConnect();
   const ts = new Date().toISOString();
 
-  const [escalationResult, performanceResult, fieldResult] = await Promise.allSettled([
-    runEscalation(),
-    runPerformanceReport(),
-    runFieldSummary(),
-  ]);
+  // Fetch all active tenants from platform DB
+  const platformDb = await getPlatformDb();
+  const TenantModel = getTenantModel(platformDb);
+  const tenants = await TenantModel.find({ status: "active" }).select("slug dbName name").lean();
 
-  const results: Record<string, number | string> = {
-    escalation:         escalationResult.status   === "fulfilled" ? escalationResult.value   : String((escalationResult as PromiseRejectedResult).reason),
-    performance_report: performanceResult.status  === "fulfilled" ? performanceResult.value  : String((performanceResult as PromiseRejectedResult).reason),
-    field_summary:      fieldResult.status        === "fulfilled" ? fieldResult.value        : String((fieldResult as PromiseRejectedResult).reason),
-  };
+  const allResults: Record<string, unknown>[] = [];
 
-  return NextResponse.json({ ok: true, ts, results });
+  for (const tenant of tenants) {
+    try {
+      const conn = await getTenantConnection(tenant.dbName as string);
+      const models = getTenantModels(conn);
+
+      const [escalationResult, performanceResult, fieldResult] = await Promise.allSettled([
+        runEscalation(models),
+        runPerformanceReport(models),
+        runFieldSummary(models),
+      ]);
+
+      allResults.push({
+        tenant: tenant.slug,
+        escalation:         escalationResult.status   === "fulfilled" ? escalationResult.value   : String((escalationResult as PromiseRejectedResult).reason),
+        performance_report: performanceResult.status  === "fulfilled" ? performanceResult.value  : String((performanceResult as PromiseRejectedResult).reason),
+        field_summary:      fieldResult.status        === "fulfilled" ? fieldResult.value        : String((fieldResult as PromiseRejectedResult).reason),
+      });
+    } catch (err) {
+      allResults.push({ tenant: tenant.slug, error: String(err) });
+    }
+  }
+
+  return NextResponse.json({ ok: true, ts, tenants: allResults });
 }

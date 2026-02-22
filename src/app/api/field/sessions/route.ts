@@ -1,8 +1,6 @@
 import { withAuth, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
-import FieldSession from "@/models/FieldSession";
-
 // GET /api/field/sessions - list sessions (own or all for managers)
-export const GET = withAuth(async (req, ctx, session) => {
+export const GET = withAuth(async (req, ctx, session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
 
@@ -30,21 +28,21 @@ export const GET = withAuth(async (req, ctx, session) => {
   if (status) filter.status = status;
 
   const [data, total] = await Promise.all([
-    FieldSession.find(filter)
+    models.FieldSession.find(filter)
       .populate("user", "firstName lastName email")
       .populate("task", "taskNumber title")
       .sort({ "checkIn.time": -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    FieldSession.countDocuments(filter),
+    models.FieldSession.countDocuments(filter),
   ]);
 
   return apiSuccess({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
 // POST /api/field/sessions - check-in
-export const POST = withAuth(async (req, ctx, session) => {
+export const POST = withAuth(async (req, ctx, session, models) => {
   const body = await req.json();
   const { lat, lng, address, photo, notes, taskId } = body;
 
@@ -53,7 +51,7 @@ export const POST = withAuth(async (req, ctx, session) => {
   }
 
   // Prevent duplicate active session
-  const existing = await FieldSession.findOne({
+  const existing = await models.FieldSession.findOne({
     user: session.user.id,
     status: "active",
   });
@@ -65,7 +63,7 @@ export const POST = withAuth(async (req, ctx, session) => {
   const dateOnly = new Date(now);
   dateOnly.setHours(0, 0, 0, 0);
 
-  const fieldSession = await FieldSession.create({
+  const fieldSession = await models.FieldSession.create({
     user: session.user.id,
     task: taskId || undefined,
     date: dateOnly,

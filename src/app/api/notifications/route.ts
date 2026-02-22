@@ -1,12 +1,10 @@
 import { withAuth, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
-import Notification from "@/models/Notification";
-
-export const GET = withAuth(async (req, ctx, session) => {
+export const GET = withAuth(async (req, ctx, session, models) => {
   const url = new URL(req.url);
 
   // If only requesting unread count
   if (url.searchParams.get("unreadCount") === "true") {
-    const unreadCount = await Notification.countDocuments({
+    const unreadCount = await models.Notification.countDocuments({
       recipient: session.user.id,
       isRead: false,
     });
@@ -22,14 +20,14 @@ export const GET = withAuth(async (req, ctx, session) => {
   }
 
   const [data, total] = await Promise.all([
-    Notification.find(filter)
+    models.Notification.find(filter)
       .populate("relatedTask", "taskNumber title")
       .populate("relatedUser", "firstName lastName")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Notification.countDocuments(filter),
+    models.Notification.countDocuments(filter),
   ]);
 
   return apiSuccess({

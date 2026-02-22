@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
 import { cancelPayPalSubscription } from "@/lib/paypal";
-import User from "@/models/User";
 import { Subscription } from "@/models/Subscription";
+import User from "@/models/User";
 
 export async function POST() {
   try {
@@ -11,11 +10,8 @@ export async function POST() {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    await dbConnect();
-
     // Only the account owner can cancel the subscription
-    const currentUser = await User.findById(session.user.id).select("owner").lean();
+    const currentUser = await User.findById(session.user.id).select("owner").lean() as any;
     if (currentUser?.owner) {
       return NextResponse.json(
         { error: "Only the account owner can cancel the subscription" },

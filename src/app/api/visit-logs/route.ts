@@ -1,7 +1,6 @@
 
 import { withAuth, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createVisitLogSchema } from "@/features/auth/validators";
-import VisitLog from "@/models/VisitLog";
 import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
@@ -9,7 +8,7 @@ import crypto from "crypto";
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 
 
-export const POST = withAuth(async (req, ctx, session) => {
+export const POST = withAuth(async (req, ctx, session, models) => {
   const contentType = req.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
@@ -39,7 +38,7 @@ export const POST = withAuth(async (req, ctx, session) => {
     if (!parsed.success) {
       return apiError(parsed.error.issues[0].message);
     }
-    const visitLog = await VisitLog.create({ ...parsed.data, user: session.user.id });
+    const visitLog = await models.VisitLog.create({ ...parsed.data, user: session.user.id });
     return apiSuccess(visitLog);
   } else {
     // fallback for JSON
@@ -48,12 +47,12 @@ export const POST = withAuth(async (req, ctx, session) => {
     if (!parsed.success) {
       return apiError(parsed.error.issues[0].message);
     }
-    const visitLog = await VisitLog.create({ ...parsed.data, user: session.user.id });
+    const visitLog = await models.VisitLog.create({ ...parsed.data, user: session.user.id });
     return apiSuccess(visitLog);
   }
 });
 
-export const GET = withAuth(async (req, ctx, session) => {
+export const GET = withAuth(async (req, ctx, session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
   const search = url.searchParams.get("search") || "";
@@ -68,8 +67,8 @@ export const GET = withAuth(async (req, ctx, session) => {
   }
 
   const [data, total] = await Promise.all([
-    VisitLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    VisitLog.countDocuments(filter),
+    models.VisitLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    models.VisitLog.countDocuments(filter),
   ]);
 
   return apiSuccess({ data, total, page, limit, totalPages: Math.ceil(total / limit) });

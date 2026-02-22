@@ -1,17 +1,15 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createDependencySchema } from "@/features/auth/validators";
-import TaskDependency from "@/models/TaskDependency";
-
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
-  const deps = await TaskDependency.find({ task: taskId })
+  const deps = await models.TaskDependency.find({ task: taskId })
     .populate("dependsOn", "taskNumber title status")
     .lean();
 
   return apiSuccess(deps);
 });
 
-export const POST = withPermission("tasks:update", async (req, ctx, session) => {
+export const POST = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = createDependencySchema.safeParse(body);
@@ -21,13 +19,13 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
     return apiError("A task cannot depend on itself");
   }
 
-  const existing = await TaskDependency.findOne({
+  const existing = await models.TaskDependency.findOne({
     task: taskId,
     dependsOn: parsed.data.dependsOn,
   });
   if (existing) return apiError("Dependency already exists", 409);
 
-  const dep = await TaskDependency.create({
+  const dep = await models.TaskDependency.create({
     task: taskId,
     dependsOn: parsed.data.dependsOn,
     type: parsed.data.type,
@@ -36,13 +34,13 @@ export const POST = withPermission("tasks:update", async (req, ctx, session) => 
   return apiSuccess(dep, 201);
 });
 
-export const DELETE = withPermission("tasks:update", async (req, ctx) => {
+export const DELETE = withPermission("tasks:update", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const url = new URL(req.url);
   const dependencyId = url.searchParams.get("id");
 
   if (!dependencyId) return apiError("Dependency ID required");
 
-  await TaskDependency.findOneAndDelete({ _id: dependencyId, task: taskId });
+  await models.TaskDependency.findOneAndDelete({ _id: dependencyId, task: taskId });
   return apiSuccess({ message: "Dependency removed" });
 });

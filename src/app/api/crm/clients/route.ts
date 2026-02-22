@@ -1,8 +1,6 @@
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createClientSchema } from "@/features/auth/validators";
-import Client from "@/models/Client";
-
-export const GET = withPermission("crm:view", async (req, _ctx) => {
+export const GET = withPermission("crm:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { skip, limit, page } = getPaginationParams(url);
   const search = url.searchParams.get("search") || "";
@@ -15,23 +13,23 @@ export const GET = withPermission("crm:view", async (req, _ctx) => {
   if (assignedTo) filter.assignedTo = assignedTo;
 
   const [data, total] = await Promise.all([
-    Client.find(filter)
+    models.Client.find(filter)
       .populate("assignedTo", "firstName lastName email avatar")
       .populate("department", "name")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
-    Client.countDocuments(filter),
+    models.Client.countDocuments(filter),
   ]);
 
   return apiSuccess({ data, total, page, limit, totalPages: Math.ceil(total / limit) });
 });
 
-export const POST = withPermission("crm:create", async (req, _ctx, session) => {
+export const POST = withPermission("crm:create", async (req, _ctx, session, models) => {
   const body = await req.json();
   const parsed = createClientSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const client = await Client.create({ ...parsed.data, createdBy: session.user.id });
+  const client = await models.Client.create({ ...parsed.data, createdBy: session.user.id });
   return apiSuccess(client, 201);
 });

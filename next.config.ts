@@ -20,6 +20,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Allow images from any subdomain of the configured app domain
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: `**.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "yourdomain.com"}`,
+      },
+      {
+        protocol: "https",
+        hostname: process.env.NEXT_PUBLIC_APP_DOMAIN ?? "yourdomain.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

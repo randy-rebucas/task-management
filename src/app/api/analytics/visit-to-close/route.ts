@@ -1,12 +1,14 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-import Lead from "@/models/Lead";
-import CrmInteraction from "@/models/CrmInteraction";
+import type { ILead } from "@/types";
+import mongoose from "mongoose";
 
-export const GET = withPermission("reports:view", async () => {
+type LeanLead = Pick<ILead, "industry" | "source"> & { _id: mongoose.Types.ObjectId };
+
+export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   // Converted leads with source info
-  const convertedLeads = await Lead.find({ status: "converted" })
+  const convertedLeads = await models.Lead.find({ status: "converted" })
     .select("_id industry source")
-    .lean();
+    .lean() as unknown as LeanLead[];
 
   if (convertedLeads.length === 0) {
     return apiSuccess({
@@ -20,7 +22,7 @@ export const GET = withPermission("reports:view", async () => {
   const convertedLeadIds = convertedLeads.map((l) => l._id);
 
   // Count visits per lead
-  const visitCounts = await CrmInteraction.aggregate([
+  const visitCounts = await models.CrmInteraction.aggregate([
     { $match: { lead: { $in: convertedLeadIds }, type: "visit" } },
     { $group: { _id: "$lead", visitCount: { $sum: 1 } } },
   ]);

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import ActivityLog from "@/features/users/ActivityLog";
+import type { TenantModels } from "@/lib/tenant-models";
 
 export async function logActivity(params: {
 	actor: string;
@@ -8,9 +9,11 @@ export async function logActivity(params: {
 	resourceId: string;
 	details?: Record<string, unknown>;
 	req?: NextRequest;
+	models?: TenantModels;
 }) {
 	try {
-		await ActivityLog.create({
+		const ActivityLogModel = params.models?.ActivityLog ?? ActivityLog;
+		await ActivityLogModel.create({
 			actor: params.actor,
 			action: params.action,
 			resource: params.resource,

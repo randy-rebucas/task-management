@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { FILE_UPLOAD } from "@/config/constants";
 
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, _ctx, _session, models) => {
   const formData = await req.formData();
   const file = formData.get("file") as File;
 
