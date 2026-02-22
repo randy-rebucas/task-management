@@ -301,17 +301,6 @@ ${sessionText || "(none)"}`;
     summary = lines.join("\n");
   }
 
-  const subject = `Daily Field Summary – ${dateLabel}`;
-  const html = `
-    <h2 style="font-family:sans-serif">Daily Field Summary</h2>
-    <p style="font-family:sans-serif;color:#6b7280">${dateLabel}</p>
-    <div style="font-family:sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap">${summary.replace(/\n/g, "<br>")}</div>
-    <hr style="margin-top:24px">
-    <p style="font-family:sans-serif;font-size:12px;color:#9ca3af">
-      Based on ${visitLogs.length} visit log(s) and ${fieldSessions.length} completed field session(s).
-    </p>
-  `;
-
   // Find admins + ops managers
   const allUsers = await User.find({ isActive: true })
     .populate("roles", "slug")
