@@ -48,6 +48,21 @@ export const DEFAULT_PLATFORM_SETTINGS: SettingDef[] = [
   { key: "paypal.plan.growth.id",   value: "", description: "PayPal plan ID for Growth plan",   group: "paypal" },
   { key: "paypal.plan.business.id", value: "", description: "PayPal plan ID for Business plan", group: "paypal" },
   { key: "paypal.webhook.id",       value: "", description: "PayPal Webhook ID for signature verification", group: "paypal" },
+  // Email / SMTP
+  { key: "smtp.host",     value: "", description: "SMTP server hostname (e.g. smtp.gmail.com)",    group: "email" },
+  { key: "smtp.port",     value: 587, description: "SMTP port (587 for TLS, 465 for SSL)",         group: "email" },
+  { key: "smtp.user",     value: "", description: "SMTP authentication username / email address",   group: "email" },
+  { key: "smtp.password", value: "", description: "SMTP authentication password or app password",  group: "email" },
+  { key: "smtp.from",     value: "", description: "Default sender address (e.g. noreply@domain.com)", group: "email" },
+  // SMS (Twilio)
+  { key: "sms.provider",     value: "twilio", description: "SMS provider (currently: twilio)",      group: "sms" },
+  { key: "sms.account_sid",  value: "", description: "Twilio Account SID",                          group: "sms" },
+  { key: "sms.auth_token",   value: "", description: "Twilio Auth Token",                           group: "sms" },
+  { key: "sms.from_number",  value: "", description: "Twilio sender phone number (E.164 format)",   group: "sms" },
+  // AI
+  { key: "ai.anthropic_api_key", value: "", description: "Anthropic Claude API key for AI features", group: "ai" },
+  // Install
+  { key: "install.completed", value: false, description: "Whether the initial platform setup wizard has been completed", group: "install" },
 ];
 
 export function getPlatformSettingModel(conn: Connection): Model<IPlatformSetting> {
