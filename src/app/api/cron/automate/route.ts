@@ -48,48 +48,51 @@ type LeanUser = {
 
 async function runEscalation(): Promise<number> {
   if (!await isEnabled("automation.escalation")) return 0;
-  const escalationDaysRow = await AppSetting.findOne({ key: "automation.escalationDays" }).lean();
+
+  const [escalationDaysRow, opsRole] = await Promise.all([
+    AppSetting.findOne({ key: "automation.escalationDays" }).lean(),
+    Role.findOne({ slug: "operations-manager" }).lean(),
+  ]);
+
+  if (!opsRole) return 0;
+
   const escalationDays = escalationDaysRow
     ? Number(escalationDaysRow.value)
     : parseInt(process.env.ESCALATION_DAYS ?? "3", 10);
   const cutoff = daysAgo(escalationDays);
-
-  const overdueTasks = await Task.find({
-    dueDate: { $lt: cutoff },
-    completedAt: { $exists: false },
-    isArchived: false,
-  })
-    .populate("assignees", "firstName lastName")
-    .lean();
-
-  if (!overdueTasks.length) return 0;
-
-  // Find Operations Manager users
-  const opsRole = await Role.findOne({ slug: "operations-manager" }).lean();
-  if (!opsRole) return 0;
-
-  const opsManagers = await User.find({ roles: opsRole._id, isActive: true })
-    .select("email firstName lastName")
-    .lean() as LeanUser[];
-
-  if (!opsManagers.length) return 0;
-
   const yesterday = daysAgo(1);
+
+  const [overdueTasks, opsManagers, recentlyEscalated] = await Promise.all([
+    Task.find({
+      dueDate: { $lt: cutoff },
+      completedAt: { $exists: false },
+      isArchived: false,
+    })
+      .populate("assignees", "firstName lastName")
+      .lean(),
+    User.find({ roles: opsRole._id, isActive: true })
+      .select("email firstName lastName")
+      .lean() as Promise<LeanUser[]>,
+    // Batch-fetch all task IDs already escalated in the past 24 h
+    Notification.distinct("relatedTask", {
+      type: "system",
+      title: /escalated/i,
+      createdAt: { $gte: yesterday },
+    }),
+  ]);
+
+  if (!overdueTasks.length || !opsManagers.length) return 0;
+
+  const escalatedSet = new Set(recentlyEscalated.map(String));
   let escalated = 0;
 
   for (const task of overdueTasks) {
-    // Deduplicate: skip if already escalated in past 24h
-    const alreadySent = await Notification.exists({
-      relatedTask: task._id,
-      type: "system",
-      title: new RegExp("escalated", "i"),
-      createdAt: { $gte: yesterday },
-    });
-    if (alreadySent) continue;
+    if (escalatedSet.has(task._id.toString())) continue;
 
-    const assigneeNames = (task.assignees as unknown as LeanUser[])
-      .map((a) => `${a.firstName} ${a.lastName}`)
-      .join(", ") || "Unassigned";
+    const assigneeNames =
+      (task.assignees as unknown as LeanUser[])
+        .map((a) => `${a.firstName} ${a.lastName}`)
+        .join(", ") || "Unassigned";
 
     const overdueDays = Math.floor(
       (Date.now() - new Date(task.dueDate as Date).getTime()) / 86400000
@@ -98,17 +101,19 @@ async function runEscalation(): Promise<number> {
     const title = `Task Escalated: ${task.title}`;
     const message = `"${task.title}" is ${overdueDays} day(s) overdue. Assigned to: ${assigneeNames}.`;
 
-    for (const mgr of opsManagers) {
-      await deliverNotification({
-        recipient: mgr._id.toString(),
-        recipientEmail: mgr.email,
-        type: "system",
-        title,
-        message,
-        relatedTask: task._id.toString(),
-        channels: ["in_app", "email"],
-      });
-    }
+    await Promise.all(
+      opsManagers.map((mgr) =>
+        deliverNotification({
+          recipient: mgr._id.toString(),
+          recipientEmail: mgr.email,
+          type: "system",
+          title,
+          message,
+          relatedTask: task._id.toString(),
+          channels: ["in_app", "email"],
+        })
+      )
+    );
 
     escalated++;
   }
@@ -126,24 +131,25 @@ async function runPerformanceReport(): Promise<number> {
   const weekStart = startOfWeek();
   const now = new Date();
 
-  // Completed tasks per user this week
-  const completedRows = await Task.aggregate([
-    { $match: { completedAt: { $gte: weekStart, $lte: now }, isArchived: false } },
-    { $unwind: "$assignees" },
-    { $group: { _id: "$assignees", completed: { $sum: 1 } } },
-  ]);
-
-  // Overdue tasks per user
-  const overdueRows = await Task.aggregate([
-    { $match: { dueDate: { $lt: now }, completedAt: { $exists: false }, isArchived: false } },
-    { $unwind: "$assignees" },
-    { $group: { _id: "$assignees", overdue: { $sum: 1 } } },
-  ]);
-
-  // Field session hours per user this week
-  const sessionRows = await FieldSession.aggregate([
-    { $match: { date: { $gte: weekStart } } },
-    { $group: { _id: "$user", totalHours: { $sum: "$duration" }, sessions: { $sum: 1 } } },
+  // Parallelise the three aggregations
+  const [completedRows, overdueRows, sessionRows] = await Promise.all([
+    // Completed tasks per user this week
+    Task.aggregate([
+      { $match: { completedAt: { $gte: weekStart, $lte: now }, isArchived: false } },
+      { $unwind: "$assignees" },
+      { $group: { _id: "$assignees", completed: { $sum: 1 } } },
+    ]),
+    // Overdue tasks per user
+    Task.aggregate([
+      { $match: { dueDate: { $lt: now }, completedAt: { $exists: false }, isArchived: false } },
+      { $unwind: "$assignees" },
+      { $group: { _id: "$assignees", overdue: { $sum: 1 } } },
+    ]),
+    // Field session hours per user this week
+    FieldSession.aggregate([
+      { $match: { date: { $gte: weekStart } } },
+      { $group: { _id: "$user", totalHours: { $sum: "$duration" }, sessions: { $sum: 1 } } },
+    ]),
   ]);
 
   // Build lookup maps
@@ -219,9 +225,7 @@ async function runPerformanceReport(): Promise<number> {
     u.roles.some((r) => r.slug.includes("admin") || r.slug.includes("manager"))
   );
 
-  for (const user of targets) {
-    await sendEmail({ to: user.email, subject, text, html });
-  }
+  await Promise.all(targets.map((user) => sendEmail({ to: user.email, subject, text, html })));
 
   return targets.length;
 }
@@ -232,16 +236,14 @@ async function runFieldSummary(): Promise<number> {
   if (!await isEnabled("automation.fieldSummary")) return 0;
   const today = startOfToday();
 
-  const visitLogs = await VisitLog.find({ createdAt: { $gte: today } })
-    .populate("user", "firstName lastName")
-    .lean() as unknown as (Record<string, unknown> & { user: LeanUser })[];
-
-  const fieldSessions = await FieldSession.find({
-    date: { $gte: today },
-    status: "completed",
-  })
-    .populate("user", "firstName lastName")
-    .lean() as unknown as (Record<string, unknown> & { user: LeanUser; duration?: number; notes?: string })[];
+  const [visitLogs, fieldSessions] = await Promise.all([
+    VisitLog.find({ createdAt: { $gte: today } })
+      .populate("user", "firstName lastName")
+      .lean() as Promise<unknown> as Promise<(Record<string, unknown> & { user: LeanUser })[]>,
+    FieldSession.find({ date: { $gte: today }, status: "completed" })
+      .populate("user", "firstName lastName")
+      .lean() as Promise<unknown> as Promise<(Record<string, unknown> & { user: LeanUser; duration?: number; notes?: string })[]>,
+  ]);
 
   if (!visitLogs.length && !fieldSessions.length) return 0;
 
@@ -263,10 +265,11 @@ async function runFieldSummary(): Promise<number> {
   const dateLabel = new Date().toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" });
   let summary: string;
 
-  if (process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes("your-api-key")) {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (anthropicKey && anthropicKey.startsWith("sk-ant-")) {
     // Use Claude API
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
-    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const ai = new Anthropic({ apiKey: anthropicKey });
 
     const prompt = `You are a business intelligence assistant. Summarize the following field activity reports for management in 3-5 concise paragraphs. Highlight key outcomes, standout performance, common themes, and any action items or concerns.
 
@@ -308,21 +311,21 @@ ${sessionText || "(none)"}`;
     .lean() as (LeanUser & { roles: { slug: string }[] })[];
 
   const targets = allUsers.filter((u) =>
-    u.roles.some(
-      (r) => r.slug.includes("admin") || r.slug.includes("manager") || r.slug === "operations-manager"
-    )
+    u.roles.some((r) => r.slug.includes("admin") || r.slug.includes("manager"))
   );
 
-  for (const user of targets) {
-    await deliverNotification({
-      recipient: user._id.toString(),
-      recipientEmail: user.email,
-      type: "system",
-      title: `Daily Field Summary – ${dateLabel}`,
-      message: `Field summary for ${dateLabel} is ready. ${visitLogs.length} visit log(s), ${fieldSessions.length} session(s).`,
-      channels: ["in_app", "email"],
-    });
-  }
+  await Promise.all(
+    targets.map((user) =>
+      deliverNotification({
+        recipient: user._id.toString(),
+        recipientEmail: user.email,
+        type: "system",
+        title: `Daily Field Summary – ${dateLabel}`,
+        message: `Field summary for ${dateLabel} is ready. ${visitLogs.length} visit log(s), ${fieldSessions.length} session(s).`,
+        channels: ["in_app", "email"],
+      })
+    )
+  );
 
   return 1;
 }
@@ -339,15 +342,17 @@ export async function GET(req: NextRequest) {
   await dbConnect();
   const ts = new Date().toISOString();
 
-  const results: Record<string, number | string> = {
-    escalation: 0,
-    performance_report: 0,
-    field_summary: 0,
-  };
+  const [escalationResult, performanceResult, fieldResult] = await Promise.allSettled([
+    runEscalation(),
+    runPerformanceReport(),
+    runFieldSummary(),
+  ]);
 
-  try { results.escalation         = await runEscalation();        } catch (e) { results.escalation         = String(e); }
-  try { results.performance_report = await runPerformanceReport();  } catch (e) { results.performance_report = String(e); }
-  try { results.field_summary      = await runFieldSummary();       } catch (e) { results.field_summary      = String(e); }
+  const results: Record<string, number | string> = {
+    escalation:         escalationResult.status   === "fulfilled" ? escalationResult.value   : String((escalationResult as PromiseRejectedResult).reason),
+    performance_report: performanceResult.status  === "fulfilled" ? performanceResult.value  : String((performanceResult as PromiseRejectedResult).reason),
+    field_summary:      fieldResult.status        === "fulfilled" ? fieldResult.value        : String((fieldResult as PromiseRejectedResult).reason),
+  };
 
   return NextResponse.json({ ok: true, ts, results });
 }
