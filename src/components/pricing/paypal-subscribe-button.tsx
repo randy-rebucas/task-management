@@ -194,38 +194,3 @@ export function PayPalSubscribeButton({
     </PayPalScriptProvider>
   );
 }
-
-            <div className="flex items-center justify-center gap-2 py-3 text-sm text-white/50">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Activating your subscription…
-            </div>
-          ) : (
-            <PayPalScriptProvider options={scriptOptions}>
-              <PayPalButtons
-                style={{
-                  shape: "rect",
-                  color: "gold",
-                  layout: "vertical",
-                  label: "subscribe",
-                }}
-                createSubscription={(_data, actions) =>
-                  actions.subscription.create({ plan_id: planId })
-                }
-                onApprove={async (data) => {
-                  if (data.subscriptionID) {
-                    await handleApprove(data.subscriptionID);
-                  }
-                }}
-                onError={(err) => {
-                  console.error("PayPal error", err);
-                  setError("PayPal encountered an error. Please try again.");
-                }}
-                onCancel={() => setError(null)}
-              />
-            </PayPalScriptProvider>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
