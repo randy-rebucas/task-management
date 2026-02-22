@@ -5,26 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-/** True when running on the root/www domain (no tenant subdomain). */
+/** Returns true when on root/www — no tenant subdomain present. */
 function isRootDomain(): boolean {
   if (typeof window === "undefined") return false;
   const hostname = window.location.hostname;
   const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions").replace(/^www\./, "");
 
-  // localhost / IP — treat as root
   if (hostname === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return true;
-
-  // Apex domain or www — both are root
   if (hostname === appDomain || hostname === `www.${appDomain}`) return true;
-
-  // Any host not on our domain (ngrok, Vercel preview, etc.) — treat as root
   if (!hostname.endsWith(`.${appDomain}`)) return true;
 
-  // Has a real tenant subdomain (?__tenant override counts as tenant too)
   const params = new URLSearchParams(window.location.search);
   if (params.get("__tenant")) return false;
 
-  // subdomain present (e.g. acme.tasksmgr.solutions)
   return false;
 }
 
@@ -34,12 +27,8 @@ export function RegisterForm() {
   const fromSubscription = searchParams.get("subscribed") === "1";
   const planLabel = searchParams.get("plan");
   const prefilledEmail = searchParams.get("email") ?? "";
-  const [onRoot, setOnRoot] = useState(false);
 
-  useEffect(() => {
-    setOnRoot(isRootDomain());
-  }, []);
-
+  const [ready, setReady] = useState(false);
   const [form, setForm] = useState({
     email: prefilledEmail,
     password: "",
@@ -49,6 +38,21 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    // On root/www redirect to company registration
+    if (isRootDomain()) {
+      const dest = prefilledEmail
+        ? `/register-company?email=${encodeURIComponent(prefilledEmail)}`
+        : "/register-company";
+      router.replace(dest);
+      return;
+    }
+    setReady(true);
+  }, [router, prefilledEmail]);
+
+  // Show nothing while determining domain / redirecting
+  if (!ready) return null;
 
   function handleChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -108,17 +112,6 @@ export function RegisterForm() {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-600/20 rounded-3xl blur-2xl -z-10" />
 
       <div className="relative rounded-2xl border border-white/[0.09] bg-[#0d1426]/90 backdrop-blur-sm p-8">
-
-        {/* Root-domain banner: nudge users to create a company instead */}
-        {onRoot && (
-          <div className="mb-6 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-center text-sm text-blue-300">
-            Looking to create a new workspace?{" "}
-            <Link href="/register-company" className="font-semibold underline underline-offset-2 hover:text-blue-200">
-              Register your company here
-            </Link>
-            .
-          </div>
-        )}
 
         {/* Logo & heading */}
         <div className="text-center mb-8">
