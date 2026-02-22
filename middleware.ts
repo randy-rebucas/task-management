@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { RESERVED_SUBDOMAINS } from "@/config/constants";
 
 // Explicitly use Node.js runtime (required for Mongoose DB calls)
 export const runtime = "nodejs";
-
-// Reserved subdomains that are not tenant slugs
-const RESERVED_SUBDOMAINS = new Set([
-  "www", "admin", "api", "app", "mail", "smtp", "ftp", "status", "docs",
-]);
 
 /**
  * Extract the subdomain from the host header.

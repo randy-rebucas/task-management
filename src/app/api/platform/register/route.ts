@@ -7,8 +7,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPlatformDb } from "@/lib/platform-db";
 import getTenantModel from "@/models/platform/Tenant";
+import { getPlatformSettingModel } from "@/models/platform/PlatformSetting";
 import { getTenantConnection, tenantDbName } from "@/lib/tenant-db";
 import { seedTenant } from "@/lib/seed-tenant";
+import { sendEmail } from "@/lib/email";
+import { RESERVED_SUBDOMAINS } from "@/config/constants";
 
 const registerTenantSchema = z.object({
   companyName: z.string().min(2).max(100),
@@ -39,8 +42,26 @@ export async function POST(req: NextRequest) {
 
     const platformDb = await getPlatformDb();
     const Tenant = getTenantModel(platformDb);
+    const Setting = getPlatformSettingModel(platformDb);
 
-    // Check subdomain availability
+    // ── Check self-registration feature flag ─────────────────────────────────
+    const selfRegSetting = await Setting.findOne({ key: "feature.self_registration" }).lean();
+    if (selfRegSetting && selfRegSetting.value === false) {
+      return NextResponse.json(
+        { error: "Self-registration is currently disabled. Please contact support." },
+        { status: 403 }
+      );
+    }
+
+    // ── Reserved subdomains (single source of truth from constants) ───────────
+    if (RESERVED_SUBDOMAINS.has(subdomain)) {
+      return NextResponse.json(
+        { error: "This subdomain is reserved. Please choose another." },
+        { status: 400 }
+      );
+    }
+
+    // ── Check subdomain availability ─────────────────────────────────────────
     const existing = await Tenant.findOne({ slug: subdomain });
     if (existing) {
       return NextResponse.json(
@@ -49,19 +70,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Reserved subdomains
-    const RESERVED = new Set(["www", "admin", "api", "app", "mail", "smtp", "ftp", "status", "docs", "platform", "support", "billing"]);
-    if (RESERVED.has(subdomain)) {
-      return NextResponse.json(
-        { error: "This subdomain is reserved. Please choose another." },
-        { status: 400 }
-      );
-    }
+    // ── Read platform settings for trial duration and plan limits ─────────────
+    const [trialDaysSetting, maxUsersSetting] = await Promise.all([
+      Setting.findOne({ key: "trial_duration_days" }).lean(),
+      Setting.findOne({ key: "plan_limits.trial" }).lean(),
+    ]);
+    const trialDays   = typeof trialDaysSetting?.value  === "number" ? trialDaysSetting.value  : 14;
+    const trialMaxUsers = typeof maxUsersSetting?.value === "number" ? maxUsersSetting.value : 5;
 
-    // Create the tenant record
+    // ── Create the tenant record ──────────────────────────────────────────────
     const dbName = tenantDbName(subdomain);
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14); // 14-day trial
+    trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
 
     const tenant = await Tenant.create({
       slug: subdomain,
@@ -71,17 +91,60 @@ export async function POST(req: NextRequest) {
       plan: "trial",
       status: "active",
       trialEndsAt,
-      maxUsers: 10,
+      maxUsers: trialMaxUsers,
     });
 
-    // Provision tenant database and seed default data
-    const tenantConn = await getTenantConnection(dbName);
-    await seedTenant({
-      conn: tenantConn,
-      adminEmail,
-      adminPassword,
-      adminFirstName,
-      adminLastName,
+    // ── Provision tenant DB and seed default data (rollback on failure) ───────
+    try {
+      const tenantConn = await getTenantConnection(dbName);
+      await seedTenant({
+        conn: tenantConn,
+        adminEmail,
+        adminPassword,
+        adminFirstName,
+        adminLastName,
+      });
+    } catch (seedError) {
+      // Roll back the tenant record so the subdomain stays available
+      await Tenant.deleteOne({ _id: tenant._id }).catch(() => {});
+      console.error("[POST /api/platform/register] Seed failed, tenant rolled back:", seedError);
+      return NextResponse.json(
+        { error: "Failed to provision your workspace. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    // ── Build canonical login URL ─────────────────────────────────────────────
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions";
+    const loginUrl = `https://${subdomain}.${appDomain}/login`;
+
+    // ── Send welcome email ────────────────────────────────────────────────────
+    await sendEmail({
+      to: adminEmail.toLowerCase(),
+      subject: `Your ${companyName} workspace is ready on TaskMgr`,
+      text: [
+        `Hi ${adminFirstName},`,
+        ``,
+        `Your workspace is live! Sign in at:`,
+        `${loginUrl}`,
+        ``,
+        `Your trial runs until ${trialEndsAt.toDateString()} (${trialDays} days).`,
+        `Max users on trial: ${trialMaxUsers}`,
+        ``,
+        `— The TaskMgr Team`,
+      ].join("\n"),
+      html: `
+        <h2>Hi ${adminFirstName}, your workspace is ready! 🎉</h2>
+        <p>Your <strong>${companyName}</strong> workspace is live.</p>
+        <p><a href="${loginUrl}" style="background:#4f46e5;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Sign in to your workspace →</a></p>
+        <p style="margin-top:16px;color:#6b7280;font-size:14px;">
+          Trial ends: <strong>${trialEndsAt.toDateString()}</strong> · Max users: <strong>${trialMaxUsers}</strong>
+        </p>
+        <p style="color:#6b7280;font-size:14px;">— The TaskMgr Team</p>
+      `,
+    }).catch((emailErr) => {
+      // Non-fatal: log but don't fail the response
+      console.warn("[POST /api/platform/register] Welcome email failed:", emailErr);
     });
 
     return NextResponse.json(
@@ -89,7 +152,7 @@ export async function POST(req: NextRequest) {
         message: "Tenant created successfully",
         tenantId: tenant._id.toString(),
         subdomain,
-        loginUrl: `//${subdomain}.${req.headers.get("host")?.replace(/^[^.]+\./, "") ?? "localhost:3000"}/login`,
+        loginUrl,
       },
       { status: 201 }
     );

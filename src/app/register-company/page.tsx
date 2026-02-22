@@ -56,11 +56,6 @@ export default function RegisterCompanyPage() {
     }
   };
 
-  const host =
-    typeof window !== "undefined"
-      ? window.location.host.replace(/^[^.]+\./, "")
-      : "yourdomain.com";
-
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 p-4">
@@ -73,12 +68,10 @@ export default function RegisterCompanyPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re all set! 🎉</h2>
           <p className="text-gray-600 mb-6">
             Your workspace is ready at{" "}
-            <strong className="text-indigo-600">
-              {success.subdomain}.{host}
-            </strong>
+            <strong className="text-indigo-600">{success.loginUrl.replace(/\/login$/, "")}</strong>
           </p>
           <a
-            href={`//${success.subdomain}.${host}/login`}
+            href={success.loginUrl}
             className="block w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition"
           >
             Go to your workspace →
@@ -168,7 +161,7 @@ export default function RegisterCompanyPage() {
                 maxLength={30}
               />
               <span className="bg-gray-50 text-gray-500 text-sm px-3 py-2 border-l">
-                .{host}
+                .{process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions"}
               </span>
             </div>
           </div>

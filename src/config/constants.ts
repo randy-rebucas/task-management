@@ -1,5 +1,14 @@
 export const APP_NAME = "Task Manager";
 
+/**
+ * Subdomains reserved for platform use — never treated as tenant slugs.
+ * Keep this as the single source of truth; middleware and the register API both import it.
+ */
+export const RESERVED_SUBDOMAINS = new Set([
+  "www", "admin", "api", "app", "mail", "smtp", "ftp",
+  "status", "docs", "platform", "support", "billing",
+]);
+
 export const TASK_TYPES: { value: string; label: string }[] = [
   { value: "field_visit", label: "Field Visit" },
   { value: "client_meeting", label: "Client Meeting" },
