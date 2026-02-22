@@ -69,45 +69,49 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Install gate ──────────────────────────────────────────────────────────
-  // Allow the install wizard and its API routes to load freely.
-  // For every other request, redirect to /install if setup is not yet complete.
-  const isInstallRoute =
-    pathname.startsWith("/install") || pathname.startsWith("/api/install");
-
-  if (!isInstallRoute) {
-    const completed = await isInstallCompleted();
-    if (!completed) {
-      return NextResponse.redirect(new URL("/install", req.url));
-    }
-  }
-
-  // ── Enforce www on apex domain ────────────────────────────────────────────
-  // Redirect tasksmgr.solutions → www.tasksmgr.solutions (301 permanent)
+  // ── Resolve subdomain early (needed by both the install gate and routing) ─
   const hostname = host.split(":")[0];
-  // Strip any accidental "www." prefix — domain must be the bare root (e.g. tasksmgr.solutions)
   const appDomain = (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "tasksmgr.solutions").replace(/^www\./, "");
-  if (hostname === appDomain) {
-    const url = req.nextUrl.clone();
-    url.hostname = `www.${appDomain}`;
-    return NextResponse.redirect(url, { status: 301 });
-  }
-
-  // Support ?__tenant=slug for local development override
   const subdomainOverride = req.nextUrl.searchParams.get("__tenant");
   const subdomain =
     subdomainOverride ?? req.headers.get("x-tenant-slug") ?? extractSubdomain(host, appDomain);
 
-  // ── Super-admin panel (admin.yourdomain.com) ───────────────────────────────
+  // ── Super-admin panel (admin.yourdomain.com) — bypass install gate ────────
+  // The admin panel must always be reachable so the admin can complete setup.
   if (subdomain === "admin") {
-    // Rewrite /anything → /admin/anything so (admin) folder handles it
-    // The admin shell handles its own secret-based authentication
     const url = req.nextUrl.clone();
     if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/")) {
       url.pathname = `/admin${pathname === "/" ? "" : pathname}`;
       return NextResponse.rewrite(url);
     }
     return NextResponse.next();
+  }
+
+  // ── Install gate ──────────────────────────────────────────────────────────
+  // Allow the install wizard and its API routes to load freely.
+  // For every other request, redirect to /install (on the apex domain) if
+  // setup is not yet complete.
+  const isInstallRoute =
+    pathname.startsWith("/install") || pathname.startsWith("/api/install");
+
+  if (!isInstallRoute) {
+    const completed = await isInstallCompleted();
+    if (!completed) {
+      // Always redirect to the apex/www domain so the install page renders
+      // correctly and isn't caught by the admin or tenant subdomain rewrites.
+      const installUrl = req.nextUrl.clone();
+      installUrl.hostname = `www.${appDomain}`;
+      installUrl.pathname = "/install";
+      installUrl.search = "";
+      return NextResponse.redirect(installUrl);
+    }
+  }
+
+  // ── Enforce www on apex domain ────────────────────────────────────────────
+  if (hostname === appDomain) {
+    const url = req.nextUrl.clone();
+    url.hostname = `www.${appDomain}`;
+    return NextResponse.redirect(url, { status: 301 });
   }
 
   // ── No subdomain → apex / platform pages ──────────────────────────────────
