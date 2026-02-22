@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getSubscriptionDetails, PLAN_CONFIG, PlanKey } from "@/lib/paypal";
 import { getTenantModelsFromRequest } from "@/features/auth/api-helpers";
+import { getPlatformDb } from "@/lib/platform-db";
+import { getSubscriptionIndexModel } from "@/models/platform/SubscriptionIndex";
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 400 });
     }
 
-    // Upsert subscription record in the tenant DB
+    // 1. Upsert subscription record in the tenant DB
     const subscription = await tenantResult.models.Subscription.findOneAndUpdate(
       { paypalSubscriptionId: subscriptionId },
       {
@@ -62,6 +64,28 @@ export async function POST(req: NextRequest) {
       },
       { upsert: true, new: true }
     ) as any;
+
+    // 2. Write platform-level index so the webhook can route to this tenant DB
+    try {
+      const pdb = await getPlatformDb();
+      const SubIndex = getSubscriptionIndexModel(pdb);
+      await SubIndex.findOneAndUpdate(
+        { paypalSubscriptionId: subscriptionId },
+        {
+          paypalSubscriptionId: subscriptionId,
+          tenantDbName: tenantResult.conn.name,
+          tenantSlug: session?.user?.tenantSlug ??
+            req.headers.get("x-tenant-slug") ??
+            new URL(req.url).searchParams.get("__tenant") ?? "",
+          plan,
+          email: email.toLowerCase(),
+        },
+        { upsert: true, new: true }
+      );
+    } catch (indexErr) {
+      // Non-fatal: log but don't fail activation
+      console.error("[subscriptions/activate] Failed to write platform index:", indexErr);
+    }
 
     return NextResponse.json({ ok: true, subscription: subscription._id });
   } catch (err) {

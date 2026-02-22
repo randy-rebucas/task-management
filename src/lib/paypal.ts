@@ -27,22 +27,23 @@ export const PLAN_CONFIG = {
 export type PlanKey = keyof typeof PLAN_CONFIG;
 
 /**
- * Returns plan IDs sourced from AppSetting (admin-managed) first,
+ * Returns plan IDs sourced from the PLATFORM settings DB first,
  * then falls back to environment variables.
  */
 export async function getStoredPlanIds(): Promise<Record<PlanKey, string>> {
   try {
-    const { dbConnect } = await import("@/lib/db");
-    const AppSetting = (await import("@/models/AppSetting")).default;
-    await dbConnect();
-    const rows = await AppSetting.find({
+    const { getPlatformDb } = await import("@/lib/platform-db");
+    const { getPlatformSettingModel } = await import("@/models/platform/PlatformSetting");
+    const pdb = await getPlatformDb();
+    const Setting = getPlatformSettingModel(pdb);
+    const rows = await Setting.find({
       key: { $in: ["paypal.plan.starter.id", "paypal.plan.growth.id", "paypal.plan.business.id"] },
-    }).lean();
+    }).lean() as { key: string; value: unknown }[];
     const map: Record<string, string> = {};
-    for (const r of rows) map[r.key] = r.value as string;
+    for (const r of rows) map[r.key] = (r.value as string) || "";
     return {
-      starter: map["paypal.plan.starter.id"] || PLAN_CONFIG.starter.planId,
-      growth:  map["paypal.plan.growth.id"]  || PLAN_CONFIG.growth.planId,
+      starter:  map["paypal.plan.starter.id"]  || PLAN_CONFIG.starter.planId,
+      growth:   map["paypal.plan.growth.id"]   || PLAN_CONFIG.growth.planId,
       business: map["paypal.plan.business.id"] || PLAN_CONFIG.business.planId,
     };
   } catch {
@@ -110,6 +111,18 @@ export async function verifyWebhookSignature(
   rawBody: string
 ): Promise<boolean> {
   const token = await getPayPalAccessToken();
+
+  // Prefer webhook ID from platform DB, fall back to env var
+  let webhookId = process.env.PAYPAL_WEBHOOK_ID ?? "";
+  try {
+    const { getPlatformDb } = await import("@/lib/platform-db");
+    const { getPlatformSettingModel } = await import("@/models/platform/PlatformSetting");
+    const pdb = await getPlatformDb();
+    const Setting = getPlatformSettingModel(pdb);
+    const row = await Setting.findOne({ key: "paypal.webhook.id" }).lean() as any;
+    if (row?.value) webhookId = row.value as string;
+  } catch { /* fall through to env var */ }
+
   const res = await fetch(
     `${PAYPAL_API_BASE}/v1/notifications/verify-webhook-signature`,
     {
@@ -125,7 +138,7 @@ export async function verifyWebhookSignature(
         transmission_id: headers["paypal-transmission-id"],
         transmission_sig: headers["paypal-transmission-sig"],
         transmission_time: headers["paypal-transmission-time"],
-        webhook_id: process.env.PAYPAL_WEBHOOK_ID,
+        webhook_id: webhookId,
         webhook_event: JSON.parse(rawBody),
       }),
     }

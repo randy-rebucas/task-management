@@ -43,6 +43,11 @@ export const DEFAULT_PLATFORM_SETTINGS: SettingDef[] = [
   { key: "plan_limits.growth",     value: 50,   description: "Max users on the growth plan",     group: "plans" },
   { key: "plan_limits.business",   value: 150,  description: "Max users on the business plan",   group: "plans" },
   { key: "plan_limits.enterprise", value: 9999, description: "Max users on the enterprise plan", group: "plans" },
+  // PayPal
+  { key: "paypal.plan.starter.id",  value: "", description: "PayPal plan ID for Starter plan",  group: "paypal" },
+  { key: "paypal.plan.growth.id",   value: "", description: "PayPal plan ID for Growth plan",   group: "paypal" },
+  { key: "paypal.plan.business.id", value: "", description: "PayPal plan ID for Business plan", group: "paypal" },
+  { key: "paypal.webhook.id",       value: "", description: "PayPal Webhook ID for signature verification", group: "paypal" },
 ];
 
 export function getPlatformSettingModel(conn: Connection): Model<IPlatformSetting> {

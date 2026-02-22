@@ -19,6 +19,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  CreditCard,
 } from "lucide-react";
 
 // ── Context ────────────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ function AuthGate({ onAuth }: { onAuth: (s: string) => void }) {
 const NAV_ITEMS = [
   { href: "/admin",          label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/tenants",  label: "Tenants",   icon: Building2 },
+  { href: "/admin/paypal",   label: "PayPal",    icon: CreditCard },
   { href: "/admin/settings", label: "Settings",  icon: Settings },
 ];
 
