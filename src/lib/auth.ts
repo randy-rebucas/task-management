@@ -104,6 +104,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: "jwt",
     maxAge: 8 * 60 * 60,
   },
+  // In production, set the session cookie on the root domain so all tenant
+  // subdomains (e.g. acme.localpro.asia) share the same auth session.
+  ...(process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_APP_DOMAIN
+    ? {
+        cookies: {
+          sessionToken: {
+            name: "__Secure-authjs.session-token",
+            options: {
+              httpOnly: true,
+              sameSite: "lax" as const,
+              path: "/",
+              secure: true,
+              domain: `.${process.env.NEXT_PUBLIC_APP_DOMAIN}`,
+            },
+          },
+        },
+      }
+    : {}),
+  trustHost: true,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

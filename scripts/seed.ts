@@ -1,144 +1,107 @@
+/**
+ * Multi-tenant aware seed script.
+ *
+ * What it does:
+ *   1. Creates/upserts a tenant record in the `platform` DB.
+ *   2. Seeds the tenant DB (permissions, roles, departments, workflow statuses,
+ *      app settings, and the first admin user) via the shared seedTenant helper.
+ *
+ * Configurable via env vars (all have sensible defaults):
+ *   TENANT_SLUG        – subdomain slug   (default: "localpro")
+ *   TENANT_NAME        – display name     (default: "LocalPro")
+ *   ADMIN_EMAIL        – admin email      (default: "admin@taskmanager.com")
+ *   ADMIN_PASSWORD     – admin password   (default: "Admin@123")
+ *   ADMIN_FIRST_NAME   – first name       (default: "Super")
+ *   ADMIN_LAST_NAME    – last name        (default: "Admin")
+ */
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
-import Department from "../src/models/Department";
-import Permission from "../src/models/Permission";
-import Role from "../src/models/Role";
-import User from "../src/models/User";
-import WorkflowStatus from "../src/models/WorkflowStatus";
+import { getPlatformDb } from "@/lib/platform-db";
+import getTenantModel from "@/models/platform/Tenant";
+import { getTenantConnection, tenantDbName } from "@/lib/tenant-db";
+import { seedTenant } from "@/lib/seed-tenant";
 
-import { PERMISSIONS, ROLE_DEFINITIONS, DEFAULT_WORKFLOW_STATUSES } from "../src/config/permissions";
-import AppSetting from "../src/models/AppSetting";
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) throw new Error("MONGODB_URI is not set in .env.local");
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/task-management";
-
-const DEPARTMENTS = [
-  { name: "Business Operations",                       code: "BIZ-OPS",  description: "Manages overall business operations, processes, and cross-functional coordination." },
-  { name: "Customer Success",                          code: "CX",       description: "Ensures client satisfaction, retention, and long-term relationship management." },
-  { name: "Finance & Legal",                           code: "FIN-LEG",  description: "Oversees financial planning, reporting, compliance, and legal affairs." },
-  { name: "Marketing & Growth",                        code: "MKT",      description: "Drives brand awareness, lead generation, and growth campaigns." },
-  { name: "Sales & Partnerships",                      code: "SALES",    description: "Manages sales pipelines, partner deals, and revenue generation." },
-  { name: "Service Provider Onboarding & Quality Control", code: "SPQC", description: "Handles onboarding of service providers and maintains quality standards." },
-  { name: "Tech & Product",                            code: "TECH",     description: "Builds and maintains the product, infrastructure, and technical systems." },
-  { name: "Academy / Training Division",               code: "ACADEMY",  description: "Develops training programs, learning materials, and staff development initiatives." },
-];
+// ── Config ─────────────────────────────────────────────────────────────────────
+const TENANT_SLUG       = process.env.TENANT_SLUG       || "localpro";
+const TENANT_NAME       = process.env.TENANT_NAME       || "LocalPro";
+const ADMIN_EMAIL       = process.env.ADMIN_EMAIL       || "admin@taskmanager.com";
+const ADMIN_PASSWORD    = process.env.ADMIN_PASSWORD    || "Admin@123";
+const ADMIN_FIRST_NAME  = process.env.ADMIN_FIRST_NAME  || "Super";
+const ADMIN_LAST_NAME   = process.env.ADMIN_LAST_NAME   || "Admin";
 
 async function seed() {
-  console.log("Connecting to MongoDB...");
-  await mongoose.connect(MONGODB_URI);
-  console.log("Connected.");
+  console.log("=== Multi-Tenant Seed ===\n");
+  console.log(`  Tenant slug : ${TENANT_SLUG}`);
+  console.log(`  Tenant name : ${TENANT_NAME}`);
+  console.log(`  Admin email : ${ADMIN_EMAIL}`);
 
-  // ── Cleanup ────────────────────────────────────────────────────────────────
-  console.log("\n--- Cleaning up existing data ---");
-  await Promise.all([
-    Permission.deleteMany({}),
-    Role.deleteMany({}),
-    User.deleteMany({}),
-    WorkflowStatus.deleteMany({}),
-    Department.deleteMany({}),
-    AppSetting.deleteMany({}),
-  ]);
-  console.log("All relevant collections cleared.");
+  // ── 1. Upsert tenant in platform DB ─────────────────────────────────────────
+  console.log("\n--- Step 1: Platform DB — upsert tenant ---");
+  const platformDb = await getPlatformDb();
+  const Tenant = getTenantModel(platformDb);
 
-  // ── 1. Seed Permissions ────────────────────────────────────────────────────
-  console.log("\n--- Seeding Permissions ---");
-  for (const perm of PERMISSIONS) {
-    await Permission.findOneAndUpdate(
-      { resource: perm.resource, action: perm.action },
-      { ...perm },
-      { upsert: true, new: true }
-    );
+  const dbName = tenantDbName(TENANT_SLUG);
+
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 365); // 1-year trial for seed
+
+  const tenant = await Tenant.findOneAndUpdate(
+    { slug: TENANT_SLUG },
+    {
+      slug: TENANT_SLUG,
+      name: TENANT_NAME,
+      dbName,
+      adminEmail: ADMIN_EMAIL.toLowerCase(),
+      plan: "trial",
+      status: "active",
+      trialEndsAt,
+      maxUsers: 100,
+    },
+    { upsert: true, new: true }
+  );
+  console.log(`  Tenant "${tenant.name}" (slug: ${tenant.slug}, db: ${tenant.dbName}) — OK`);
+
+  // ── 2. Seed tenant DB ────────────────────────────────────────────────────────
+  console.log("\n--- Step 2: Tenant DB — seed data ---");
+  const tenantConn = await getTenantConnection(dbName);
+
+  const { permissionsCount } = await seedTenant({
+    conn: tenantConn,
+    adminEmail:      ADMIN_EMAIL,
+    adminPassword:   ADMIN_PASSWORD,
+    adminFirstName:  ADMIN_FIRST_NAME,
+    adminLastName:   ADMIN_LAST_NAME,
+  });
+
+  console.log(`  Seeded ${permissionsCount} permissions, roles, departments, workflow statuses.`);
+  console.log(`  Admin user: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+
+  // ── Done ─────────────────────────────────────────────────────────────────────
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN;
+
+  console.log("\n=== Seed Complete ===");
+  console.log(`\nLogin URLs:`);
+  console.log(`  Local dev  : http://localhost:3000/login?__tenant=${TENANT_SLUG}`);
+  if (appDomain) {
+    console.log(`  Production : https://${TENANT_SLUG}.${appDomain}/login`);
   }
-  const allPermissions = await Permission.find().lean();
-  console.log(`Seeded ${allPermissions.length} permissions.`);
+  console.log(`\nCredentials:`);
+  console.log(`  Email   : ${ADMIN_EMAIL}`);
+  console.log(`  Password: ${ADMIN_PASSWORD}`);
+  console.log(`  Tenant  : ${TENANT_SLUG}\n`);
 
-  // ── 2. Seed Roles ──────────────────────────────────────────────────────────
-  console.log("\n--- Seeding Roles ---");
-  for (const [slug, def] of Object.entries(ROLE_DEFINITIONS)) {
-    const permIds = allPermissions
-      .filter((p) =>
-        (def.permissions as string[]).includes(`${p.resource}:${p.action}`)
-      )
-      .map((p) => p._id);
+  // Close named connections manually (platform + tenant)
+  try { await platformDb.close(); } catch {}
+  try { await tenantConn.close(); } catch {}
+  try { await mongoose.disconnect(); } catch {}
 
-    await Role.findOneAndUpdate(
-      { slug },
-      {
-        name: def.name,
-        slug,
-        description: def.description,
-        permissions: permIds,
-        isSystem: true,
-        isActive: true,
-      },
-      { upsert: true, new: true }
-    );
-    console.log(`  Role "${def.name}" — ${permIds.length} permissions`);
-  }
-
-  // ── 3. Seed Departments ────────────────────────────────────────────────────
-  console.log("\n--- Seeding Departments ---");
-  for (const dept of DEPARTMENTS) {
-    await Department.findOneAndUpdate(
-      { code: dept.code },
-      { ...dept, isActive: true },
-      { upsert: true, new: true }
-    );
-    console.log(`  Department "${dept.name}" (${dept.code})`);
-  }
-
-  // ── 4. Seed Workflow Statuses ──────────────────────────────────────────────
-  console.log("\n--- Seeding Workflow Statuses ---");
-  for (const status of DEFAULT_WORKFLOW_STATUSES) {
-    await WorkflowStatus.findOneAndUpdate(
-      { slug: status.slug },
-      { ...status, isActive: true },
-      { upsert: true, new: true }
-    );
-    console.log(`  Status "${status.name}"`);
-  }
-
-  // ── 5. Seed Super Admin User ───────────────────────────────────────────────
-  console.log("\n--- Seeding Super Admin User ---");
-  const superAdminRole = await Role.findOne({ slug: "super-admin" });
-  if (!superAdminRole) throw new Error("Super Admin role not found");
-
-  const existingAdmin = await User.findOne({ email: "admin@taskmanager.com" });
-  if (!existingAdmin) {
-    await User.create({
-      email: "admin@taskmanager.com",
-      password: "Admin@123",
-      firstName: "Super",
-      lastName: "Admin",
-      roles: [superAdminRole._id],
-      isActive: true,
-    });
-    console.log("  Created super admin: admin@taskmanager.com / Admin@123");
-  } else {
-    console.log("  Super admin already exists.");
-  }
-
-  // ── 6. Seed App Settings ───────────────────────────────────────────────────
-  console.log("\n--- Seeding App Settings ---");
-  const defaultSettings = [
-    { key: "theme",              value: "light" },
-    { key: "paginationLimit",    value: 20 },
-    { key: "fileUploadMaxSize",  value: 10485760 }, // 10 MB
-  ];
-  for (const setting of defaultSettings) {
-    await AppSetting.findOneAndUpdate(
-      { key: setting.key },
-      { value: setting.value },
-      { upsert: true, new: true }
-    );
-    console.log(`  Setting "${setting.key}" = ${setting.value}`);
-  }
-
-  console.log("\n--- Seed Complete ---");
-  await mongoose.disconnect();
   process.exit(0);
 }
 

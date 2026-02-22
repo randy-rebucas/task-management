@@ -5,15 +5,11 @@
  */
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!MONGODB_URI) {
-  throw new Error("Please define the MONGODB_URI environment variable");
-}
-
 // Derive the platform DB URI — replace the last path segment with "platform"
 function getPlatformUri(): string {
-  const url = new URL(MONGODB_URI);
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error("Please define the MONGODB_URI environment variable");
+  const url = new URL(uri);
   url.pathname = "/platform";
   return url.toString();
 }
