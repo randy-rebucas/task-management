@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createNotificationRuleSchema } from "@/features/auth/validators";
-export const GET = withPermission("notifications:manage_rules", async () => {
+export const GET = withPermission("notifications:manage_rules", async (_req, _ctx, _session, models) => {
   const rules = await models.NotificationRule.find()
     .populate("recipientRoles", "name slug")
     .sort({ event: 1 })

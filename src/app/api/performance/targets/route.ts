@@ -17,7 +17,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, _session
   return apiSuccess(targets);
 });
 
-export const POST = withPermission("performance:manage", async (req, _ctx, session) => {
+export const POST = withPermission("performance:manage", async (req, _ctx, session, models) => {
   const body = await req.json();
   const parsed = createPerformanceTargetSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);

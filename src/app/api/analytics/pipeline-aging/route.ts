@@ -7,7 +7,7 @@ const STAGE_ORDER = [
   "negotiation",
 ];
 
-export const GET = withPermission("reports:view", async () => {
+export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   const now = new Date();
 
   const rows = await models.Deal.aggregate([

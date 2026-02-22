@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-export const GET = withPermission("roles:view", async () => {
-  const permissions = await models.Permission.find().sort({ group: 1, resource: 1, action: 1 }).lean();
+import type { IPermission } from "@/types";
+export const GET = withPermission("roles:view", async (_req, _ctx, _session, models) => {
+  const permissions = await models.Permission.find().sort({ group: 1, resource: 1, action: 1 }).lean() as unknown as IPermission[];
 
   // Group by group field
   const grouped = permissions.reduce((acc, perm) => {

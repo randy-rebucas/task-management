@@ -2,8 +2,9 @@ import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helper
 import { createRoleSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import slugify from "slugify";
+import type { IRole } from "@/types";
 
-export const GET = withPermission("roles:view", async () => {
+export const GET = withPermission("roles:view", async (_req, _ctx, _session, models) => {
   const roles = await models.Role.find()
     .populate("permissions")
     .sort({ createdAt: -1 })
@@ -36,7 +37,7 @@ export const POST = withPermission("roles:create", async (req, ctx, session, mod
     permissions: parsed.data.permissions,
     isSystem: false,
     createdBy: session.user.id,
-  });
+  }) as unknown as IRole & { _id: { toString: () => string } };
 
   await logActivity({
     actor: session.user.id,

@@ -23,7 +23,7 @@ export const PATCH = withAuth(async (req, ctx, session, models) => {
   const fieldSession = await models.FieldSession.findOne({
     _id: sessionId,
     user: session.user.id,
-  });
+  }) as any;
   if (!fieldSession) return apiError("Session not found", 404);
 
   if (action === "checkout") {

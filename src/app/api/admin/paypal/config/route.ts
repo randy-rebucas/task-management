@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { withPermission } from "@/features/auth/api-helpers";
 import { PLAN_CONFIG } from "@/lib/paypal";
+import type { IAppSetting } from "@/models/AppSetting";
+import mongoose from "mongoose";
+
+type LeanSetting = IAppSetting & { _id: mongoose.Types.ObjectId };
 
 const KEYS = [
   "paypal.plan.starter.id",
@@ -10,8 +14,8 @@ const KEYS = [
   "paypal.webhook.id",
 ] as const;
 
-export const GET = withPermission("settings:manage", async () => {
-  const rows = await models.AppSetting.find({ key: { $in: KEYS } }).lean();
+export const GET = withPermission("settings:manage", async (_req, _ctx, _session, models) => {
+  const rows = await models.AppSetting.find({ key: { $in: KEYS } }).lean() as unknown as LeanSetting[];
   const stored: Record<string, string> = {};
   for (const r of rows) stored[r.key] = r.value as string;
 

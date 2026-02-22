@@ -3,7 +3,7 @@ import { updateRoleSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import slugify from "slugify";
 
-export const GET = withPermission("roles:view", async (req, ctx) => {
+export const GET = withPermission("roles:view", async (req, ctx, _session, models) => {
   const { roleId } = await ctx.params;
   const role = await models.Role.findById(roleId).populate("permissions").lean();
   if (!role) return apiError("Role not found", 404);
@@ -12,7 +12,7 @@ export const GET = withPermission("roles:view", async (req, ctx) => {
 
 export const PUT = withPermission("roles:update", async (req, ctx, session, models) => {
   const { roleId } = await ctx.params;
-  const role = await models.Role.findById(roleId);
+  const role = await models.Role.findById(roleId) as any;
   if (!role) return apiError("Role not found", 404);
 
   const body = await req.json();
@@ -46,7 +46,7 @@ export const PUT = withPermission("roles:update", async (req, ctx, session, mode
 
 export const DELETE = withPermission("roles:delete", async (req, ctx, session, models) => {
   const { roleId } = await ctx.params;
-  const role = await models.Role.findById(roleId);
+  const role = await models.Role.findById(roleId) as any;
   if (!role) return apiError("Role not found", 404);
   if (role.isSystem) return apiError("Cannot delete system roles", 403);
 

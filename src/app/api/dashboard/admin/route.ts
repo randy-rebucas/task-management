@@ -1,5 +1,5 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-export const GET = withPermission("dashboard:admin", async () => {
+export const GET = withPermission("dashboard:admin", async (_req, _ctx, _session, models) => {
   const [
     totalUsers,
     activeUsers,

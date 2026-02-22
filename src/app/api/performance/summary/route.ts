@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import type { TenantModels } from "@/lib/tenant-models";
+import type { ICommissionRule, IPerformanceTarget } from "@/types";
 function calcScore(stats: {
   tasksAssigned: number;
   tasksCompleted: number;
@@ -23,7 +25,8 @@ async function computeForPeriod(
   uid: mongoose.Types.ObjectId,
   month: number,
   year: number,
-  finalStatusIds: mongoose.Types.ObjectId[]
+  finalStatusIds: mongoose.Types.ObjectId[],
+  models: TenantModels
 ) {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0, 23, 59, 59, 999);
@@ -60,7 +63,7 @@ async function computeForPeriod(
   return { tasksCompleted, tasksAssigned, tasksOverdue, newLeads, dealRevenue, dealsClosed, start, end };
 }
 
-export const GET = withPermission("performance:view", async (req, _ctx, session) => {
+export const GET = withPermission("performance:view", async (req, _ctx, session, models) => {
   const url = new URL(req.url);
   const now = new Date();
   const month = parseInt(url.searchParams.get("month") || String(now.getMonth() + 1));
@@ -84,7 +87,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
   const finalStatusIds = finalStatuses.map((s) => s._id as mongoose.Types.ObjectId);
 
   // Current period
-  const current = await computeForPeriod(uid, month, year, finalStatusIds);
+  const current = await computeForPeriod(uid, month, year, finalStatusIds, models);
 
   const performanceScore = calcScore({
     tasksAssigned: current.tasksAssigned,
@@ -102,7 +105,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
       { department: null, jobTitle: null },
     ],
     isActive: true,
-  }).sort({ department: -1 }); // prefer department-specific rule
+  }).sort({ department: -1 }).lean() as unknown as ICommissionRule | null;
 
   const commissionRate = rule?.dealCommissionRate ?? 5;
   const commissionEarned = Math.round(current.dealRevenue * (commissionRate / 100));
@@ -119,7 +122,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
   const totalIncentive = commissionEarned + leadBonus + scoreBonus;
 
   // Targets
-  const target = await models.PerformanceTarget.findOne({ user: uid, month, year }).lean();
+  const target = await models.PerformanceTarget.findOne({ user: uid, month, year }).lean() as unknown as IPerformanceTarget | null;
 
   const achievementRate = {
     revenue: target?.targetRevenue ? Math.round((current.dealRevenue / target.targetRevenue) * 100) : null,
@@ -133,7 +136,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session)
   for (let i = 5; i >= 0; i--) {
     const tMonth = month - i <= 0 ? month - i + 12 : month - i;
     const tYear = month - i <= 0 ? year - 1 : year;
-    const p = await computeForPeriod(uid, tMonth, tYear, finalStatusIds);
+    const p = await computeForPeriod(uid, tMonth, tYear, finalStatusIds, models);
     const pScore = calcScore({
       tasksAssigned: p.tasksAssigned,
       tasksCompleted: p.tasksCompleted,

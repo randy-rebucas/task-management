@@ -8,8 +8,12 @@
 
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
 import { PERMISSIONS, ROLE_DEFINITIONS } from "@/config/permissions";
+import { IPermission } from "@/types";
+import mongoose from "mongoose";
 
-export const POST = withPermission("settings:manage", async () => {
+type LeanPermission = IPermission & { _id: mongoose.Types.ObjectId };
+
+export const POST = withPermission("settings:manage", async (_req, _ctx, _session, models) => {
   const results = {
     permissions: { added: 0, updated: 0, total: 0 },
     roles: { created: 0, updated: 0 },
@@ -20,7 +24,7 @@ export const POST = withPermission("settings:manage", async () => {
     const existing = await models.Permission.findOne({
       resource: perm.resource,
       action: perm.action,
-    });
+    }).lean() as unknown as LeanPermission | null;
 
     if (!existing) {
       await models.Permission.create({ ...perm });
@@ -37,7 +41,7 @@ export const POST = withPermission("settings:manage", async () => {
     }
   }
 
-  const allPermissions = await models.Permission.find().lean();
+  const allPermissions = await models.Permission.find().lean() as unknown as LeanPermission[];
   results.permissions.total = allPermissions.length;
 
   // ── 2. Upsert system roles ──────────────────────────────────────────────

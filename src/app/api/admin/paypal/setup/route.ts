@@ -75,7 +75,7 @@ async function createPlan(
   return data.id as string;
 }
 
-export const POST = withPermission("settings:manage", async () => {
+export const POST = withPermission("settings:manage", async (_req, _ctx, _session, models) => {
   if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
     return NextResponse.json(
       { error: "PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in environment variables." },

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { withAuth, apiSuccess } from "@/features/auth/api-helpers";
+import type { TenantModels } from "@/lib/tenant-models";
 function getPeriodRange(period: string): { start: Date; end: Date; prevStart: Date; prevEnd: Date; label: string } {
   const now = new Date();
 
@@ -40,7 +41,7 @@ function calcScore(stats: { tasksAssigned: number; tasksCompleted: number; tasks
   return Math.max(0, Math.round(completionScore + visitScore + leadScore + 10 - overdueDeduct));
 }
 
-async function fetchKPIs(userId: string, start: Date, end: Date, finalStatusIds: mongoose.Types.ObjectId[], now: Date) {
+async function fetchKPIs(userId: string, start: Date, end: Date, finalStatusIds: mongoose.Types.ObjectId[], now: Date, models: TenantModels) {
   const uid = new mongoose.Types.ObjectId(userId);
 
   const [assigned, completedInPeriod, overdue, newLeads, totalLeads, closedLeads, visits, visitLogCount] =
@@ -75,8 +76,8 @@ export const GET = withAuth(async (req, ctx, session, models) => {
   const finalStatusIds = finalStatuses.map((s) => s._id as mongoose.Types.ObjectId);
 
   const [current, previous] = await Promise.all([
-    fetchKPIs(session.user.id, start, end, finalStatusIds, now),
-    fetchKPIs(session.user.id, prevStart, prevEnd, finalStatusIds, now),
+    fetchKPIs(session.user.id, start, end, finalStatusIds, now, models),
+    fetchKPIs(session.user.id, prevStart, prevEnd, finalStatusIds, now, models),
   ]);
 
   const currentScore  = calcScore(current, period);

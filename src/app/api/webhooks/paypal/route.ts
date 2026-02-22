@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         update.cancelledAt = new Date();
       }
 
-      await models.Subscription.findOneAndUpdate(
+      await Subscription.findOneAndUpdate(
         { paypalSubscriptionId: subscriptionId },
         update
       );
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (eventType === "PAYMENT.SALE.COMPLETED") {
     const subscriptionId: string = resource.billing_agreement_id;
     if (subscriptionId) {
-      await models.Subscription.findOneAndUpdate(
+      await Subscription.findOneAndUpdate(
         { paypalSubscriptionId: subscriptionId },
         { status: "ACTIVE" }
       );

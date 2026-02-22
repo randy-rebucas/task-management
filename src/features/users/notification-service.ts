@@ -63,11 +63,11 @@ export async function triggerNotification(
       await dbConnect();
     }
 
-    const TaskModel          = tenantModels?.Task          ?? Task;
-    const LeadModel          = tenantModels?.Lead          ?? Lead;
-    const ClientModel        = tenantModels?.Client        ?? Client;
-    const UserModel          = tenantModels?.User          ?? User;
-    const NotificationRuleModel = tenantModels?.NotificationRule ?? NotificationRule;
+    const TaskModel          = (tenantModels?.Task          ?? Task) as any;
+    const LeadModel          = (tenantModels?.Lead          ?? Lead) as any;
+    const ClientModel        = (tenantModels?.Client        ?? Client) as any;
+    const UserModel          = (tenantModels?.User          ?? User) as any;
+    const NotificationRuleModel = (tenantModels?.NotificationRule ?? NotificationRule) as any;
 
     const actorId      = payload?.actorId as string | undefined;
     const taskId       = payload?.taskId as string | undefined;
@@ -77,7 +77,7 @@ export async function triggerNotification(
 
     // Resolve notification channels from matching rule (fall back to in_app)
     const ruleEvent = EVENT_TO_RULE[event] ?? event;
-    const rule = await NotificationRuleModel.findOne({ event: ruleEvent, isActive: true }).lean();
+    const rule = await (NotificationRuleModel as any).findOne({ event: ruleEvent, isActive: true }).lean() as any;
     const channels = (rule?.channels?.length ? rule.channels : ["in_app"]) as ("in_app" | "email")[];
 
     // ── Task-based events ──────────────────────────────────────────────────────

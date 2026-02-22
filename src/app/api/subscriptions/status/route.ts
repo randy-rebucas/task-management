@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { Subscription } from "@/models/Subscription";
+import User from "@/models/User";
 
 export async function GET() {
   try {
@@ -9,11 +10,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     // Look up the current user to check if they're staff (have an owner)
-    const currentUser = await models.User.findById(session.user.id).select("owner").lean();
+    const currentUser = await User.findById(session.user.id).select("owner").lean() as any;
     const ownerId = currentUser?.owner ?? session.user.id;
     const isOwner = !currentUser?.owner;
 
-    const subscription = await models.Subscription.findOne({
+    const subscription = await Subscription.findOne({
       user: ownerId,
       status: { $in: ["ACTIVE", "APPROVED", "APPROVAL_PENDING", "SUSPENDED"] },
     }).sort({ createdAt: -1 });

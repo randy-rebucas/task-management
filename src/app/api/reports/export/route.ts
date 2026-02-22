@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withPermission, apiError } from "@/features/auth/api-helpers";
 import { exportReportSchema } from "@/features/auth/validators";
 import ExcelJS from "exceljs";
+import type { ITask } from "@/types";
 
 export const POST = withPermission("reports:export", async (req, _ctx, _session, models) => {
   const body = await req.json();
@@ -17,7 +18,7 @@ export const POST = withPermission("reports:export", async (req, _ctx, _session,
     .populate("createdBy", "firstName lastName")
     .populate("department", "name")
     .sort({ createdAt: -1 })
-    .lean();
+    .lean() as unknown as ITask[];
 
   const rows = tasks.map((t) => ({
     "Task #": t.taskNumber,

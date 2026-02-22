@@ -1,6 +1,6 @@
 import { withPermission, withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createWorkflowStatusSchema } from "@/features/auth/validators";
-export const GET = withAuth(async () => {
+export const GET = withAuth(async (_req, _ctx, _session, models) => {
   const statuses = await models.WorkflowStatus.find({ isActive: true })
     .sort({ order: 1 })
     .lean();

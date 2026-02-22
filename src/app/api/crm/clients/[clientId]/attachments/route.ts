@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createCrmAttachmentSchema } from "@/features/auth/validators";
-export const GET = withPermission("crm:view", async (_req, ctx) => {
+export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
   const { clientId } = await ctx.params;
   const attachments = await models.CrmAttachment.find({ client: clientId })
     .sort({ createdAt: -1 })
@@ -23,7 +23,7 @@ export const POST = withPermission("crm:update", async (req, ctx, session, model
   return apiSuccess(populated, 201);
 });
 
-export const DELETE = withPermission("crm:update", async (req, ctx) => {
+export const DELETE = withPermission("crm:update", async (req, ctx, _session, models) => {
   const { clientId } = await ctx.params;
   const url = new URL(req.url);
   const id = url.searchParams.get("id");

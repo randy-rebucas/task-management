@@ -13,11 +13,11 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session, mo
     return apiError(firstError);
   }
 
-  const task = await models.Task.findById(taskId).populate("status");
+  const task = await models.Task.findById(taskId).populate("status") as any;
   if (!task) return apiError("Task not found", 404);
 
   const fromStatus = task.status as unknown as { name?: string } | null;
-  const toStatus = await models.WorkflowStatus.findById(parsed.data.toStatusId);
+  const toStatus = await models.WorkflowStatus.findById(parsed.data.toStatusId) as any;
   if (!toStatus) return apiError("Invalid target status", 400);
 
   // Check transition is allowed
@@ -25,7 +25,7 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session, mo
     fromStatus: task.status,
     toStatus: parsed.data.toStatusId,
     isActive: true,
-  }).populate("allowedRoles");
+  }).populate("allowedRoles") as any;
 
   if (!transition) {
     return apiError(`Transition from "${fromStatus?.name}" to "${toStatus.name}" is not allowed`, 403);
@@ -33,9 +33,9 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session, mo
 
   // Check role is allowed for this transition
   if (transition.allowedRoles.length > 0) {
-    const userRoles = await models.Role.find({ _id: { $in: session.user.roles } });
-    const userRoleIds = userRoles.map((r) => r._id.toString());
-    const allowedRoleIds = transition.allowedRoles.map((r) => (r as { _id: { toString(): string } })._id.toString());
+    const userRoles = await models.Role.find({ _id: { $in: session.user.roles } }) as any[];
+    const userRoleIds = userRoles.map((r: any) => r._id.toString());
+    const allowedRoleIds = transition.allowedRoles.map((r: any) => r._id.toString());
     const hasRole = userRoleIds.some((id) => allowedRoleIds.includes(id));
     if (!hasRole) {
       return apiError("Your role is not allowed to perform this transition", 403);
@@ -70,9 +70,9 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session, mo
   await task.save();
 
   // Auto-create a follow-up task when a client_meeting is completed (if enabled)
-  const followUpEnabled = await models.AppSetting.findOne({ key: "automation.followUpTask" }).lean();
+  const followUpEnabled = await models.AppSetting.findOne({ key: "automation.followUpTask" }).lean() as any;
   if (toStatus.isFinal && task.taskType === "client_meeting" && (followUpEnabled ? Boolean(followUpEnabled.value) : true)) {
-    const defaultStatus = await models.WorkflowStatus.findOne({ isDefault: true, isActive: true });
+    const defaultStatus = await models.WorkflowStatus.findOne({ isDefault: true, isActive: true }) as any;
     if (defaultStatus) {
       const taskCount = await models.Task.countDocuments();
       const followUp = await models.Task.create({
@@ -88,12 +88,12 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session, mo
         ...(task.client && { client: task.client }),
         ...(task.lead   && { lead:   task.lead   }),
         ...(task.deal   && { deal:   task.deal   }),
-      });
+      }) as any;
       await triggerNotification("task_assigned", {
-        taskId: followUp._id.toString(, models),
+        taskId: followUp._id.toString(),
         actorId: session.user.id,
         data: { taskTitle: followUp.title, actorName: session.user.name },
-      });
+      }, models);
     }
   }
 

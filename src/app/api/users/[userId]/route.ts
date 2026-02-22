@@ -1,7 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-export const GET = withPermission("users:view", async (req, ctx) => {
+export const GET = withPermission("users:view", async (req, ctx, _session, models) => {
   const { userId } = await ctx.params;
   const user = await models.User.findById(userId)
     .populate("roles", "name slug")
@@ -40,7 +40,7 @@ export const PUT = withPermission("users:update", async (req, ctx, session, mode
 
 export const DELETE = withPermission("users:delete", async (req, ctx, session, models) => {
   const { userId } = await ctx.params;
-  const user = await models.User.findById(userId);
+  const user = await models.User.findById(userId) as any;
   if (!user) return apiError("User not found", 404);
 
   user.isActive = false;

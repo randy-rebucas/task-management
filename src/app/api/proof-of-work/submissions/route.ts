@@ -12,7 +12,7 @@ function haversineMetres(lat1: number, lng1: number, lat2: number, lng2: number)
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export const GET = withPermission("proof_of_work:view", async (req, _ctx, session) => {
+export const GET = withPermission("proof_of_work:view", async (req, _ctx, session, models) => {
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
   const taskId = url.searchParams.get("taskId");
@@ -43,7 +43,7 @@ export const GET = withPermission("proof_of_work:view", async (req, _ctx, sessio
   return apiSuccess(submissions);
 });
 
-export const POST = withPermission("proof_of_work:submit", async (req, _ctx, session) => {
+export const POST = withPermission("proof_of_work:submit", async (req, _ctx, session, models) => {
   const body = await req.json();
   const parsed = submitProofSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
@@ -58,7 +58,7 @@ export const POST = withPermission("proof_of_work:submit", async (req, _ctx, ses
   } | undefined;
 
   if (qrCheckIn) {
-    const loc = await models.PartnerLocation.findById(qrCheckIn.partnerLocation);
+    const loc = await models.PartnerLocation.findById(qrCheckIn.partnerLocation).lean() as any;
     if (!loc) return apiError("Partner location not found", 404);
 
     let distanceMetres = -1;

@@ -3,7 +3,7 @@ import { updateTaskSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
 // Ensure CRM models are registered before populate
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const task = await models.Task.findById(taskId)
     .populate("status")
@@ -19,8 +19,9 @@ export const GET = withPermission("tasks:view", async (req, ctx) => {
 
   // Get allowed transitions for the current status
   const WorkflowTransition = (await import("@/models/WorkflowTransition")).default;
+  const taskAny = task as any;
   const transitions = await models.WorkflowTransition.find({
-    fromStatus: task.status._id,
+    fromStatus: taskAny.status?._id ?? taskAny.status,
     isActive: true,
   })
     .populate("toStatus", "name slug color order isFinal")
@@ -55,7 +56,7 @@ export const PUT = withPermission("tasks:update", async (req, ctx, session, mode
   const mongoUpdate: Record<string, unknown> = { $set: updateData };
   if (Object.keys(unsetFields).length) mongoUpdate.$unset = unsetFields;
 
-  const task = await models.Task.findByIdAndUpdate(taskId, mongoUpdate, { new: true });
+  const task = await models.Task.findByIdAndUpdate(taskId, mongoUpdate, { new: true }) as any;
   if (!task) return apiError("Task not found", 404);
 
   await logActivity({
@@ -78,7 +79,7 @@ export const PUT = withPermission("tasks:update", async (req, ctx, session, mode
 
 export const DELETE = withPermission("tasks:delete", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
-  const task = await models.Task.findByIdAndUpdate(taskId, { isArchived: true }, { new: true });
+  const task = await models.Task.findByIdAndUpdate(taskId, { isArchived: true }, { new: true }) as any;
   if (!task) return apiError("Task not found", 404);
 
   await logActivity({

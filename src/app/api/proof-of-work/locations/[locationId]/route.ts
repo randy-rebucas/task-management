@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updatePartnerLocationSchema } from "@/features/auth/validators";
-export const PUT = withPermission("proof_of_work:manage", async (req, ctx) => {
+export const PUT = withPermission("proof_of_work:manage", async (req, ctx, _session, models) => {
   const { locationId } = await ctx.params;
   const body = await req.json();
   const parsed = updatePartnerLocationSchema.safeParse(body);
@@ -11,7 +11,7 @@ export const PUT = withPermission("proof_of_work:manage", async (req, ctx) => {
   return apiSuccess(location);
 });
 
-export const DELETE = withPermission("proof_of_work:manage", async (_req, ctx) => {
+export const DELETE = withPermission("proof_of_work:manage", async (_req, ctx, _session, models) => {
   const { locationId } = await ctx.params;
   const location = await models.PartnerLocation.findByIdAndUpdate(
     locationId,

@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updatePerformanceTargetSchema } from "@/features/auth/validators";
-export const PUT = withPermission("performance:manage", async (req, ctx) => {
+export const PUT = withPermission("performance:manage", async (req, ctx, _session, models) => {
   const { targetId } = await ctx.params;
   const body = await req.json();
   const parsed = updatePerformanceTargetSchema.safeParse(body);
@@ -11,7 +11,7 @@ export const PUT = withPermission("performance:manage", async (req, ctx) => {
   return apiSuccess(target);
 });
 
-export const DELETE = withPermission("performance:manage", async (_req, ctx) => {
+export const DELETE = withPermission("performance:manage", async (_req, ctx, _session, models) => {
   const { targetId } = await ctx.params;
   const target = await models.PerformanceTarget.findByIdAndDelete(targetId);
   if (!target) return apiError("Target not found", 404);

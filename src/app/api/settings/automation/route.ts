@@ -17,12 +17,12 @@ const DEFAULTS: Record<string, unknown> = {
   "automation.fieldSummary":    true,
 };
 
-export const GET = async () => {
+export const GET = withPermission("settings:manage", async (_req, _ctx, _session, models) => {
   const rows = await models.AppSetting.find({ key: { $in: AUTOMATION_KEYS } }).lean();
   const result: Record<string, unknown> = { ...DEFAULTS };
-  for (const row of rows) result[row.key] = row.value;
+  for (const row of rows) result[(row as any).key] = (row as any).value;
   return NextResponse.json(result);
-};
+});
 
 export const PUT = withPermission("settings:manage", async (req, _ctx, _session, models) => {
   const body = await req.json();
@@ -37,6 +37,6 @@ export const PUT = withPermission("settings:manage", async (req, _ctx, _session,
   }
   const rows = await models.AppSetting.find({ key: { $in: AUTOMATION_KEYS } }).lean();
   const result: Record<string, unknown> = { ...DEFAULTS };
-  for (const row of rows) result[row.key] = row.value;
+  for (const row of rows) result[(row as any).key] = (row as any).value;
   return apiSuccess(result);
 });

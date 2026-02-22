@@ -1,4 +1,5 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
+import type { IFieldSession } from "@/types";
 // GET /api/field/coverage - all check-in locations for heatmap
 export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
@@ -12,7 +13,7 @@ export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _sess
   })
     .populate("user", "firstName lastName")
     .select("checkIn.location checkIn.time user date status")
-    .lean();
+    .lean() as unknown as IFieldSession[];
 
   const points = sessions.map((s) => ({
     lat: s.checkIn.location.lat,

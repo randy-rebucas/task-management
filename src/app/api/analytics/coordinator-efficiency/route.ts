@@ -1,12 +1,20 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-export const GET = withPermission("reports:view", async () => {
+import type { IUser } from "@/types";
+import mongoose from "mongoose";
+
+type LeanUser = Pick<IUser, "firstName" | "lastName" | "email" | "avatar"> & {
+  _id: mongoose.Types.ObjectId;
+  roles: unknown;
+};
+
+export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   // Find field coordinators (role slug contains "field")
   const allUsers = await models.User.find({ isActive: true })
     .populate("roles", "slug name")
     .select("_id firstName lastName email avatar roles")
-    .lean();
+    .lean() as unknown as LeanUser[];
 
   const fieldUsers = allUsers.filter((u) => {
     const roles = u.roles as { slug: string }[];

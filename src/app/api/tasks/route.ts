@@ -80,12 +80,13 @@ export const POST = withPermission("tasks:create", async (req, ctx, session, mod
 
   const taskNumber = await models.Task.countDocuments() + 1;
 
-  const task = new Task({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const task = new models.Task({
     ...parsed.data,
     taskNumber: `TASK-${String(taskNumber).padStart(4, "0")}`,
     status: defaultStatus._id,
     createdBy: session.user.id,
-  });
+  }) as any;
   await task.save();
 
   await logActivity({
@@ -99,10 +100,10 @@ export const POST = withPermission("tasks:create", async (req, ctx, session, mod
 
   if (parsed.data.assignees?.length) {
     await triggerNotification("task_assigned", {
-      taskId: task._id.toString(, models),
+      taskId: task._id.toString(),
       actorId: session.user.id,
       data: { taskTitle: task.title, actorName: session.user.name },
-    });
+    }, models);
   }
 
   // Ensure taskNumber is included in the response

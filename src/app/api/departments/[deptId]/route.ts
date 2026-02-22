@@ -1,7 +1,8 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateDepartmentSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-export const GET = withPermission("departments:view", async (req, ctx) => {
+import type { IDepartment } from "@/types";
+export const GET = withPermission("departments:view", async (req, ctx, _session, models) => {
   const { deptId } = await ctx.params;
   const dept = await models.Department.findById(deptId)
     .populate("head", "firstName lastName email")
@@ -34,7 +35,7 @@ export const PUT = withPermission("departments:update", async (req, ctx, session
 
 export const DELETE = withPermission("departments:delete", async (req, ctx, session, models) => {
   const { deptId } = await ctx.params;
-  const dept = await models.Department.findByIdAndUpdate(deptId, { isActive: false }, { new: true });
+  const dept = await models.Department.findByIdAndUpdate(deptId, { isActive: false }, { new: true }).lean() as unknown as IDepartment | null;
   if (!dept) return apiError("Department not found", 404);
 
   await logActivity({

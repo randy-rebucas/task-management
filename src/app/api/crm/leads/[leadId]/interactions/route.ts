@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createInteractionSchema } from "@/features/auth/validators";
-export const GET = withPermission("crm:view", async (_req, ctx) => {
+export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
   const { leadId } = await ctx.params;
   const interactions = await models.CrmInteraction.find({ lead: leadId })
     .sort({ date: -1 })

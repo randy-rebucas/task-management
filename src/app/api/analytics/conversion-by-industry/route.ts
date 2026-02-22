@@ -1,5 +1,5 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-export const GET = withPermission("reports:view", async () => {
+export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   const rows = await models.Lead.aggregate([
     {
       $group: {

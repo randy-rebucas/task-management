@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { withAuth, withPermission } from "@/features/auth/api-helpers";
+import type { IAppSetting } from "@/models/AppSetting";
+import mongoose from "mongoose";
 
-export const GET = withAuth(async () => {
+type LeanSetting = IAppSetting & { _id: mongoose.Types.ObjectId };
+
+export const GET = withAuth(async (_req, _ctx, _session, models) => {
   const keys = ["theme", "paginationLimit", "fileUploadMaxSize"];
-  const settingsArr = await models.AppSetting.find({ key: { $in: keys } }).lean();
-  const settings: Record<string, any> = {};
+  const settingsArr = await models.AppSetting.find({ key: { $in: keys } }).lean() as unknown as LeanSetting[];
+  const settings: Record<string, unknown> = {};
   for (const s of settingsArr) {
     settings[s.key] = s.value;
   }
@@ -27,10 +31,9 @@ export const PUT = withPermission("settings:manage", async (req, _ctx, _session,
       );
     }
   }
-  // Return updated settings
-  const settingsArr = await models.AppSetting.find({ key: { $in: keys } }).lean();
-  const settings: Record<string, any> = {};
-  for (const s of settingsArr) {
+  const settingsArr2 = await models.AppSetting.find({ key: { $in: keys } }).lean() as unknown as LeanSetting[];
+  const settings: Record<string, unknown> = {};
+  for (const s of settingsArr2) {
     settings[s.key] = s.value;
   }
   return NextResponse.json(settings);

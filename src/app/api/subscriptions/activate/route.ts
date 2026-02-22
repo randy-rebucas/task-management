@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Upsert subscription record
-    const subscription = await models.Subscription.findOneAndUpdate(
+    const subscription = await Subscription.findOneAndUpdate(
       { paypalSubscriptionId: subscriptionId },
       {
         user: userId ?? undefined,

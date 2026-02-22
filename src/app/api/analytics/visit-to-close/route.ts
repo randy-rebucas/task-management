@@ -1,9 +1,14 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
-export const GET = withPermission("reports:view", async () => {
+import type { ILead } from "@/types";
+import mongoose from "mongoose";
+
+type LeanLead = Pick<ILead, "industry" | "source"> & { _id: mongoose.Types.ObjectId };
+
+export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   // Converted leads with source info
   const convertedLeads = await models.Lead.find({ status: "converted" })
     .select("_id industry source")
-    .lean();
+    .lean() as unknown as LeanLead[];
 
   if (convertedLeads.length === 0) {
     return apiSuccess({

@@ -4,7 +4,7 @@ import slugify from "slugify";
 
 export const POST = withPermission("roles:clone", async (req, ctx, session, models) => {
   const { roleId } = await ctx.params;
-  const sourceRole = await models.Role.findById(roleId);
+  const sourceRole = await models.Role.findById(roleId) as any;
   if (!sourceRole) return apiError("Role not found", 404);
 
   const body = await req.json();

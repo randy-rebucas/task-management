@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateDealSchema } from "@/features/auth/validators";
-export const GET = withPermission("crm:view", async (_req, ctx) => {
+export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
   const { dealId } = await ctx.params;
   const [deal, tasks] = await Promise.all([
     models.Deal.findById(dealId)
@@ -19,7 +19,7 @@ export const GET = withPermission("crm:view", async (_req, ctx) => {
   return apiSuccess({ ...deal.toObject(), tasks });
 });
 
-export const PUT = withPermission("crm:update", async (req, ctx) => {
+export const PUT = withPermission("crm:update", async (req, ctx, _session, models) => {
   const { dealId } = await ctx.params;
   const body = await req.json();
   const parsed = updateDealSchema.safeParse(body);
@@ -30,7 +30,7 @@ export const PUT = withPermission("crm:update", async (req, ctx) => {
   return apiSuccess(deal);
 });
 
-export const DELETE = withPermission("crm:delete", async (_req, ctx) => {
+export const DELETE = withPermission("crm:delete", async (_req, ctx, _session, models) => {
   const { dealId } = await ctx.params;
   const deal = await models.Deal.findByIdAndDelete(dealId);
   if (!deal) return apiError("Deal not found", 404);

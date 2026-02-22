@@ -8,16 +8,16 @@ export const PATCH = withPermission("tasks:assign", async (req, ctx, session, mo
   const parsed = assignTaskSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const existing = await models.Task.findById(taskId).select("assignees title").lean();
+  const existing = await models.Task.findById(taskId).select("assignees title").lean() as any;
   if (!existing) return apiError("Task not found", 404);
 
-  const previousAssignees = existing.assignees.map((a) => a.toString());
+  const previousAssignees = existing.assignees.map((a: any) => a.toString());
 
   const task = await models.Task.findByIdAndUpdate(
     taskId,
     { assignees: parsed.data.assignees },
     { new: true }
-  );
+  ) as any;
   if (!task) return apiError("Task not found", 404);
 
   await logActivity({

@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createUserSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
+import type { IUser } from "@/types";
 export const GET = withPermission("users:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
@@ -39,7 +40,7 @@ export const GET = withPermission("users:view", async (req, _ctx, _session, mode
   });
 });
 
-export const POST = withPermission("users:create", async (req, _ctx, session) => {
+export const POST = withPermission("users:create", async (req, _ctx, session, models) => {
   const body = await req.json();
   const parsed = createUserSchema.safeParse(body);
   if (!parsed.success) {
@@ -57,7 +58,7 @@ export const POST = withPermission("users:create", async (req, _ctx, session) =>
   const creator = await models.User.findById(session.user.id).select("owner").lean();
   const ownerId = creator?.owner ?? session.user.id;
 
-  const user = await models.User.create({ ...parsed.data, owner: ownerId });
+  const user = await models.User.create({ ...parsed.data, owner: ownerId }) as unknown as IUser & { _id: { toString: () => string } };
 
   await logActivity({
     actor: session.user.id,

@@ -1,13 +1,13 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createSubtaskSchema } from "@/features/auth/validators";
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
-  const task = await models.Task.findById(taskId).select("subtasks").lean();
+  const task = await models.Task.findById(taskId).select("subtasks").lean() as any;
   if (!task) return apiError("Task not found", 404);
   return apiSuccess(task.subtasks);
 });
 
-export const POST = withPermission("tasks:update", async (req, ctx) => {
+export const POST = withPermission("tasks:update", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = createSubtaskSchema.safeParse(body);
@@ -19,7 +19,7 @@ export const POST = withPermission("tasks:update", async (req, ctx) => {
     taskId,
     { $push: { subtasks: { title: parsed.data.title, completed: false } } },
     { new: true }
-  ).select("subtasks");
+  ) as any;
 
   if (!task) return apiError("Task not found", 404);
   return apiSuccess(task.subtasks[task.subtasks.length - 1], 201);

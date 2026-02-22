@@ -1,8 +1,9 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateClientSchema } from "@/features/auth/validators";
 import { triggerNotification } from "@/features/users/notification-service";
+import type { IClient } from "@/types";
 
-export const GET = withPermission("crm:view", async (_req, ctx) => {
+export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
   const { clientId } = await ctx.params;
   const client = await models.Client.findById(clientId)
     .populate("assignedTo", "firstName lastName email avatar")
@@ -18,7 +19,7 @@ export const PUT = withPermission("crm:update", async (req, ctx, session, models
   const parsed = updateClientSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const client = await models.Client.findByIdAndUpdate(clientId, parsed.data, { new: true });
+  const client = await models.Client.findByIdAndUpdate(clientId, parsed.data, { new: true }).lean() as unknown as IClient | null;
   if (!client) return apiError("Client not found", 404);
 
   if (parsed.data.followUpDate) {
@@ -33,7 +34,7 @@ export const PUT = withPermission("crm:update", async (req, ctx, session, models
   return apiSuccess(client);
 });
 
-export const DELETE = withPermission("crm:delete", async (_req, ctx) => {
+export const DELETE = withPermission("crm:delete", async (_req, ctx, _session, models) => {
   const { clientId } = await ctx.params;
   const client = await models.Client.findByIdAndDelete(clientId);
   if (!client) return apiError("Client not found", 404);

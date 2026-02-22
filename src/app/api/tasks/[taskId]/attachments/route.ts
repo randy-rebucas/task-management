@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { FILE_UPLOAD } from "@/config/constants";
 
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const attachments = await models.TaskAttachment.find({ task: taskId })
     .populate("uploadedBy", "firstName lastName email")

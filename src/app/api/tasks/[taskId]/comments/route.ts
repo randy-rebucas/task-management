@@ -1,7 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createCommentSchema } from "@/features/auth/validators";
 import { triggerNotification } from "@/features/users/notification-service";
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const comments = await models.TaskComment.find({ task: taskId })
     .populate("author", "firstName lastName email avatar")
@@ -17,7 +17,7 @@ export const POST = withPermission("tasks:view", async (req, ctx, session, model
   const parsed = createCommentSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const task = await models.Task.findById(taskId);
+  const task = await models.Task.findById(taskId) as any;
   if (!task) return apiError("Task not found", 404);
 
   const comment = await models.TaskComment.create({

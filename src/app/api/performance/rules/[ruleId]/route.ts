@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateCommissionRuleSchema } from "@/features/auth/validators";
-export const PUT = withPermission("performance:manage", async (req, ctx) => {
+export const PUT = withPermission("performance:manage", async (req, ctx, _session, models) => {
   const { ruleId } = await ctx.params;
   const body = await req.json();
   const parsed = updateCommissionRuleSchema.safeParse(body);
@@ -11,7 +11,7 @@ export const PUT = withPermission("performance:manage", async (req, ctx) => {
   return apiSuccess(rule);
 });
 
-export const DELETE = withPermission("performance:manage", async (_req, ctx) => {
+export const DELETE = withPermission("performance:manage", async (_req, ctx, _session, models) => {
   const { ruleId } = await ctx.params;
   const rule = await models.CommissionRule.findByIdAndDelete(ruleId);
   if (!rule) return apiError("Commission rule not found", 404);

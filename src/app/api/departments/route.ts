@@ -1,7 +1,8 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createDepartmentSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
-export const GET = withPermission("departments:view", async () => {
+import type { IDepartment } from "@/types";
+export const GET = withPermission("departments:view", async (_req, _ctx, _session, models) => {
   const departments = await models.Department.find()
     .populate("head", "firstName lastName email")
     .populate("parentDepartment", "name code")
@@ -26,7 +27,7 @@ export const POST = withPermission("departments:create", async (req, ctx, sessio
   });
   if (existing) return apiError("Department name or code already exists", 409);
 
-  const dept = await models.Department.create(parsed.data);
+  const dept = await models.Department.create(parsed.data) as unknown as IDepartment & { _id: { toString: () => string } };
 
   await logActivity({
     actor: session.user.id,

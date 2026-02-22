@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createTimeLogSchema } from "@/features/auth/validators";
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const logs = await models.TaskTimeLog.find({ task: taskId })
     .populate("user", "firstName lastName email")
@@ -16,7 +16,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session, mod
   const parsed = createTimeLogSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
-  const task = await models.Task.findById(taskId);
+  const task = await models.Task.findById(taskId) as any;
   if (!task) return apiError("Task not found", 404);
 
   const timeLog = await models.TaskTimeLog.create({

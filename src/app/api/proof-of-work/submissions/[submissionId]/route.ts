@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { verifyProofSchema } from "@/features/auth/validators";
-export const GET = withPermission("proof_of_work:view", async (_req, ctx) => {
+export const GET = withPermission("proof_of_work:view", async (_req, ctx, _session, models) => {
   const { submissionId } = await ctx.params;
   const proof = await models.ProofOfWork.findById(submissionId)
     .populate("submittedBy", "firstName lastName avatar email")
@@ -32,7 +32,7 @@ export const PUT = withPermission("proof_of_work:manage", async (req, ctx, sessi
   return apiSuccess(proof);
 });
 
-export const DELETE = withPermission("proof_of_work:manage", async (_req, ctx) => {
+export const DELETE = withPermission("proof_of_work:manage", async (_req, ctx, _session, models) => {
   const { submissionId } = await ctx.params;
   const proof = await models.ProofOfWork.findByIdAndDelete(submissionId);
   if (!proof) return apiError("Submission not found", 404);

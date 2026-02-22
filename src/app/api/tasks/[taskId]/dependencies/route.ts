@@ -1,6 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createDependencySchema } from "@/features/auth/validators";
-export const GET = withPermission("tasks:view", async (req, ctx) => {
+export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const deps = await models.TaskDependency.find({ task: taskId })
     .populate("dependsOn", "taskNumber title status")
@@ -34,7 +34,7 @@ export const POST = withPermission("tasks:update", async (req, ctx, session, mod
   return apiSuccess(dep, 201);
 });
 
-export const DELETE = withPermission("tasks:update", async (req, ctx) => {
+export const DELETE = withPermission("tasks:update", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
   const url = new URL(req.url);
   const dependencyId = url.searchParams.get("id");
