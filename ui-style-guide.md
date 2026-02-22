@@ -1,6 +1,10 @@
 # TaskMgr UI Style Guide
 > Use this document as a prompt when upgrading or creating new pages/components.
 > Paste the relevant sections into your prompt to ensure consistent styling.
+>
+> **shadcn/ui compatible.** The dark-mode CSS variables in `globals.css` are pre-mapped
+> to the TaskMgr brand palette, so shadcn components inherit the correct colors out of the box.
+> Use `cn()` from `@/lib/utils` to layer additional Tailwind classes on top of any shadcn primitive.
 
 ---
 
@@ -106,82 +110,199 @@ Used in navbars, auth cards, and section headers:
 
 ## 5. Buttons
 
+Use the shadcn `<Button>` component. The brand gradient is applied via `className`; all other
+behaviour (disabled, focus ring, slot support) comes from the primitive.
+
 ```tsx
-{/* Primary – gradient */}
-<button className="h-11 px-8 rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+{/* Primary – gradient (replaces default variant) */}
+<Button
+  className={cn(
+    "h-11 px-8 rounded-xl",
+    "bg-gradient-to-r from-blue-500 to-violet-600",
+    "hover:opacity-90 hover:bg-none shadow-lg shadow-blue-500/20"
+  )}
+>
   Label
-</button>
+</Button>
 
 {/* Secondary – ghost border */}
-<button className="h-11 px-8 rounded-xl border border-white/15 text-white font-semibold text-sm hover:bg-white/5 transition-colors flex items-center justify-center gap-2">
+<Button
+  variant="outline"
+  className="h-11 px-8 rounded-xl border-white/15 bg-transparent hover:bg-white/5"
+>
   Label
-</button>
+</Button>
+
+{/* Destructive – uses shadcn built-in */}
+<Button variant="destructive" size="lg">Delete</Button>
+
+{/* Ghost – icon button */}
+<Button variant="ghost" size="icon">
+  <Icon className="h-4 w-4" />
+</Button>
 
 {/* Large CTA (hero / final section) */}
-<button className="h-14 px-10 rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold text-base hover:opacity-90 transition-opacity shadow-2xl shadow-blue-500/30 flex items-center gap-2">
+<Button
+  className={cn(
+    "h-14 px-10 rounded-xl text-base",
+    "bg-gradient-to-r from-blue-500 to-violet-600",
+    "hover:opacity-90 hover:bg-none",
+    "shadow-2xl shadow-blue-500/30"
+  )}
+>
   Label <ArrowRight className="h-4 w-4" />
-</button>
+</Button>
 ```
 
 ---
 
 ## 6. Cards
 
+Use shadcn `<Card>` primitives. The CSS variable `--card` is already set to `#0d1426` in dark
+mode, so `<Card>` gets the correct background for free. Layer extra classes with `cn()`.
+
 ### Feature card (grid)
 ```tsx
-<div className="group p-7 rounded-2xl border border-white/[0.08] bg-white/[0.025] hover:bg-white/[0.055] hover:border-blue-500/35 transition-all duration-300">
-  {/* Icon */}
+import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+
+<Card className={cn(
+  "group p-7 rounded-2xl",
+  "hover:bg-white/[0.055] hover:border-blue-500/35 transition-all duration-300"
+)}>
+  {/* Icon tile */}
   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-600/20 border border-blue-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
     <Icon className="h-5 w-5 text-blue-400" />
   </div>
   <h3 className="text-base font-semibold mb-2">Title</h3>
   <p className="text-white/45 text-sm leading-relaxed">Description</p>
-</div>
+</Card>
 ```
 
 ### Auth / modal card
 ```tsx
+import { Card } from "@/components/ui/card"
+
 <div className="relative w-full">
   {/* Glow halo */}
   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-600/20 rounded-3xl blur-2xl -z-10" />
-  {/* Card */}
-  <div className="relative rounded-2xl border border-white/[0.09] bg-[#0d1426]/90 backdrop-blur-sm p-8">
+  <Card className="relative rounded-2xl backdrop-blur-sm p-8">
     {/* content */}
-  </div>
+  </Card>
 </div>
 ```
 
 ### Highlight / CTA card
 ```tsx
-<div className="relative rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.08] to-violet-600/[0.08] p-14 overflow-hidden">
+import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+
+<Card className={cn(
+  "relative rounded-3xl border-blue-500/20 p-14 overflow-hidden",
+  "bg-gradient-to-br from-blue-500/[0.08] to-violet-600/[0.08]"
+)}>
   <div className="pointer-events-none absolute inset-0">
     <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-blue-600/20 rounded-full blur-3xl" />
     <div className="absolute bottom-0 right-0 w-[300px] h-[200px] bg-violet-600/15 rounded-full blur-2xl" />
   </div>
   <div className="relative">{/* content */}</div>
-</div>
+</Card>
+```
+
+### With CardHeader / CardContent / CardFooter
+```tsx
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+    <CardDescription>Supporting text</CardDescription>
+  </CardHeader>
+  <CardContent>
+    {/* body */}
+  </CardContent>
+  <CardFooter className="justify-end gap-2">
+    <Button variant="outline">Cancel</Button>
+    <Button className="bg-gradient-to-r from-blue-500 to-violet-600 hover:opacity-90 hover:bg-none">
+      Confirm
+    </Button>
+  </CardFooter>
+</Card>
 ```
 
 ---
 
 ## 7. Form Inputs
 
-```tsx
-{/* Label */}
-<label className="block text-sm font-medium text-white/65 mb-1.5">
-  Field label
-</label>
+Use shadcn `<Input>`, `<Label>`, and `<Textarea>`. The CSS variables `--input` and `--border`
+already reflect the brand values in dark mode. Layer extra Tailwind classes with `cn()` where
+the gradient focus ring is needed.
 
-{/* Input */}
-<input
-  className="w-full h-11 px-4 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.09] transition-all"
+```tsx
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
+
+{/* Label */}
+<Label className="text-white/65 text-sm font-medium">
+  Field label
+</Label>
+
+{/* Input – brand focus ring */}
+<Input
+  className={cn(
+    "h-11 rounded-xl",
+    "bg-white/[0.06] border-white/[0.10] placeholder:text-white/25",
+    "focus-visible:border-blue-500/60 focus-visible:bg-white/[0.09] focus-visible:ring-0"
+  )}
+  placeholder="placeholder text"
+/>
+
+{/* Textarea */}
+<Textarea
+  className={cn(
+    "rounded-xl",
+    "bg-white/[0.06] border-white/[0.10] placeholder:text-white/25",
+    "focus-visible:border-blue-500/60 focus-visible:bg-white/[0.09] focus-visible:ring-0"
+  )}
   placeholder="placeholder text"
 />
 
 {/* Error message */}
-<div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400 text-center">
+<p className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400 text-center">
   Error text here
-</div>
+</p>
+```
+
+### Using react-hook-form + shadcn FormField
+```tsx
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
+
+<FormField
+  control={form.control}
+  name="email"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel className="text-white/65">Email</FormLabel>
+      <FormControl>
+        <Input
+          className={cn(
+            "h-11 rounded-xl",
+            "bg-white/[0.06] border-white/[0.10] placeholder:text-white/25",
+            "focus-visible:border-blue-500/60 focus-visible:bg-white/[0.09] focus-visible:ring-0"
+          )}
+          placeholder="you@example.com"
+          {...field}
+        />
+      </FormControl>
+      <FormMessage className="text-red-400" />
+    </FormItem>
+  )}
+/>
 ```
 
 ---
@@ -306,19 +427,46 @@ Used in navbars, auth cards, and section headers:
 
 ---
 
+---
+
+## 15. shadcn CSS-Variable Map
+
+These `.dark` overrides in `globals.css` connect the shadcn token system to the TaskMgr brand.
+No extra configuration required — shadcn components in dark mode automatically inherit these.
+
+| shadcn token | Value | Tailwind equivalent |
+|---|---|---|
+| `--background` | `#080d1a` | `bg-[#080d1a]` |
+| `--card` | `#0d1426` | `bg-[#0d1426]` |
+| `--primary` | blue-500 | `bg-blue-500` |
+| `--secondary` | violet-600 | `bg-violet-600` |
+| `--muted` | white/4% | `bg-white/[0.04]` |
+| `--muted-foreground` | white/65% | `text-white/65` |
+| `--accent` | white/5.5% | `bg-white/[0.055]` |
+| `--border` | white/9% | `border-white/[0.09]` |
+| `--input` | white/10% | `border-white/[0.10]` |
+| `--ring` | blue-500/60% | `ring-blue-500/60` |
+
+> **Gradient primary** — shadcn's `bg-primary` is a flat blue-500. To get the blue→violet gradient on
+> buttons/icons, always use `bg-gradient-to-r from-blue-500 to-violet-600` via `className`.
+
+---
+
 ## Quick Prompt Template
 
 Paste this at the top of your prompt when asking for a new page or component:
 
 ```
 Apply the TaskMgr dark marketing theme from docs/ui-style-guide.md:
-- Background: #080d1a, cards: #0d1426/90 with backdrop-blur-sm
+- Background: #080d1a (--background), cards: #0d1426 (--card) — shadcn tokens auto-apply in dark mode
 - Gradient accent: from-blue-500 to-violet-600 (buttons, icons, highlights)
-- Borders: border-white/[0.09] on cards, border-white/[0.10] on inputs
-- Text hierarchy: white → white/65 → white/45 → white/35
-- Inputs: bg-white/[0.06], focus:border-blue-500/60, focus:bg-white/[0.09]
-- Buttons: rounded-xl gradient bg, shadow-lg shadow-blue-500/20, hover:opacity-90
+- Borders: border-white/[0.09] on cards (--border), border-white/[0.10] on inputs (--input)
+- Text hierarchy: white → white/65 (--muted-foreground) → white/45 → white/35
+- Inputs: use shadcn <Input> + cn() with bg-white/[0.06], focus-visible:border-blue-500/60
+- Buttons: use shadcn <Button> + cn() with gradient bg, shadow-lg shadow-blue-500/20, hover:opacity-90
+- Cards: use shadcn <Card> — inherits #0d1426 bg from --card; add hover/border classes via cn()
 - Ambient glows: blue-600/15 top-center, violet-600/10 bottom-right, indigo-600/8 left
 - Icons: gradient tile (rounded-2xl, from-blue-500 to-violet-600, shadow-xl shadow-blue-500/25)
-- Use lucide-react for all icons. No shadcn Card/Button/Input — use native HTML with Tailwind.
+- Use lucide-react for all icons. Use cn() from @/lib/utils for class merging.
+- shadcn primitives: <Button>, <Card>, <Input>, <Label>, <Textarea>, <Dialog>, <Select>, etc.
 ```

@@ -8,6 +8,18 @@ import { cn } from "@/lib/utils";
 const PLAN_KEYS = ["starter", "growth", "business"] as const;
 type PlanKey = (typeof PLAN_KEYS)[number];
 
+const PLAN_DEFAULT_PRICES: Record<PlanKey, number> = {
+  starter:  49,
+  growth:   149,
+  business: 299,
+};
+
+const PLAN_DEFAULT_LIMITS: Record<PlanKey, number> = {
+  starter:  25,
+  growth:   50,
+  business: 150,
+};
+
 const PLAN_HIGHLIGHTED: Record<PlanKey, boolean> = {
   starter: false,
   growth: true,
@@ -69,9 +81,9 @@ async function getPlansFromDb(): Promise<PlanMeta[]> {
 
   return PLAN_KEYS.map((key) => ({
     key,
-    label:    String(map[`plan_label.${key}`]  ?? key.charAt(0).toUpperCase() + key.slice(1)),
-    amount:   Number(map[`plan_price.${key}`]  ?? 0),
-    maxUsers: Number(map[`plan_limits.${key}`] ?? 0),
+    label:    String(map[`plan_label.${key}`] ?? key.charAt(0).toUpperCase() + key.slice(1)),
+    amount:   Number(map[`plan_price.${key}`]  ?? PLAN_DEFAULT_PRICES[key]),
+    maxUsers: Number(map[`plan_limits.${key}`] ?? PLAN_DEFAULT_LIMITS[key]),
   }));
 }
 
