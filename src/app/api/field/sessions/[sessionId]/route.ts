@@ -1,11 +1,11 @@
 import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import { getTenantPermissions } from "@/features/auth/rbac";
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import type { HydratedDocument } from "mongoose";
 import type { IFieldSession } from "@/types";
 export const GET = withAuth(async (req, ctx, session, models) => {
   const { sessionId } = await ctx.params;
   const perms = await getTenantPermissions(session.user.roles, models);
-  const canViewAll = perms.has("visit_logs:view_all");
+  const canViewAll = checkPermission(perms, "visit_logs:view_all");
 
   const filter: Record<string, unknown> = { _id: sessionId };
   if (!canViewAll) filter.user = session.user.id;

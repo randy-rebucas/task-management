@@ -45,11 +45,11 @@ The dashboard provides a real-time snapshot of:
 ### Reports & Analytics
 - Generate reports on tasks, team performance, and KPIs
 - Filter by date, department, or staff member
-- Export data as needed
+- Export data as **CSV**, **Excel**, or **PDF**
 
 ### Notifications
 - Receive alerts for task assignments, status changes, deadlines, and approvals
-- Manage notification preferences in Settings
+- Notification rules are configured by administrators under **Settings > Automation**
 
 ### Field Monitoring
 - Track field staff activities and sessions
@@ -69,7 +69,7 @@ The dashboard provides a real-time snapshot of:
 ## User Settings
 - Update your profile, avatar, and contact details under **Settings**
 - Change your password anytime from the profile menu
-- Configure notification preferences
+- Notification rules are managed by administrators (contact your admin to adjust alert settings)
 
 ---
 
@@ -152,7 +152,7 @@ Access to modules and actions is determined by your assigned **role**. Contact y
 | Can't log in | Check credentials; use Forgot Password if needed |
 | Page not loading | Refresh browser; clear cache; try incognito mode |
 | Permission denied | Contact your admin to review your role |
-| Notification not received | Check notification settings in **Settings > Notifications** |
+| Notification not received | Check with your administrator to confirm notification rules are configured under **Settings > Automation** |
 | Can't transition a task | You may lack the required role or approval is needed |
 | Report export failing | Try a smaller date range or contact Tech support |
 | File upload failing | Check file size (max 10MB) and file type |

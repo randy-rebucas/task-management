@@ -25,7 +25,9 @@ export const GET = withAuth(async (_req, _ctx, session, models) => {
 
   if (!user) return apiError("User not found", 404);
 
-  const permissions = await getTenantPermissions(session.user.roles, models);
+  // Use the freshly fetched user's roles (not the stale JWT roles) so that
+  // any role changes made by an admin are reflected immediately.
+  const permissions = await getTenantPermissions((user as any).roles, models);
 
   return NextResponse.json({
     ...user,

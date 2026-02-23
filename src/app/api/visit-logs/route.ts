@@ -1,6 +1,6 @@
 
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
-import { getTenantPermissions } from "@/features/auth/rbac";
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { createVisitLogSchema } from "@/features/auth/validators";
 import path from "path";
 import fs from "fs/promises";
@@ -67,7 +67,7 @@ export const GET = withPermission("visit_logs:view", async (req, ctx, session, m
   const requestedUser = url.searchParams.get("userId");
 
   const perms = await getTenantPermissions(session.user.roles, models);
-  const canViewAll = perms.has("visit_logs:view_all");
+  const canViewAll = checkPermission(perms, "visit_logs:view_all");
 
   const filter: Record<string, unknown> = {};
   if (canViewAll && requestedUser) {

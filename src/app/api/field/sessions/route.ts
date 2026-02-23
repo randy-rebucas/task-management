@@ -1,12 +1,12 @@
 import { withAuth, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
-import { getTenantPermissions } from "@/features/auth/rbac";
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 // GET /api/field/sessions - list sessions (own or all for managers)
 export const GET = withAuth(async (req, ctx, session, models) => {
   const url = new URL(req.url);
   const { page, limit, skip } = getPaginationParams(url);
 
   const perms = await getTenantPermissions(session.user.roles, models);
-  const canViewAll = perms.has("visit_logs:view_all");
+  const canViewAll = checkPermission(perms, "visit_logs:view_all");
   const userId = url.searchParams.get("userId");
   const dateStr = url.searchParams.get("date");
   const status = url.searchParams.get("status");

@@ -18,12 +18,13 @@ Permission = resource : action
 Examples:
   tasks:create
   tasks:view
-  tasks:edit
+  tasks:view_all
+  tasks:update
   tasks:delete
   users:view
   users:create
   reports:view
-  analytics:view
+  reports:export
 ```
 
 ---
@@ -80,37 +81,51 @@ If you need access to a feature not currently enabled for your role:
 
 | Permission | Description |
 |-----------|-------------|
-| `tasks:view` | View tasks |
 | `tasks:create` | Create new tasks |
-| `tasks:edit` | Edit existing tasks |
-| `tasks:delete` | Delete tasks |
-| `tasks:assign` | Assign tasks to users |
-| `users:view` | View user profiles |
+| `tasks:view` | View own/assigned tasks |
+| `tasks:view_all` | View all tasks across departments |
+| `tasks:update` | Update task details |
+| `tasks:delete` | Delete/archive tasks |
+| `tasks:assign` | Assign tasks to staff |
+| `tasks:reassign` | Reassign tasks to different staff |
+| `tasks:approve` | Approve task completion |
 | `users:create` | Create new users |
-| `users:edit` | Edit user details |
-| `users:delete` | Delete users |
-| `roles:view` | View roles |
+| `users:view` | View user profiles |
+| `users:update` | Update user details |
+| `users:delete` | Deactivate users |
+| `users:import` | Bulk import users via CSV |
 | `roles:create` | Create roles |
-| `roles:edit` | Edit roles and permissions |
-| `roles:delete` | Delete roles |
-| `reports:view` | View reports |
-| `reports:export` | Export reports |
-| `analytics:view` | View analytics dashboards |
-| `crm:view` | View CRM records |
-| `crm:create` | Create CRM leads/clients/deals |
-| `crm:edit` | Edit CRM records |
-| `crm:delete` | Delete CRM records |
-| `notifications:view` | View notifications |
-| `notifications:manage` | Manage notification rules |
-| `workflow:view` | View workflow statuses |
-| `workflow:manage` | Manage workflow transitions |
-| `field:view` | View field sessions |
-| `field:manage` | Manage field monitoring |
-| `performance:view` | View performance targets |
-| `performance:manage` | Set and manage performance KPIs |
+| `roles:view` | View roles and permissions |
+| `roles:update` | Update roles |
+| `roles:delete` | Delete custom roles |
+| `roles:clone` | Clone existing roles |
+| `departments:create` | Create departments |
 | `departments:view` | View departments |
-| `departments:manage` | Create and manage departments |
-| `activity:view` | View activity logs |
+| `departments:update` | Update departments |
+| `departments:delete` | Delete departments |
+| `workflow:configure` | Configure task statuses and transitions |
+| `reports:view` | View reports and analytics |
+| `reports:export` | Export reports to PDF/Excel/CSV |
+| `activity_logs:view` | View activity and audit logs |
+| `notifications:manage_rules` | Configure notification rules |
+| `visit_logs:create` | Submit new visit logs |
+| `visit_logs:view` | View own visit logs |
+| `visit_logs:view_all` | View all users' visit logs |
+| `visit_logs:delete` | Delete visit log entries |
+| `dashboard:admin` | Access admin dashboard |
+| `dashboard:manager` | Access manager dashboard |
+| `dashboard:staff` | Access staff dashboard |
+| `crm:view` | View CRM leads, clients, and deals |
+| `crm:create` | Create CRM leads, clients, and deals |
+| `crm:update` | Update CRM records |
+| `crm:delete` | Delete CRM records |
+| `performance:view` | View performance targets and summaries |
+| `performance:manage` | Set and manage performance targets |
+| `proof_of_work:view` | View proof of work submissions and locations |
+| `proof_of_work:submit` | Submit proof of work entries |
+| `proof_of_work:manage` | Review/delete submissions and manage locations |
+| `settings:manage` | Manage system settings and billing configuration |
+| `subscriptions:manage` | Manage account subscription (owner only) |
 
 ---
 

@@ -76,7 +76,24 @@ export function withAuth(handler: TenantHandler) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return handler(req, ctx, session as Session, result.models, result.conn);
+    // Re-fetch the user's current roles from DB on every request so that
+    // role assignment changes made by an admin take effect immediately
+    // without requiring the affected user to re-login (JWT roles are stale).
+    const freshUser = await result.models.User.findById(
+      session.user.id,
+      { roles: 1 }
+    ).lean();
+    const freshSession: Session = {
+      ...session,
+      user: {
+        ...session.user,
+        roles: ((freshUser as any)?.roles ?? session.user.roles).map(
+          (r: any) => r?.toString?.() ?? String(r)
+        ),
+      },
+    };
+
+    return handler(req, ctx, freshSession, result.models, result.conn);
   };
 }
 

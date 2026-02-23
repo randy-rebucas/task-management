@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { withPermission, withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
-import { getTenantPermissions } from "@/features/auth/rbac";
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { submitProofSchema } from "@/features/auth/validators";
 import { haversineMetres } from "@/lib/geo";
 
@@ -12,7 +12,7 @@ export const GET = withAuth(async (req, _ctx, session, models) => {
 
   // Non-managers can only view their own submissions
   const perms = await getTenantPermissions(session.user.roles, models);
-  const hasManage = perms.has("proof_of_work:manage");
+  const hasManage = checkPermission(perms, "proof_of_work:manage");
   const filter: Record<string, unknown> = {};
   if (status) filter.verificationStatus = status;
   if (taskId) filter.task = taskId;

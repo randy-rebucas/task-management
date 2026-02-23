@@ -23,7 +23,7 @@ export const GET = withAuth(async (req, ctx, session, models) => {
 
     const filter: Record<string, unknown> = { isArchived };
 
-    if (!perms.has("tasks:view_all")) {
+    if (!checkPermission(perms, "tasks:view_all")) {
       filter.$or = [
         { assignees: session.user.id },
         { createdBy: session.user.id },

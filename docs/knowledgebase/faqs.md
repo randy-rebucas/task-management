@@ -10,7 +10,7 @@ This document answers the most common questions from team members across all dep
 Go to the login page, enter your registered email and password. If you've forgotten your password, click **Forgot Password** and follow the instructions sent to your email.
 
 **Q: How do I reset my password?**
-Click **Forgot Password** on the login page, enter your email, and follow the reset link sent to your inbox. Passwords expire after 90 days.
+Click **Forgot Password** on the login page, enter your email, and follow the reset link sent to your inbox.
 
 **Q: How do I update my profile?**
 Navigate to **Settings** from the top menu, then edit your name, avatar, phone number, and job title.
@@ -52,10 +52,10 @@ The system will notify the designated approvers. The task cannot proceed until i
 ## Notifications
 
 **Q: How do I manage my notifications?**
-Go to **Settings > Notifications** to customize which events trigger alerts.
+Notification rules are configured by administrators. Contact your admin if you are not receiving expected alerts.
 
 **Q: I'm getting too many notifications. What can I do?**
-Adjust your notification preferences in **Settings > Notifications** to reduce or filter the types of alerts you receive.
+Ask your administrator to adjust the notification rules under **Settings > Automation**.
 
 ---
 
@@ -88,7 +88,7 @@ Open the lead record and use the **Convert to Client** option once the lead is q
 Go to **Reports**, select the report type and date range, apply filters if needed, and click **Generate**.
 
 **Q: Can I export reports?**
-Yes. Most reports have an **Export** option (PDF or CSV).
+Yes. Reports can be exported as **CSV**, **Excel (.xlsx)**, or **PDF** using the **Export** button.
 
 ---
 
@@ -147,7 +147,7 @@ Tasks with due dates automatically appear in the calendar based on their assigne
 The activity log records every action performed in the system — task updates, status changes, logins, and more — for audit and accountability.
 
 **Q: Who can view the activity log?**
-Administrators and Business Operations team members with the `activity:view` permission.
+Administrators and Business Operations team members with the `activity_logs:view` permission.
 
 ---
 

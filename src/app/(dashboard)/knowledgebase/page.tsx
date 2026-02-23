@@ -165,7 +165,7 @@ export default function KnowledgebasePage() {
 
       <div className="flex flex-1 gap-4 min-h-0">
         {/* Sidebar */}
-        <Card className="w-64 shrink-0 flex flex-col">
+        <Card className="w-64 shrink-0 flex flex-col overflow-hidden">
           <div className="p-3 border-b">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -177,7 +177,7 @@ export default function KnowledgebasePage() {
               />
             </div>
           </div>
-          <ScrollArea className="flex-1">
+          <ScrollArea className="h-0 flex-1">
             <div className="p-2">
               {treeLoading ? (
                 <div className="space-y-2 p-2">
@@ -230,8 +230,8 @@ export default function KnowledgebasePage() {
         </Card>
 
         {/* Content */}
-        <Card className="flex-1 min-w-0 flex flex-col">
-          <ScrollArea className="flex-1">
+        <Card className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <ScrollArea className="h-0 flex-1">
             <CardContent className="p-6">
               {loading ? (
                 <div className="space-y-4">
