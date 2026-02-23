@@ -38,7 +38,7 @@ const STATUS_LABEL: Record<string, string> = {
 export function Sidebar() {
   const pathname = usePathname();
   const { can, canAny, permissions } = usePermissions();
-  const isSuperAdmin = permissions.has("*:*") || Array.from(permissions).length > 1000;
+  const isSuperAdmin = permissions.has("*:*");
 
   const itemAllowed = (item: (typeof navItems)[number]) => {
     if (item.permissions?.length) return canAny(item.permissions);

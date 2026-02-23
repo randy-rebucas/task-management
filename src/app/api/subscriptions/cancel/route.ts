@@ -2,9 +2,9 @@ import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helper
 import { cancelPayPalSubscription } from "@/lib/paypal";
 
 export const POST = withPermission("subscriptions:manage", async (_req, _ctx, session, models) => {
-  // Only the account owner can cancel
+  // Only the account owner can cancel (staff users have an `owner` field pointing to the tenant owner)
   const currentUser = await models.User.findById(session.user.id).select("owner").lean() as any;
-  if (!currentUser?.owner) {
+  if (currentUser?.owner) {
     return apiError("Only the account owner can cancel the subscription", 403);
   }
 

@@ -95,7 +95,7 @@ function fmt(dateStr?: string) {
 export default function SubscriptionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { subscription, isLoading, isActive, isTrialing, trialDaysLeft } =
+  const { subscription, isLoading, isOwner, isActive, isTrialing, trialDaysLeft } =
     useSubscription();
   const { plans, isLoading: plansLoading, getPlan } = usePlatformPlans();
 
@@ -306,7 +306,7 @@ export default function SubscriptionPage() {
         </Card>
 
         {/* ── Change plan ── */}
-        {isActive && (
+        {isOwner && isActive && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Change plan</CardTitle>
@@ -357,7 +357,7 @@ export default function SubscriptionPage() {
         )}
 
         {/* ── Danger zone ── */}
-        {isActive && (
+        {isOwner && isActive && (
           <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle className="text-base text-destructive">Cancel subscription</CardTitle>

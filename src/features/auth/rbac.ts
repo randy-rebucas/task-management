@@ -23,6 +23,11 @@ export async function getTenantPermissions(
 
   const perms = new Set<string>();
   for (const role of populatedRoles) {
+    // Super-admin role gets a wildcard that short-circuits all permission checks
+    if ((role as any).slug === "super-admin") {
+      perms.add("*:*");
+      continue;
+    }
     for (const p of (role as any).permissions) {
       perms.add(`${p.resource}:${p.action}`);
     }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
+import { usePermissions } from "@/features/auth/use-permissions";
 import {
   Trophy, TrendingUp, DollarSign, Target, CheckCircle2, Users,
   Pencil, Save, X, Plus, Trash2, ChevronUp, ChevronDown,
@@ -75,6 +76,7 @@ function ScoreBadge({ score }: { score: number }) {
 
 export default function PerformancePage() {
   const { data: session } = useSession();
+  const { can } = usePermissions();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -412,7 +414,7 @@ export default function PerformancePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm">Monthly Targets — {MONTHS[month - 1]} {year}</CardTitle>
-                  {!editingTargets ? (
+                  {can("performance:manage") && (!editingTargets ? (
                     <Button size="sm" variant="outline" onClick={startEditTargets}>
                       <Pencil className="h-3.5 w-3.5 mr-1" /> {summary.target ? "Edit" : "Set Targets"}
                     </Button>
@@ -425,7 +427,7 @@ export default function PerformancePage() {
                         <Save className="h-3.5 w-3.5 mr-1" /> {savingTargets ? "Saving..." : "Save"}
                       </Button>
                     </div>
-                  )}
+                  ))}
                 </div>
               </CardHeader>
               <CardContent>
@@ -576,9 +578,11 @@ export default function PerformancePage() {
           <TabsContent value="rules" className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-muted-foreground">Commission Rules</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowRuleForm(!showRuleForm)}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Add Rule
-              </Button>
+              {can("performance:manage") && (
+                <Button size="sm" variant="outline" onClick={() => setShowRuleForm(!showRuleForm)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Rule
+                </Button>
+              )}
             </div>
 
             {showRuleForm && (
@@ -734,10 +738,12 @@ export default function PerformancePage() {
                           )}
                           <p className="text-xs text-muted-foreground">Created {format(new Date(rule.createdAt), "MMM d, yyyy")}</p>
                         </div>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
-                          onClick={() => deleteRule(rule._id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {can("performance:manage") && (
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
+                            onClick={() => deleteRule(rule._id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

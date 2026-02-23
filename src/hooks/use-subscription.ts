@@ -22,7 +22,8 @@ export function useSubscription() {
   );
 
   const subscription = data?.subscription ?? null;
-  const isOwner = data?.isOwner ?? true; // default true to avoid flicker hiding owner UI
+  // Default to false during loading — avoids flashing owner-only controls to staff
+  const isOwner = data ? data.isOwner : false;
 
   const isActive =
     subscription?.status === "ACTIVE" || subscription?.status === "APPROVED";

@@ -66,7 +66,11 @@ function TaskSummaryContent() {
 
   async function handleExport() {
     try {
-      const res = await fetch(`/api/reports/export?type=task-summary&days=${period}`);
+      const res = await fetch("/api/reports/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "csv" }),
+      });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -258,9 +262,11 @@ function StaffWorkloadContent() {
 
   async function handleExport() {
     try {
-      const exportParams = new URLSearchParams({ type: "staff-workload" });
-      if (department) exportParams.set("department", department);
-      const res = await fetch(`/api/reports/export?${exportParams}`);
+      const res = await fetch("/api/reports/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "csv" }),
+      });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -430,9 +436,11 @@ function OverdueTasksContent() {
 
   async function handleExport() {
     try {
-      const res = await fetch(
-        `/api/reports/export?type=overdue${priority ? `&priority=${priority}` : ""}`
-      );
+      const res = await fetch("/api/reports/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "csv" }),
+      });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
