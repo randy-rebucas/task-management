@@ -188,12 +188,22 @@ export const createCommentSchema = z.object({
 	parentComment: z.string().optional(),
 });
 
-export const createTimeLogSchema = z.object({
-	startTime: z.string().min(1, "Start time is required"),
-	endTime: z.string().optional(),
-	duration: z.number().min(0),
-	description: z.string().optional(),
-});
+export const createTimeLogSchema = z
+  .object({
+    startTime: z.string().min(1, "Start time is required"),
+    endTime: z.string().optional(),
+    duration: z.number().min(0),
+    description: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.endTime) {
+        return new Date(data.endTime) >= new Date(data.startTime);
+      }
+      return true;
+    },
+    { message: "End time must be after start time", path: ["endTime"] }
+  );
 
 export const assignTaskSchema = z.object({
 	assignees: z.array(z.string().min(1)).min(1, "At least one assignee is required"),

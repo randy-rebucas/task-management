@@ -12,12 +12,14 @@ export const POST = withPermission("reports:export", async (req, _ctx, _session,
   const { format } = parsed.data;
 
   // Fetch data based on report type
+  const EXPORT_LIMIT = 5000;
   const tasks = await models.Task.find({ isArchived: false })
     .populate("status", "name")
     .populate("assignees", "firstName lastName email")
     .populate("createdBy", "firstName lastName")
     .populate("department", "name")
     .sort({ createdAt: -1 })
+    .limit(EXPORT_LIMIT)
     .lean() as unknown as ITask[];
 
   const rows = tasks.map((t) => ({

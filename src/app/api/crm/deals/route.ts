@@ -1,5 +1,6 @@
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createDealSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
 export const GET = withPermission("crm:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { skip, limit, page } = getPaginationParams(url);
@@ -33,5 +34,15 @@ export const POST = withPermission("crm:create", async (req, _ctx, session, mode
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const deal = await models.Deal.create({ ...parsed.data, createdBy: session.user.id });
+
+  await logActivity({
+    actor: session.user.id,
+    action: "deal.created",
+    resource: "deal",
+    resourceId: (deal as any)._id.toString(),
+    details: { title: (deal as any).title },
+    req,
+  });
+
   return apiSuccess(deal, 201);
 });

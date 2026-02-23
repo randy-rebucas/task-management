@@ -1,5 +1,6 @@
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createLeadSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
 export const GET = withPermission("crm:view", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
   const { skip, limit, page } = getPaginationParams(url);
@@ -34,5 +35,15 @@ export const POST = withPermission("crm:create", async (req, _ctx, session, mode
   if (!parsed.success) return apiError(parsed.error.issues[0].message);
 
   const lead = await models.Lead.create({ ...parsed.data, createdBy: session.user.id });
+
+  await logActivity({
+    actor: session.user.id,
+    action: "lead.created",
+    resource: "lead",
+    resourceId: (lead as any)._id.toString(),
+    details: { name: (lead as any).name },
+    req,
+  });
+
   return apiSuccess(lead, 201);
 });

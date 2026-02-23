@@ -25,7 +25,7 @@ function calcScore(a: number, c: number, o: number, v: number, l: number, period
   ));
 }
 
-export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _session, models) => {
+export const GET = withPermission("reports:view", async (req, _ctx, _session, models) => {
   const period = new URL(req.url).searchParams.get("period") || "week";
   const { start, end } = getPeriodRange(period);
   const now = new Date();

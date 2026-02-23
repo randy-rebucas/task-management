@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateLeadSchema } from "@/features/auth/validators";
 import { triggerNotification } from "@/features/users/notification-service";
+import { logActivity } from "@/features/users/activity-logger";
 import type { ILead } from "@/types";
 
 export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
@@ -34,9 +35,22 @@ export const PUT = withPermission("crm:update", async (req, ctx, session, models
   return apiSuccess(lead);
 });
 
-export const DELETE = withPermission("crm:delete", async (_req, ctx, _session, models) => {
+export const DELETE = withPermission("crm:delete", async (_req, ctx, session, models) => {
   const { leadId } = await ctx.params;
   const lead = await models.Lead.findByIdAndDelete(leadId);
   if (!lead) return apiError("Lead not found", 404);
+
+  // Cascade: clear dangling lead reference from linked tasks
+  await models.Task.updateMany({ lead: leadId }, { $unset: { lead: 1 } });
+
+  await logActivity({
+    actor: session.user.id,
+    action: "lead.deleted",
+    resource: "lead",
+    resourceId: leadId,
+    details: { name: (lead as any).name },
+    req: _req,
+  });
+
   return apiSuccess({ message: "Lead deleted" });
 });

@@ -1,6 +1,7 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateClientSchema } from "@/features/auth/validators";
 import { triggerNotification } from "@/features/users/notification-service";
+import { logActivity } from "@/features/users/activity-logger";
 import type { IClient } from "@/types";
 
 export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
@@ -34,9 +35,22 @@ export const PUT = withPermission("crm:update", async (req, ctx, session, models
   return apiSuccess(client);
 });
 
-export const DELETE = withPermission("crm:delete", async (_req, ctx, _session, models) => {
+export const DELETE = withPermission("crm:delete", async (_req, ctx, session, models) => {
   const { clientId } = await ctx.params;
   const client = await models.Client.findByIdAndDelete(clientId);
   if (!client) return apiError("Client not found", 404);
+
+  // Cascade: clear dangling client reference from linked tasks
+  await models.Task.updateMany({ client: clientId }, { $unset: { client: 1 } });
+
+  await logActivity({
+    actor: session.user.id,
+    action: "client.deleted",
+    resource: "client",
+    resourceId: clientId,
+    details: { name: (client as any).name },
+    req: _req,
+  });
+
   return apiSuccess({ message: "Client deleted" });
 });

@@ -1,5 +1,6 @@
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { updateDealSchema } from "@/features/auth/validators";
+import { logActivity } from "@/features/users/activity-logger";
 export const GET = withPermission("crm:view", async (_req, ctx, _session, models) => {
   const { dealId } = await ctx.params;
   const [deal, tasks] = await Promise.all([
@@ -30,9 +31,22 @@ export const PUT = withPermission("crm:update", async (req, ctx, _session, model
   return apiSuccess(deal);
 });
 
-export const DELETE = withPermission("crm:delete", async (_req, ctx, _session, models) => {
+export const DELETE = withPermission("crm:delete", async (_req, ctx, session, models) => {
   const { dealId } = await ctx.params;
   const deal = await models.Deal.findByIdAndDelete(dealId);
   if (!deal) return apiError("Deal not found", 404);
+
+  // Cascade: clear dangling deal reference from linked tasks
+  await models.Task.updateMany({ deal: dealId }, { $unset: { deal: 1 } });
+
+  await logActivity({
+    actor: session.user.id,
+    action: "deal.deleted",
+    resource: "deal",
+    resourceId: dealId,
+    details: { title: (deal as any).title },
+    req: _req,
+  });
+
   return apiSuccess({ message: "Deal deleted" });
 });
