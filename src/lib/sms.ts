@@ -4,6 +4,9 @@
  * or admin settings panel) with env var fallbacks.
  */
 import { getPlatformConfig } from "@/lib/platform-config";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "sms" });
 
 export async function sendSms(params: {
   to: string;
@@ -12,7 +15,7 @@ export async function sendSms(params: {
   const { sms } = await getPlatformConfig();
 
   if (!sms.accountSid || !sms.authToken || !sms.fromNumber) {
-    console.warn("[sms] Twilio not configured. Skipping SMS send.");
+    log.warn("Twilio not configured — skipping SMS send");
     return { success: false, error: "SMS not configured" };
   }
 
@@ -36,14 +39,14 @@ export async function sendSms(params: {
     const data = (await res.json()) as { sid?: string; message?: string; code?: number };
 
     if (!res.ok) {
-      console.error("[sms] Twilio error:", data);
+      log.error({ data }, "Twilio API error");
       return { success: false, error: data.message ?? `HTTP ${res.status}` };
     }
 
     return { success: true, sid: data.sid };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[sms] Send failed:", message);
+    log.error({ err }, "SMS send failed");
     return { success: false, error: message };
   }
 }

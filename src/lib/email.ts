@@ -1,5 +1,8 @@
 import nodemailer from "nodemailer";
 import { getPlatformConfig } from "@/lib/platform-config";
+import { logger } from "@/lib/logger";
+
+const log = logger.child({ module: "email" });
 
 /**
  * Send an email using SMTP credentials loaded from the platform DB
@@ -14,7 +17,7 @@ export async function sendEmail(params: {
   const { smtp } = await getPlatformConfig();
 
   if (!smtp.user || !smtp.password) {
-    console.warn("[email] SMTP not configured. Skipping email send.");
+    log.warn("SMTP not configured — skipping email send");
     return;
   }
 

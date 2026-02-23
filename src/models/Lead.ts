@@ -35,6 +35,10 @@ LeadSchema.index({ source: 1 });
 LeadSchema.index({ assignedTo: 1 });
 LeadSchema.index({ createdBy: 1 });
 LeadSchema.index({ name: "text", company: "text", email: "text" });
+// Composite indexes for list queries
+LeadSchema.index({ status: 1, createdAt: -1 });       // filtered + sorted lists
+LeadSchema.index({ assignedTo: 1, createdAt: -1 });   // my-leads view
+LeadSchema.index({ followUpDate: 1 });                // follow-up reminders
 
 const Lead: Model<ILead> =
   mongoose.models.Lead || mongoose.model<ILead>("Lead", LeadSchema);

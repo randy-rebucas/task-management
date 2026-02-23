@@ -2,6 +2,9 @@ import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
 import type { ILead } from "@/types";
 import mongoose from "mongoose";
 
+// Analytics aggregates change infrequently — cache for 5 minutes
+const CACHE = "s-maxage=300, stale-while-revalidate=60";
+
 type LeanLead = Pick<ILead, "industry" | "source"> & { _id: mongoose.Types.ObjectId };
 
 export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
@@ -11,12 +14,14 @@ export const GET = withPermission("reports:view", async (_req, _ctx, _session, m
     .lean() as unknown as LeanLead[];
 
   if (convertedLeads.length === 0) {
-    return apiSuccess({
+    const res = apiSuccess({
       avgVisitsToClose: 0,
       bySource: [],
       distribution: [],
       totalConverted: 0,
     });
+    res.headers.set("Cache-Control", CACHE);
+    return res;
   }
 
   const convertedLeadIds = convertedLeads.map((l) => l._id);
@@ -73,10 +78,12 @@ export const GET = withPermission("reports:view", async (_req, _ctx, _session, m
     count: distMap.get(v) ?? 0,
   }));
 
-  return apiSuccess({
+  const res = apiSuccess({
     avgVisitsToClose,
     bySource,
     distribution,
     totalConverted: perLead.length,
   });
+  res.headers.set("Cache-Control", CACHE);
+  return res;
 });

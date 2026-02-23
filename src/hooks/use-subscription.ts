@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
 
 export interface SubscriptionInfo {
   id: string;
@@ -15,11 +15,12 @@ export interface SubscriptionInfo {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function useSubscription() {
-  const { data, isLoading } = useSWR<{ subscription: SubscriptionInfo | null; isOwner: boolean }>(
-    "/api/subscriptions/status",
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
-  );
+  const { data, isLoading } = useQuery<{ subscription: SubscriptionInfo | null; isOwner: boolean }>({
+    queryKey: ["/api/subscriptions/status"],
+    queryFn: () => fetcher("/api/subscriptions/status"),
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
 
   const subscription = data?.subscription ?? null;
   // Default to false during loading — avoids flashing owner-only controls to staff

@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 import { StatCard } from "./stat-card";
 import { Users, CheckSquare, AlertTriangle, Activity, LineChart } from "lucide-react";

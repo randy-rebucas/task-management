@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, use } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {

@@ -12,6 +12,18 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      // ── API versioning ──────────────────────────────────────────────────
+      // /api/v1/* transparently maps to the current /api/* routes.
+      // When a v2 is introduced, add a new rewrite block before this one.
+      {
+        source: "/api/v1/:path*",
+        destination: "/api/:path*",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

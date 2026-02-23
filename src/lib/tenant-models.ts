@@ -38,6 +38,7 @@ import "@/models/TaskDependency";
 import "@/models/TaskTimeLog";
 import "@/models/User";
 import "@/models/VisitLog";
+import "@/models/WebhookDelivery";
 import "@/models/WorkflowStatus";
 import "@/models/WorkflowTransition";
 
@@ -83,6 +84,7 @@ export function getTenantModels(conn: Connection) {
     TaskTimeLog:      m("TaskTimeLog"),
     User:             m<IUser>("User"),
     VisitLog:         m("VisitLog"),
+    WebhookDelivery:  m("WebhookDelivery"),
     WorkflowStatus:   m("WorkflowStatus"),
     WorkflowTransition: m("WorkflowTransition"),
   };

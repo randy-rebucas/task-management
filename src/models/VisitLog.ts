@@ -11,6 +11,10 @@ const VisitLogSchema = new Schema<IVisitLog>({
   photos: [{ type: String }], // store file paths or URLs
 }, { timestamps: true });
 
+// Performance indexes
+VisitLogSchema.index({ user: 1, createdAt: -1 }); // user-scoped pagination
+VisitLogSchema.index({ createdAt: -1 });            // global recent-first listing
+
 const VisitLog: Model<IVisitLog> = mongoose.models.VisitLog || mongoose.model<IVisitLog>("VisitLog", VisitLogSchema);
 
 export default VisitLog;

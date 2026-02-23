@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import { X, Camera, Pen, CheckCircle, MapPin, Upload, Trash2 } from "lucide-react";
 import SignaturePad, { SignaturePadRef } from "./signature-pad";
 

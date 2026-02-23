@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 import { usePermissions } from "@/features/auth/use-permissions";
 import { PageHeader } from "@/components/shared/page-header";

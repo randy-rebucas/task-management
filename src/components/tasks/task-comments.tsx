@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR from "@/lib/swr-compat";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function TaskComments({ taskId }: { taskId: string }) {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const { data: comments, isLoading } = useSWR(
     `/api/tasks/${taskId}/comments`,
     fetcher
@@ -36,7 +38,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
 
       if (res.ok) {
         setContent("");
-        mutate(`/api/tasks/${taskId}/comments`);
+        void queryClient.invalidateQueries({ queryKey: [`/api/tasks/${taskId}/comments`] });
       } else {
         const data = await res.json();
         toast.error(data.error || "Failed to add comment");

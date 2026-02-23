@@ -1,11 +1,14 @@
 import "@/models/Role";
 import "@/models/LoginHistory";
+import { logger } from "@/lib/logger";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { getTenantConnection } from "@/lib/tenant-db";
 import { getTenantModels } from "@/lib/tenant-models";
 import { getPlatformDb } from "@/lib/platform-db";
 import getTenantModel from "@/models/platform/Tenant";
+
+const log = logger.child({ module: "auth" });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -38,7 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (!tenantSlug) {
-          console.error("[auth] No tenantSlug found during authorize");
+          log.error("No tenantSlug found during authorize");
           return null;
         }
 
@@ -51,7 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }).lean();
 
         if (!tenant) {
-          console.error(`[auth] Tenant "${tenantSlug}" not found or inactive`);
+          log.error({ tenantSlug }, "Tenant not found or inactive");
           return null;
         }
 

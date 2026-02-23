@@ -2,16 +2,13 @@
 import { withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { createVisitLogSchema } from "@/features/auth/validators";
-import path from "path";
-import fs from "fs/promises";
 import crypto from "crypto";
+import { uploadFile, deleteFile } from "@/lib/storage";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 
-async function cleanupFiles(paths: string[]) {
-  await Promise.all(
-    paths.map((p) => fs.unlink(path.join(process.cwd(), "public", p)).catch(() => {}))
-  );
+async function cleanupFiles(fileUrls: string[]) {
+  await Promise.all(fileUrls.map((url) => deleteFile(url).catch(() => {})));
 }
 
 export const POST = withPermission("visit_logs:create", async (req, ctx, session, models) => {
@@ -34,11 +31,8 @@ export const POST = withPermission("visit_logs:create", async (req, ctx, session
         const ext = file.type.split("/")[1];
         const filename = `${crypto.randomUUID()}.${ext}`;
         const buffer = Buffer.from(await file.arrayBuffer());
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "visit-logs");
-        await fs.mkdir(uploadDir, { recursive: true });
-        const filePath = path.join(uploadDir, filename);
-        await fs.writeFile(filePath, buffer);
-        savedFiles.push(`/uploads/visit-logs/${filename}`);
+        const { fileUrl } = await uploadFile("visit-logs", filename, buffer);
+        savedFiles.push(fileUrl);
       }
     }
     const parsed = createVisitLogSchema.safeParse({ ...fields, photos: savedFiles });

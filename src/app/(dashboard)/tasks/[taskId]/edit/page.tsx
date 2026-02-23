@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import { TaskForm } from "@/components/tasks/task-form";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";

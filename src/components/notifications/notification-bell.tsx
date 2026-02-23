@@ -2,7 +2,7 @@
 
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());

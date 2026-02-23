@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import { StatCard } from "./stat-card";
 import { CheckSquare, AlertTriangle, Clock, Trophy, TrendingUp, Target, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

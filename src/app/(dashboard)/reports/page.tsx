@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
@@ -26,8 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BarChart3, Users, AlertTriangle, Download } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { BarChart3, Users, AlertTriangle, Download, Clock } from "lucide-react";
+import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +53,12 @@ const TABS = [
     title: "Overdue Tasks",
     description: "Overdue tasks & delays",
     icon: AlertTriangle,
+  },
+  {
+    id: "timesheet",
+    title: "Timesheet",
+    description: "Time logged per staff member",
+    icon: Clock,
   },
 ] as const;
 
@@ -616,6 +622,105 @@ function OverdueTasksContent() {
   );
 }
 
+// ─── Timesheet content ────────────────────────────────────────────────────────
+
+function fmtHours(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function TimesheetContent() {
+  const [days, setDays] = useState("30");
+  const { data, isLoading } = useSWR(`/api/reports/timesheet?days=${days}`, fetcher);
+
+  const summary: Array<{
+    user: { _id: string; firstName: string; lastName: string; email: string };
+    totalMinutes: number;
+    daysWorked: number;
+  }> = data?.data?.summary ?? [];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Period:</span>
+          <Select value={days} onValueChange={setDays}>
+            <SelectTrigger className="h-8 w-36 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="14">Last 14 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button size="sm" variant="outline" asChild>
+          <Link href="/reports/timesheet">
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Full Report &amp; Export
+          </Link>
+        </Button>
+      </div>
+
+      {isLoading && <LoadingSkeleton />}
+
+      {!isLoading && summary.length === 0 && (
+        <EmptyState
+          icon={<Clock className="h-12 w-12" />}
+          title="No time logs found"
+          description={`No time entries were recorded in the last ${days} days.`}
+        />
+      )}
+
+      {!isLoading && summary.length > 0 && (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Staff Member</TableHead>
+                  <TableHead className="text-right">Days Logged</TableHead>
+                  <TableHead className="text-right">Total Time</TableHead>
+                  <TableHead className="text-right">Avg / Day</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.map((s) => (
+                  <TableRow key={String(s.user._id)}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback className="text-xs">
+                            {(s.user.firstName?.[0] ?? "") + (s.user.lastName?.[0] ?? "")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">{s.user.firstName} {s.user.lastName}</p>
+                          <p className="text-xs text-muted-foreground">{s.user.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{s.daysWorked}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {fmtHours(s.totalMinutes)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground text-sm">
+                      {fmtHours(Math.round(s.totalMinutes / s.daysWorked))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ─── Page shell ───────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
@@ -682,9 +787,10 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground">{active.description}</p>
           </div>
 
-          {activeTab === "tasks"   && <TaskSummaryContent />}
-          {activeTab === "staff"   && <StaffWorkloadContent />}
-          {activeTab === "overdue" && <OverdueTasksContent />}
+          {activeTab === "tasks"      && <TaskSummaryContent />}
+          {activeTab === "staff"      && <StaffWorkloadContent />}
+          {activeTab === "overdue"    && <OverdueTasksContent />}
+          {activeTab === "timesheet"  && <TimesheetContent />}
         </div>
       </div>
     </div>

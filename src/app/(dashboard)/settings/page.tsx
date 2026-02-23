@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Bell, Settings, Zap, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/features/auth/use-permissions";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

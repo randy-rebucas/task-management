@@ -1,8 +1,7 @@
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { uploadFile } from "@/lib/storage";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -32,14 +31,10 @@ export async function POST(req: NextRequest) {
 
     const ext = file.type.split("/")[1];
     const fileName = `${randomUUID()}.${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "field");
-    await mkdir(uploadDir, { recursive: true });
-    const filePath = path.join(uploadDir, fileName);
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
+    const { fileUrl } = await uploadFile("field", fileName, buffer);
 
-    return NextResponse.json({ url: `/uploads/field/${fileName}` }, { status: 201 });
+    return NextResponse.json({ url: fileUrl }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/field/photos]", err);
     return NextResponse.json({ error: "Failed to upload photo" }, { status: 500 });

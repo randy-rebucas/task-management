@@ -1,4 +1,7 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
+
+// Analytics aggregates change infrequently — cache for 5 minutes
+const CACHE = "s-maxage=300, stale-while-revalidate=60";
 const STAGE_ORDER = [
   "prospect",
   "contacted",
@@ -50,10 +53,12 @@ export const GET = withPermission("reports:view", async (_req, _ctx, _session, m
   const totalPipelineValue = rows.reduce((s, r) => s + r.totalValue, 0);
   const totalOpenDeals = rows.reduce((s, r) => s + r.count, 0);
 
-  return apiSuccess({
+  const res = apiSuccess({
     rows,
     hasStaleStage,
     totalPipelineValue,
     totalOpenDeals,
   });
+  res.headers.set("Cache-Control", CACHE);
+  return res;
 });

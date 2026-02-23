@@ -11,8 +11,11 @@
  * without requiring a server restart.
  */
 
+import { logger } from "@/lib/logger";
 import { getPlatformDb } from "@/lib/platform-db";
 import { getPlatformSettingModel } from "@/models/platform/PlatformSetting";
+
+const log = logger.child({ module: "platform-config" });
 
 // ── Cache ──────────────────────────────────────────────────────────────────────
 
@@ -108,7 +111,7 @@ export async function getPlatformConfig(): Promise<PlatformConfig> {
     const rows = await Setting.find({}).lean() as { key: string; value: unknown }[];
     for (const r of rows) map.set(r.key, r.value);
   } catch (err) {
-    console.warn("[platform-config] Could not load settings from DB, using env var fallbacks:", err);
+    log.warn({ err }, "Could not load settings from DB, using env var fallbacks");
   }
 
   const config: PlatformConfig = {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { mutate } from "swr";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Zap,
   CheckCircle,
@@ -98,6 +98,7 @@ export default function SubscriptionPage() {
   const { subscription, isLoading, isOwner, isActive, isTrialing, trialDaysLeft } =
     useSubscription();
   const { plans, isLoading: plansLoading, getPlan } = usePlatformPlans();
+  const queryClient = useQueryClient();
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -106,7 +107,7 @@ export default function SubscriptionPage() {
   useEffect(() => {
     if (searchParams.get("subscribed") === "1") {
       toast.success("Subscription activated! Welcome aboard 🎉");
-      mutate("/api/subscriptions/status");
+      void queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/status"] });
       // Clean URL without reloading
       const url = new URL(window.location.href);
       url.searchParams.delete("subscribed");
@@ -123,7 +124,7 @@ export default function SubscriptionPage() {
         throw new Error(d.error ?? "Cancellation failed");
       }
       toast.success("Subscription cancelled. Access continues until the end of the current period.");
-      mutate("/api/subscriptions/status");
+      void queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/status"] });
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");

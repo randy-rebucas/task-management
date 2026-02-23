@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useSWR, { mutate as globalMutate } from "swr";
+import useSWR from "@/lib/swr-compat";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   User,
@@ -62,6 +63,7 @@ function fmt(dateStr?: string) {
 
 export default function ProfilePage() {
   const { data: user, isLoading, mutate } = useSWR<MeUser>("/api/users/me", fetcher);
+  const queryClient = useQueryClient();
 
   /* profile form */
   const [profile, setProfile] = useState({
@@ -110,7 +112,7 @@ export default function ProfilePage() {
       }
       toast.success("Profile updated");
       mutate();
-      globalMutate("/api/users/me");
+      void queryClient.invalidateQueries({ queryKey: ["/api/users/me"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {

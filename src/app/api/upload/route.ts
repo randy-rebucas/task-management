@@ -1,10 +1,10 @@
-import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { FILE_UPLOAD } from "@/config/constants";
+import { uploadFile } from "@/lib/storage";
 
-export const POST = withAuth(async (req, _ctx, _session, models) => {
+export const POST = withAuth(async (req, _ctx, _session, _models) => {
   const formData = await req.formData();
   const file = formData.get("file") as File;
 
@@ -20,15 +20,12 @@ export const POST = withAuth(async (req, _ctx, _session, models) => {
 
   const ext = path.extname(file.name);
   const fileName = `${uuidv4()}${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
-  const filePath = path.join(uploadDir, fileName);
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+
+  const { fileUrl } = await uploadFile("general", fileName, buffer);
 
   return apiSuccess({
-    url: `/uploads/${fileName}`,
+    url: fileUrl,
     fileName: file.name,
     fileSize: file.size,
     mimeType: file.type,

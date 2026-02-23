@@ -83,6 +83,9 @@ TaskSchema.index({ title: "text", description: "text" });
 TaskSchema.index({ lead: 1 });
 TaskSchema.index({ client: 1 });
 TaskSchema.index({ deal: 1 });
+// Additional composite indexes
+TaskSchema.index({ isArchived: 1, dueDate: 1 });      // overdue-task reports
+TaskSchema.index({ department: 1, status: 1 });       // department-scoped dashboards
 
 const Task: Model<ITask> =
   mongoose.models.Task || mongoose.model<ITask>("Task", TaskSchema);

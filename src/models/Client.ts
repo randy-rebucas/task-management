@@ -27,6 +27,9 @@ ClientSchema.index({ status: 1 });
 ClientSchema.index({ assignedTo: 1 });
 ClientSchema.index({ createdBy: 1 });
 ClientSchema.index({ name: "text", company: "text", email: "text" });
+// Composite indexes for list queries
+ClientSchema.index({ status: 1, createdAt: -1 });     // filtered + sorted lists
+ClientSchema.index({ assignedTo: 1, createdAt: -1 }); // my-clients view
 
 const Client: Model<IClient> =
   mongoose.models.Client || mongoose.model<IClient>("Client", ClientSchema);

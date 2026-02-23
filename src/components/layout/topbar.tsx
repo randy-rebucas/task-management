@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { MobileNav } from "./mobile-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { GlobalSearch } from "@/components/shared/global-search";
 import { useSubscription } from "@/hooks/use-subscription";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -85,6 +86,8 @@ export function Topbar() {
             ) : null}
           </>
         )}
+
+        <GlobalSearch />
 
         <NotificationBell />
 

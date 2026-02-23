@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import {
   DndContext,
   type DragEndEvent,
@@ -16,7 +16,7 @@ import {
   subMonths, subWeeks, subDays,
   format, parseISO, differenceInDays, isToday, isPast,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw, Filter, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw, Filter, AlertCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -224,15 +224,44 @@ export default function CalendarPage() {
     }
   };
 
+  async function handleIcsExport() {
+    try {
+      const params = new URLSearchParams({
+        from: format(start, "yyyy-MM-dd"),
+        to:   format(end,   "yyyy-MM-dd"),
+      });
+      const res = await fetch(`/api/calendar/export?${params}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? "Export failed");
+      }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = "my-tasks.ics";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to export calendar");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Calendar"
         description="Visualize and reschedule tasks across time"
         action={
-          <Button asChild size="sm">
-            <Link href="/tasks/new">+ New Task</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleIcsExport}>
+              <Download className="mr-1.5 h-3.5 w-3.5" />
+              Export .ics
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/tasks/new">+ New Task</Link>
+            </Button>
+          </div>
         }
       />
 

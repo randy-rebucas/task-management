@@ -1,19 +1,21 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function usePermissions() {
   const { data: session, status } = useSession();
   // Only fetch if session is loaded and user is present
-  const shouldFetch = status === "authenticated" && session?.user?.id;
-  const { data, isLoading: swrLoading } = useSWR(
-    shouldFetch ? "/api/users/me" : null,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000 }
-  );
+  const shouldFetch = status === "authenticated" && !!session?.user?.id;
+  const { data, isLoading: swrLoading } = useQuery<{ permissions?: string[] }>({
+    queryKey: ["/api/users/me"],
+    queryFn: () => fetcher("/api/users/me"),
+    enabled: shouldFetch,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
   const permissions: Set<string> = new Set(data?.permissions || []);
 
   return {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import useSWR, { mutate as globalMutate } from "swr";
+import useSWR from "@/lib/swr-compat";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -104,6 +105,7 @@ function StatusBadge({ status }: { status: VerificationStatus }) {
 export default function ProofOfWorkPage() {
   const { data: session } = useSession();
   const { can } = usePermissions();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState(0);
   const [submitModal, setSubmitModal] = useState<{ open: boolean; taskId: string }>({
     open: false,
@@ -574,7 +576,7 @@ export default function ProofOfWorkPage() {
         onClose={() => setSubmitModal({ open: false, taskId: "" })}
         onSubmitted={() => {
           mutateMySubmissions();
-          globalMutate(allSubmissionsUrl);
+          void queryClient.invalidateQueries({ queryKey: [allSubmissionsUrl] });
         }}
       />
     </div>

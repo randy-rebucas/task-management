@@ -7,7 +7,10 @@
  *   if (!client) { // AI not configured }
  *   const msg = await client.messages.create(...)
  */
+import { logger } from "@/lib/logger";
 import { getPlatformConfig } from "@/lib/platform-config";
+
+const log = logger.child({ module: "ai" });
 
 /**
  * Returns the Anthropic API key from the platform DB or env var.
@@ -26,7 +29,7 @@ export async function getAnthropicApiKey(): Promise<string> {
 export async function getAnthropicClient() {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) {
-    console.warn("[ai] Anthropic API key not configured.");
+    log.warn("Anthropic API key not configured — AI summary disabled");
     return null;
   }
 
@@ -34,7 +37,7 @@ export async function getAnthropicClient() {
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     return new Anthropic({ apiKey });
   } catch {
-    console.error("[ai] @anthropic-ai/sdk is not installed. Run: pnpm add @anthropic-ai/sdk");
+    log.error("@anthropic-ai/sdk not installed — run: pnpm add @anthropic-ai/sdk");
     return null;
   }
 }

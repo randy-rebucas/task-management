@@ -1,4 +1,7 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
+
+// Analytics aggregates change infrequently — cache for 5 minutes
+const CACHE = "s-maxage=300, stale-while-revalidate=60";
 import type { IUser } from "@/types";
 import mongoose from "mongoose";
 
@@ -110,5 +113,7 @@ export const GET = withPermission("reports:view", async (_req, _ctx, _session, m
     }))
     .sort((a, b) => b.efficiencyScore - a.efficiencyScore);
 
-  return apiSuccess(result);
+  const res = apiSuccess(result);
+  res.headers.set("Cache-Control", CACHE);
+  return res;
 });

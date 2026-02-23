@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import { useSession } from "next-auth/react";
 import { usePermissions } from "@/features/auth/use-permissions";
 import {

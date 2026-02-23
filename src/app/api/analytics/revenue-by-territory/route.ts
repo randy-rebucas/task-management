@@ -1,4 +1,7 @@
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
+
+// Analytics aggregates change infrequently — cache for 5 minutes
+const CACHE = "s-maxage=300, stale-while-revalidate=60";
 export const GET = withPermission("reports:view", async (_req, _ctx, _session, models) => {
   const rows = await models.Deal.aggregate([
     { $match: { stage: "closed_won" } },
@@ -46,5 +49,7 @@ export const GET = withPermission("reports:view", async (_req, _ctx, _session, m
   const overallAvgDeal =
     totalDeals > 0 ? Math.round(totalRevenue / totalDeals) : 0;
 
-  return apiSuccess({ rows, totalRevenue, topTerritory, totalDeals, overallAvgDeal });
+  const res = apiSuccess({ rows, totalRevenue, topTerritory, totalDeals, overallAvgDeal });
+  res.headers.set("Cache-Control", CACHE);
+  return res;
 });

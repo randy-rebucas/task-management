@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";

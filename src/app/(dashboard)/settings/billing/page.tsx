@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { mutate } from "swr";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -45,6 +45,7 @@ const PLAN_LABELS: Record<string, string> = {
 
 export default function BillingPage() {
   const { subscription, isLoading, isOwner, isActive, isTrialing, trialDaysLeft } = useSubscription();
+  const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
 
@@ -57,7 +58,7 @@ export default function BillingPage() {
         throw new Error(d.error ?? "Failed to cancel");
       }
       toast.success("Subscription cancelled successfully");
-      mutate("/api/subscriptions/status");
+      void queryClient.invalidateQueries({ queryKey: ["/api/subscriptions/status"] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to cancel subscription");
     } finally {

@@ -1,6 +1,6 @@
 "use client";
 import { use } from "react";
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

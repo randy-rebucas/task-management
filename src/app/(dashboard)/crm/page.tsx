@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR from "@/lib/swr-compat";
 import Link from "next/link";
 import { Users, TrendingUp, Briefcase, UserPlus, KanbanSquare, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
