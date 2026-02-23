@@ -114,7 +114,7 @@ export function Topbar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
               className="flex items-center gap-2 text-destructive"
             >
               <LogOut className="h-4 w-4" />
