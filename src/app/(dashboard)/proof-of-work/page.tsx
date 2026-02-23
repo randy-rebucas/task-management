@@ -15,6 +15,7 @@ import {
   Trash2,
   Edit,
   PrinterIcon,
+  Link,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useSession } from "next-auth/react";
@@ -45,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/shared/page-header";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((d) => d.data);
 
@@ -170,15 +172,15 @@ export default function ProofOfWorkPage() {
       };
       const res = editLocation
         ? await fetch(`/api/proof-of-work/locations/${editLocation._id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
         : await fetch("/api/proof-of-work/locations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to save location");
@@ -223,29 +225,26 @@ export default function ProofOfWorkPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="h-7 w-7 text-blue-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Proof of Work</h1>
-            <p className="text-sm text-muted-foreground">Visit verification and field documentation</p>
+      <PageHeader
+        title="Proof of Work"
+        description="Visit verification and field documentation"
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/proof-of-work/scan">
+                <QrCode className="h-4 w-4" />
+                Scan QR
+              </a>
+            </Button>
+            <Button size="sm" onClick={() => setSubmitModal({ open: true, taskId: "" })}>
+              <Plus className="h-4 w-4" />
+              Submit Proof
+            </Button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <a href="/proof-of-work/scan">
-              <QrCode className="h-4 w-4" />
-              Scan QR
-            </a>
-          </Button>
-          <Button size="sm" onClick={() => setSubmitModal({ open: true, taskId: "" })}>
-            <Plus className="h-4 w-4" />
-            Submit Proof
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs */}
       <Tabs value={String(tab)} onValueChange={(v) => setTab(Number(v))}>

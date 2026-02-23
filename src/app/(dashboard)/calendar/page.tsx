@@ -225,7 +225,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title="Calendar"
         description="Visualize and reschedule tasks across time"

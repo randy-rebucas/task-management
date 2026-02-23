@@ -34,6 +34,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { PageHeader } from "@/components/shared/page-header";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -68,9 +69,9 @@ function AchievementBar({ label, actual, target, format: fmt = (n: number) => St
 function ScoreBadge({ score }: { score: number }) {
   const color =
     score >= 80 ? "bg-green-100 text-green-800" :
-    score >= 60 ? "bg-blue-100 text-blue-800" :
-    score >= 40 ? "bg-yellow-100 text-yellow-800" :
-    "bg-red-100 text-red-800";
+      score >= 60 ? "bg-blue-100 text-blue-800" :
+        score >= 40 ? "bg-yellow-100 text-yellow-800" :
+          "bg-red-100 text-red-800";
   return <Badge className={`text-sm px-2 py-0.5 ${color}`}>{score}/100</Badge>;
 }
 
@@ -173,39 +174,39 @@ export default function PerformancePage() {
   const trendData = summary?.monthlyTrend ?? [];
 
   return (
-    <div className="p-6 space-y-4">
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          <h1 className="text-xl font-bold">Performance & Incentives</h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v))}>
-            <SelectTrigger className="w-36 h-8 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {MONTHS.map((m, i) => (
-                <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))}>
-            <SelectTrigger className="w-24 h-8 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={userId || "self"} onValueChange={(v) => setUserId(v === "self" ? "" : v)}>
-            <SelectTrigger className="w-44 h-8 text-sm"><SelectValue placeholder="Select user" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="self">My Performance</SelectItem>
-              {users.map((u: { _id: string; firstName: string; lastName: string }) => (
-                <SelectItem key={u._id} value={u._id}>{u.firstName} {u.lastName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <PageHeader
+        title="Performance & Incentives"
+        description="Track and manage performance metrics and incentives for you and your team."
+        action={
+          <div className="flex gap-2">
+            <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v))}>
+              <SelectTrigger className="w-36 h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))}>
+              <SelectTrigger className="w-24 h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={userId || "self"} onValueChange={(v) => setUserId(v === "self" ? "" : v)}>
+              <SelectTrigger className="w-44 h-8 text-sm"><SelectValue placeholder="Select user" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self">My Performance</SelectItem>
+                {users.map((u: { _id: string; firstName: string; lastName: string }) => (
+                  <SelectItem key={u._id} value={u._id}>{u.firstName} {u.lastName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {!summary ? (
         <p className="text-sm text-muted-foreground">Loading...</p>
