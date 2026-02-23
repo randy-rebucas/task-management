@@ -23,6 +23,7 @@ import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { useSubscription } from "@/hooks/use-subscription";
 import { PLAN_DISPLAY, PlanKey } from "@/config/plans";
 import Link from "next/link";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; className: string }> = {
@@ -45,9 +46,9 @@ const PLAN_LABELS: Record<string, string> = {
 export default function BillingPage() {
   const { subscription, isLoading, isOwner, isActive, isTrialing, trialDaysLeft } = useSubscription();
   const [cancelling, setCancelling] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   async function handleCancel() {
-    if (!confirm("Are you sure you want to cancel your subscription? Your access will continue until the end of the billing period.")) return;
     setCancelling(true);
     try {
       const res = await fetch("/api/subscriptions/cancel", { method: "POST" });
@@ -191,7 +192,7 @@ export default function BillingPage() {
                     <Button
                       variant="outline"
                       className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
-                      onClick={handleCancel}
+                      onClick={() => setCancelOpen(true)}
                       disabled={cancelling}
                     >
                       {cancelling
@@ -213,6 +214,15 @@ export default function BillingPage() {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Cancel subscription?"
+        description="Your plan will remain active until the end of the current billing period. After that, access to premium features will be removed."
+        confirmLabel="Yes, cancel"
+        onConfirm={handleCancel}
+        destructive
+      />
     </div>
   );
 }

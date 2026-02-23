@@ -4,21 +4,15 @@ import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { isToday, isPast, parseISO } from "date-fns";
+import type { CalendarTask } from "@/types/calendar";
 
-interface CalendarTask {
-  _id: string;
-  title: string;
-  priority: string;
-  taskType?: string;
-  dueDate?: string;
-  status?: { name: string; color: string; isFinal?: boolean };
-  assignees?: { _id: string; firstName: string; lastName: string; avatar?: string }[];
-}
+export type { CalendarTask };
 
 interface CalendarEventProps {
   task: CalendarTask;
   onSelect: (task: CalendarTask) => void;
   compact?: boolean;
+  canDrag?: boolean;
 }
 
 const PRIORITY_BORDER: Record<string, string> = {
@@ -39,7 +33,7 @@ const TASK_TYPE_LABEL: Record<string, string> = {
   internal_task:       "Internal",
 };
 
-export function CalendarEvent({ task, onSelect, compact = false }: CalendarEventProps) {
+export function CalendarEvent({ task, onSelect, compact = false, canDrag = true }: CalendarEventProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task._id,
     data: { task },
@@ -60,14 +54,15 @@ export function CalendarEvent({ task, onSelect, compact = false }: CalendarEvent
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+      {...(canDrag ? listeners : {})}
+      {...(canDrag ? attributes : {})}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(task);
       }}
       className={cn(
-        "group cursor-pointer select-none rounded border-l-2 bg-white px-1.5 py-0.5 text-xs shadow-sm transition-all hover:shadow-md",
+        "group select-none rounded border-l-2 bg-white px-1.5 py-0.5 text-xs shadow-sm transition-all hover:shadow-md",
+        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         borderColor,
         isDragging && "opacity-50 shadow-lg scale-95",
         isOverdue && "ring-1 ring-red-400",
@@ -119,4 +114,4 @@ export function CalendarEvent({ task, onSelect, compact = false }: CalendarEvent
   );
 }
 
-export type { CalendarTask };
+

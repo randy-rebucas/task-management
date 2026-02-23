@@ -3,6 +3,7 @@ import Task from "@/models/Task";
 import Lead from "@/models/Lead";
 import Client from "@/models/Client";
 import User from "@/models/User";
+import Department from "@/models/Department";
 import NotificationRule from "@/models/NotificationRule";
 import { deliverNotification } from "@/features/notifications/deliver";
 import { INotification } from "@/types";
@@ -63,11 +64,12 @@ export async function triggerNotification(
       await dbConnect();
     }
 
-    const TaskModel          = (tenantModels?.Task          ?? Task) as any;
-    const LeadModel          = (tenantModels?.Lead          ?? Lead) as any;
-    const ClientModel        = (tenantModels?.Client        ?? Client) as any;
-    const UserModel          = (tenantModels?.User          ?? User) as any;
-    const NotificationRuleModel = (tenantModels?.NotificationRule ?? NotificationRule) as any;
+    const TaskModel             = (tenantModels?.Task             ?? Task) as any;
+    const LeadModel              = (tenantModels?.Lead             ?? Lead) as any;
+    const ClientModel            = (tenantModels?.Client           ?? Client) as any;
+    const UserModel              = (tenantModels?.User             ?? User) as any;
+    const DepartmentModel        = (tenantModels?.Department       ?? Department) as any;
+    const NotificationRuleModel  = (tenantModels?.NotificationRule ?? NotificationRule) as any;
 
     const actorId      = payload?.actorId as string | undefined;
     const taskId       = payload?.taskId as string | undefined;
@@ -85,23 +87,45 @@ export async function triggerNotification(
       const task = await TaskModel.findById(taskId)
         .populate("assignees", "email firstName lastName")
         .populate("createdBy", "email firstName lastName")
+        .populate("department", "head")
         .lean();
       if (!task) return;
 
       const assignees = ((task as any).assignees as unknown as PopulatedUser[]) ?? [];
       const creator   = (task as any).createdBy as unknown as PopulatedUser | null;
+      const strategy  = rule?.recipientStrategy as string | undefined;
 
       let recipientIds: string[];
 
-      if (event === "task_assigned" && payload?.additionalRecipients) {
-        recipientIds = (payload.additionalRecipients as string[]).map(String);
-      } else if (event === "status_changed" || event === "comment_added") {
-        recipientIds = [
-          ...assignees.map((a) => a._id.toString()),
-          ...(creator ? [creator._id.toString()] : []),
-        ];
+      if (strategy === "creator") {
+        recipientIds = creator ? [creator._id.toString()] : [];
+      } else if (strategy === "department_head") {
+        const deptId = (task as any).department?._id ?? (task as any).department;
+        if (deptId) {
+          const dept = await DepartmentModel.findById(deptId).populate("head", "email firstName lastName").lean();
+          const head = dept?.head as unknown as PopulatedUser | null;
+          recipientIds = head ? [head._id.toString()] : [];
+        } else {
+          recipientIds = [];
+        }
+      } else if (strategy === "specific_roles" && rule?.recipientRoles?.length) {
+        const usersWithRoles = await UserModel.find({
+          roles: { $in: rule.recipientRoles },
+          isActive: true,
+        }).select("_id email firstName").lean();
+        recipientIds = (usersWithRoles as PopulatedUser[]).map((u) => u._id.toString());
       } else {
-        recipientIds = assignees.map((a) => a._id.toString());
+        // Default / "assignees" strategy — keep existing event-specific logic
+        if (event === "task_assigned" && payload?.additionalRecipients) {
+          recipientIds = (payload.additionalRecipients as string[]).map(String);
+        } else if (event === "status_changed" || event === "comment_added") {
+          recipientIds = [
+            ...assignees.map((a) => a._id.toString()),
+            ...(creator ? [creator._id.toString()] : []),
+          ];
+        } else {
+          recipientIds = assignees.map((a) => a._id.toString());
+        }
       }
 
       const uniqueIds = [...new Set(recipientIds)].filter((id) => id !== actorId);
@@ -114,6 +138,7 @@ export async function triggerNotification(
       const type    = EVENT_TO_TYPE[event] ?? "system";
       const title   = buildTitle(event, data);
       const message = buildMessage(event, data);
+      const link    = `/tasks/${taskId}`;
 
       for (const user of recipients) {
         await deliverNotification({
@@ -123,6 +148,7 @@ export async function triggerNotification(
           title,
           message,
           relatedTask: taskId,
+          link,
           channels,
         });
       }

@@ -208,7 +208,8 @@ async function runLeadStagnation(models: TenantModels) {
         recipientEmail: assignedTo.email,
         type: "lead_stagnation",
         title: `Lead follow-up overdue: ${lead.name}`,
-        message: `Lead "${lead.name}" (ID: ${lead._id}) requires your attention. Follow-up is overdue or no activity in 7+ days.`,
+        message: `Lead "${lead.name}" requires your attention. Follow-up is overdue or no activity in 7+ days.`,
+        relatedResource: lead._id.toString(),
         channels,
       })
     );
@@ -255,17 +256,14 @@ async function runFieldInactive(models: TenantModels) {
   });
   const notifiedCoordsSet = new Set(recentCoordIds.map(String));
 
-  // Batch dedup for admins
+  // Batch dedup for admins using relatedResource (coordinator ID)
   const recentAdminNotifs = await (models.Notification.find({
     type: "field_inactive",
     createdAt: { $gt: hoursAgo(23) },
     recipient: { $in: adminUsers.map((u) => u._id) },
-  }).select("recipient message").lean() as unknown) as { recipient: unknown; message?: string }[];
-  const notifiedAdminSet = new Set<string>();
-  for (const n of recentAdminNotifs) {
-    const match = n.message?.match(/ID: ([a-f0-9]{24})/);
-    if (match) notifiedAdminSet.add(`${n.recipient}:${match[1]}`);
-  }
+    relatedResource: { $in: fieldUserIds },
+  }).select("recipient relatedResource").lean() as unknown) as { recipient: unknown; relatedResource: unknown }[];
+  const notifiedAdminSet = new Set(recentAdminNotifs.map((n) => `${n.recipient}:${n.relatedResource}`));
 
   let sent = 0;
   const deliveries: Promise<unknown>[] = [];
@@ -299,7 +297,8 @@ async function runFieldInactive(models: TenantModels) {
           recipientEmail: admin.email,
           type: "field_inactive",
           title: `Field coordinator inactive: ${name}`,
-          message: `${name} (ID: ${coordinator._id}) has not checked in today after ${INACTIVE_HOURS} hours.`,
+          message: `${name} has not checked in today after ${INACTIVE_HOURS} hours.`,
+          relatedResource: coordinator._id.toString(),
           channels,
         })
       );
@@ -443,8 +442,9 @@ export async function GET(req: NextRequest) {
 
   const allResults: Record<string, unknown>[] = [];
 
-  for (const tenant of tenants) {
-    try {
+  // AUDIT-07: process all tenants in parallel to avoid sequential timeout on Vercel
+  const tenantResults = await Promise.allSettled(
+    tenants.map(async (tenant) => {
       const conn = await getTenantConnection(tenant.dbName as string);
       const models = getTenantModels(conn);
 
@@ -460,16 +460,22 @@ export async function GET(req: NextRequest) {
       const pick = (r: PromiseSettledResult<number>) =>
         r.status === "fulfilled" ? r.value : `error: ${String((r as PromiseRejectedResult).reason)}`;
 
-      allResults.push({
+      return {
         tenant: tenant.slug,
         deadline_reminders: pick(deadlineResult),
         overdue_alerts:     pick(overdueResult),
         lead_stagnation:    pick(stagnationResult),
         field_inactive:     pick(fieldResult),
         weekly_summary:     pick(weeklyResult),
-      });
-    } catch (err) {
-      allResults.push({ tenant: tenant.slug, error: String(err) });
+      };
+    })
+  );
+
+  for (const result of tenantResults) {
+    if (result.status === "fulfilled") {
+      allResults.push(result.value);
+    } else {
+      allResults.push({ error: String(result.reason) });
     }
   }
 

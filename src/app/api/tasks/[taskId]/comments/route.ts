@@ -11,7 +11,7 @@ export const GET = withPermission("tasks:view", async (req, ctx, _session, model
   return apiSuccess(comments);
 });
 
-export const POST = withPermission("tasks:view", async (req, ctx, session, models) => {
+export const POST = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
   const parsed = createCommentSchema.safeParse(body);

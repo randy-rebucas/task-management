@@ -32,14 +32,18 @@ async function computeForPeriod(
   const end = new Date(year, month, 0, 23, 59, 59, 999);
   const now = new Date();
 
-  const [tasksCompleted, tasksAssigned, tasksOverdue, newLeads, dealResult] = await Promise.all([
+  const [tasksCompleted, tasksAssigned, tasksOverdue, newLeads, dealResult, visitCount] = await Promise.all([
     models.Task.countDocuments({
       assignees: uid,
       status: { $in: finalStatusIds },
       updatedAt: { $gte: start, $lte: end },
       isArchived: false,
     }),
-    models.Task.countDocuments({ assignees: uid, isArchived: false }),
+    models.Task.countDocuments({
+      assignees: uid,
+      createdAt: { $gte: start, $lte: end },
+      isArchived: false,
+    }),
     models.Task.countDocuments({
       assignees: uid,
       dueDate: { $lt: now },
@@ -55,12 +59,13 @@ async function computeForPeriod(
       { $match: { assignedTo: uid, stage: "closed_won", updatedAt: { $gte: start, $lte: end } } },
       { $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } } },
     ]),
+    models.FieldSession.countDocuments({ user: uid, status: "completed", date: { $gte: start, $lte: end } }),
   ]);
 
   const dealRevenue: number = dealResult[0]?.total ?? 0;
   const dealsClosed: number = dealResult[0]?.count ?? 0;
 
-  return { tasksCompleted, tasksAssigned, tasksOverdue, newLeads, dealRevenue, dealsClosed, start, end };
+  return { tasksCompleted, tasksAssigned, tasksOverdue, newLeads, dealRevenue, dealsClosed, visitCount, start, end };
 }
 
 export const GET = withPermission("performance:view", async (req, _ctx, session, models) => {
@@ -93,7 +98,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session,
     tasksAssigned: current.tasksAssigned,
     tasksCompleted: current.tasksCompleted,
     tasksOverdue: current.tasksOverdue,
-    visitCount: 0,
+    visitCount: current.visitCount,
     newLeads: current.newLeads,
   });
 
@@ -131,17 +136,23 @@ export const GET = withPermission("performance:view", async (req, _ctx, session,
     leads: target?.targetLeads ? Math.round((current.newLeads / target.targetLeads) * 100) : null,
   };
 
-  // Monthly trend — last 6 months
-  const monthlyTrend = [];
-  for (let i = 5; i >= 0; i--) {
-    const tMonth = month - i <= 0 ? month - i + 12 : month - i;
-    const tYear = month - i <= 0 ? year - 1 : year;
-    const p = await computeForPeriod(uid, tMonth, tYear, finalStatusIds, models);
+  // Monthly trend — last 6 months (parallel)
+  const trendMonths = Array.from({ length: 6 }, (_, i) => {
+    const offset = 5 - i;
+    const tMonth = month - offset <= 0 ? month - offset + 12 : month - offset;
+    const tYear = month - offset <= 0 ? year - 1 : year;
+    return { tMonth, tYear };
+  });
+  const trendPeriods = await Promise.all(
+    trendMonths.map(({ tMonth, tYear }) => computeForPeriod(uid, tMonth, tYear, finalStatusIds, models))
+  );
+  const monthlyTrend = trendPeriods.map((p, i) => {
+    const { tMonth, tYear } = trendMonths[i];
     const pScore = calcScore({
       tasksAssigned: p.tasksAssigned,
       tasksCompleted: p.tasksCompleted,
       tasksOverdue: p.tasksOverdue,
-      visitCount: 0,
+      visitCount: p.visitCount,
       newLeads: p.newLeads,
     });
     const pCommission = Math.round(p.dealRevenue * (commissionRate / 100));
@@ -152,7 +163,7 @@ export const GET = withPermission("performance:view", async (req, _ctx, session,
       const match = sorted.find((t) => pScore >= t.minScore);
       if (match) pScoreBonus = match.bonusAmount;
     }
-    monthlyTrend.push({
+    return {
       month: tMonth,
       year: tYear,
       tasksCompleted: p.tasksCompleted,
@@ -163,8 +174,8 @@ export const GET = withPermission("performance:view", async (req, _ctx, session,
       leadBonus: pLeadBonus,
       totalIncentive: pCommission + pLeadBonus + pScoreBonus,
       performanceScore: pScore,
-    });
-  }
+    };
+  });
 
   return apiSuccess({
     period: { month, year },

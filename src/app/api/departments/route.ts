@@ -3,7 +3,7 @@ import { createDepartmentSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import type { IDepartment } from "@/types";
 export const GET = withPermission("departments:view", async (_req, _ctx, _session, models) => {
-  const departments = await models.Department.find()
+  const departments = await models.Department.find({ isActive: true })
     .populate("head", "firstName lastName email")
     .populate("parentDepartment", "name code")
     .sort({ name: 1 })

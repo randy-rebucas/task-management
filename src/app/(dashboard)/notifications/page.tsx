@@ -30,18 +30,23 @@ export default function NotificationsPage() {
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", "20");
-  if (filter) params.set("read", filter);
+  if (filter) params.set("isRead", filter);  // AUDIT-02: was "read"
 
   const { data, isLoading, mutate } = useSWR(`/api/notifications?${params}`, fetcher);
+  const { data: countData, mutate: mutateCount } = useSWR("/api/notifications?unreadCount=true", fetcher);
+
+  // AUDIT-03: use the real total unread count, not the current page slice
+  const unreadCount = countData?.unreadCount ?? 0;
 
   async function markAsRead(id: string) {
     try {
       await fetch("/api/notifications/mark-read", {
-        method: "POST",
+        method: "PATCH",  // AUDIT-01: was POST
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationIds: [id] }),
+        body: JSON.stringify({ ids: [id] }),  // AUDIT-01: was notificationIds
       });
       mutate();
+      mutateCount();
     } catch {
       toast.error("Failed to mark notification as read");
     }
@@ -49,25 +54,18 @@ export default function NotificationsPage() {
 
   async function markAllAsRead() {
     try {
-      const unreadIds = data?.data
-        ?.filter((n: { isRead: boolean }) => !n.isRead)
-        .map((n: { _id: string }) => n._id);
-
-      if (!unreadIds?.length) return;
-
       await fetch("/api/notifications/mark-read", {
-        method: "POST",
+        method: "PATCH",  // AUDIT-01: was POST
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationIds: unreadIds }),
+        body: JSON.stringify({ all: true }),
       });
       toast.success("All notifications marked as read");
       mutate();
+      mutateCount();
     } catch {
       toast.error("Failed to mark notifications as read");
     }
   }
-
-  const unreadCount = data?.data?.filter((n: { isRead: boolean }) => !n.isRead).length || 0;
 
   return (
     <div>

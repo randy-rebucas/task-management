@@ -32,7 +32,7 @@ export const GET = withPermission("reports:view", async (_req, _ctx, _session, m
     {
       $match: {
         user: { $in: userIds },
-        "checkIn.time": { $gte: thirtyDaysAgo },
+        date: { $gte: thirtyDaysAgo },
       },
     },
     {

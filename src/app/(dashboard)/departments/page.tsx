@@ -223,7 +223,7 @@ export default function DepartmentsPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Delete Department"
-        description={`Are you sure you want to delete "${deleteTarget?.name}"? Staff members in this department will be unassigned.`}
+        description={`Are you sure you want to deactivate "${deleteTarget?.name}"? It will be hidden from all lists. Staff members currently assigned to this department will not be unassigned automatically.`}
         confirmLabel="Delete"
         onConfirm={handleDelete}
         destructive

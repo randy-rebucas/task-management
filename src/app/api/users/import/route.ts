@@ -8,6 +8,9 @@ export const POST = withPermission("users:import", async (req, ctx, session, mod
 
   if (!file) return apiError("No file provided");
 
+  const creator = await models.User.findById(session.user.id).select("owner").lean();
+  const ownerId = (creator as any)?.owner ?? session.user.id;
+
   const text = await file.text();
   const { data, errors } = Papa.parse(text, { header: true, skipEmptyLines: true });
 
@@ -42,6 +45,7 @@ export const POST = withPermission("users:import", async (req, ctx, session, mod
         jobTitle: row.jobTitle || undefined,
         roles: row.roles ? row.roles.split(";").map((r: string) => r.trim()) : [],
         department: row.department || undefined,
+        owner: ownerId,
       });
       results.created++;
     } catch (err) {

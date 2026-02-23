@@ -1,4 +1,5 @@
 "use client";
+import { use } from "react";
 import useSWR from "swr";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +8,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
-export default function VisitLogDetailPage({ params }: { params: { visitId: string } }) {
-  const { data, isLoading, error } = useSWR(`/api/visit-logs/${params.visitId}`, (url) => fetch(url).then(r => r.json()));
+export default function VisitLogDetailPage({ params }: { params: Promise<{ visitId: string }> }) {
+  const { visitId } = use(params);
+  const { data, isLoading, error } = useSWR(`/api/visit-logs/${visitId}`, (url) => fetch(url).then(r => r.json()));
   const log = data?.data;
 
   return (

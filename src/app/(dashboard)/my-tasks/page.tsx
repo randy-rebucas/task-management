@@ -24,17 +24,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useDebounce } from "@/features/auth/use-debounce";
 import { format } from "date-fns";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function MyTasksPage() {
+  const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(search, 300);
 
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", "20");
+  if (debouncedSearch) params.set("search", debouncedSearch);
   if (status) params.set("status", status);
 
   const { data, isLoading } = useSWR(`/api/tasks/my?${params}`, fetcher);
@@ -45,7 +51,16 @@ export default function MyTasksPage() {
     <div>
       <PageHeader title="My Tasks" description="Tasks assigned to you" />
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search my tasks..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="pl-9"
+          />
+        </div>
         <Select value={status} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setPage(1); }}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />

@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useSession } from "next-auth/react";
+import { usePermissions } from "@/features/auth/use-permissions";
+import { toast } from "sonner";
 import SubmitProofModal from "@/components/proof/submit-proof-modal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((d) => d.data);
@@ -75,6 +77,7 @@ function StatusBadge({ status }: { status: VerificationStatus }) {
 
 export default function ProofOfWorkPage() {
   const { data: session } = useSession();
+  const { can } = usePermissions();
   const [tab, setTab] = useState(0);
   const [submitModal, setSubmitModal] = useState<{ open: boolean; taskId: string }>({
     open: false,
@@ -89,6 +92,7 @@ export default function ProofOfWorkPage() {
   const [editLocation, setEditLocation] = useState<PartnerLocation | null>(null);
   const [locationForm, setLocationForm] = useState({ name: "", address: "", lat: "", lng: "", radius: "100" });
   const [locationSaving, setLocationSaving] = useState(false);
+  const [deleteLocationTarget, setDeleteLocationTarget] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const mySubmissionsUrl = `/api/proof-of-work/submissions?userId=${session?.user?.id ?? ""}`;
@@ -110,12 +114,19 @@ export default function ProofOfWorkPage() {
   const handleVerify = async (id: string, status: "verified" | "rejected", reason?: string) => {
     setActionLoading(id);
     try {
-      await fetch(`/api/proof-of-work/submissions/${id}`, {
+      const res = await fetch(`/api/proof-of-work/submissions/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ verificationStatus: status, ...(reason ? { rejectionReason: reason } : {}) }),
       });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update submission");
+      }
+      toast.success(status === "verified" ? "Submission verified" : "Submission rejected");
       await mutateAllSubmissions();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update submission");
     } finally {
       setActionLoading(null);
       setRejectId(null);
@@ -133,31 +144,44 @@ export default function ProofOfWorkPage() {
         lng: parseFloat(locationForm.lng),
         radius: parseInt(locationForm.radius),
       };
-      if (editLocation) {
-        await fetch(`/api/proof-of-work/locations/${editLocation._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        await fetch("/api/proof-of-work/locations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+      const res = editLocation
+        ? await fetch(`/api/proof-of-work/locations/${editLocation._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/proof-of-work/locations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save location");
       }
+      toast.success(editLocation ? "Location updated" : "Location created");
       await mutateLocations();
       setShowLocationForm(false);
       setEditLocation(null);
       setLocationForm({ name: "", address: "", lat: "", lng: "", radius: "100" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save location");
     } finally {
       setLocationSaving(false);
     }
   };
 
   const handleDeleteLocation = async (id: string) => {
-    await fetch(`/api/proof-of-work/locations/${id}`, { method: "DELETE" });
-    await mutateLocations();
+    try {
+      const res = await fetch(`/api/proof-of-work/locations/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to remove location");
+      toast.success("Location removed");
+      await mutateLocations();
+    } catch {
+      toast.error("Failed to remove location");
+    } finally {
+      setDeleteLocationTarget(null);
+    }
   };
 
   const handlePrintQr = () => window.print();
@@ -173,8 +197,6 @@ export default function ProofOfWorkPage() {
     });
     setShowLocationForm(true);
   };
-
-  const TABS = ["My Submissions", "All Submissions", "Partner Locations"];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -208,19 +230,40 @@ export default function ProofOfWorkPage() {
       {/* Tabs */}
       <div className="border-b">
         <nav className="-mb-px flex gap-6">
-          {TABS.map((label, i) => (
+          <button
+            onClick={() => setTab(0)}
+            className={`border-b-2 pb-3 text-sm font-medium transition-colors ${
+              tab === 0
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            My Submissions
+          </button>
+          {can("proof_of_work:view") && (
             <button
-              key={label}
-              onClick={() => setTab(i)}
+              onClick={() => setTab(1)}
               className={`border-b-2 pb-3 text-sm font-medium transition-colors ${
-                tab === i
+                tab === 1
                   ? "border-blue-600 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {label}
+              All Submissions
             </button>
-          ))}
+          )}
+          {can("proof_of_work:manage") && (
+            <button
+              onClick={() => setTab(2)}
+              className={`border-b-2 pb-3 text-sm font-medium transition-colors ${
+                tab === 2
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Partner Locations
+            </button>
+          )}
         </nav>
       </div>
 
@@ -473,7 +516,7 @@ export default function ProofOfWorkPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDeleteLocation(loc._id)}
+                        onClick={() => setDeleteLocationTarget(loc._id)}
                         className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -519,6 +562,32 @@ export default function ProofOfWorkPage() {
                 className="flex-1 rounded-lg bg-gray-900 py-2 text-sm font-medium text-white hover:bg-gray-800"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Location Confirmation */}
+      {deleteLocationTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="rounded-xl bg-white p-6 shadow-2xl space-y-4 max-w-sm w-full">
+            <h3 className="font-semibold text-gray-900">Remove Location?</h3>
+            <p className="text-sm text-gray-500">
+              This will deactivate the partner location and any QR codes printed for it will stop working for future check-ins.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeleteLocationTarget(null)}
+                className="rounded-lg border px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteLocation(deleteLocationTarget)}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Remove
               </button>
             </div>
           </div>

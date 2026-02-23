@@ -74,6 +74,7 @@ TaskSchema.index({ status: 1 });
 TaskSchema.index({ priority: 1 });
 TaskSchema.index({ taskType: 1 });
 TaskSchema.index({ assignees: 1 });
+TaskSchema.index({ assignees: 1, completedAt: 1 }); // coordinator-efficiency analytics
 TaskSchema.index({ createdBy: 1 });
 TaskSchema.index({ department: 1 });
 TaskSchema.index({ dueDate: 1 });

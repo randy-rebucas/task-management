@@ -58,7 +58,8 @@ export default function StaffPage() {
   if (debouncedSearch) params.set("search", debouncedSearch);
   if (role) params.set("role", role);
   if (department) params.set("department", department);
-  if (status) params.set("status", status);
+  if (status === "active") params.set("isActive", "true");
+  else if (status === "inactive") params.set("isActive", "false");
 
   const { data, isLoading, mutate } = useSWR(`/api/users?${params}`, fetcher);
   const { data: roles } = useSWR("/api/roles", fetcher);
@@ -117,7 +118,7 @@ export default function StaffPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Roles</SelectItem>
-            {roles?.data?.map((r: { _id: string; name: string }) => (
+            {roles?.map((r: { _id: string; name: string }) => (
               <SelectItem key={r._id} value={r._id}>{r.name}</SelectItem>
             ))}
           </SelectContent>

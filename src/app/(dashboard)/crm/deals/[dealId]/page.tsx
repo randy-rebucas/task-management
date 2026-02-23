@@ -20,6 +20,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DEAL_STAGES } from "@/config/constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -36,6 +46,7 @@ export default function DealDetailPage({ params }: { params: Promise<{ dealId: s
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const deal = data ? (({ tasks: _, ...rest }) => rest)(data) : null;
@@ -80,7 +91,6 @@ export default function DealDetailPage({ params }: { params: Promise<{ dealId: s
   }
 
   async function deleteDeal() {
-    if (!confirm("Delete this deal permanently?")) return;
     await fetch(`/api/crm/deals/${dealId}`, { method: "DELETE" });
     toast.success("Deal deleted");
     router.push("/crm/pipeline");
@@ -110,7 +120,7 @@ export default function DealDetailPage({ params }: { params: Promise<{ dealId: s
               <Button variant="outline" size="sm" onClick={startEdit}>
                 <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
-              <Button variant="destructive" size="sm" onClick={deleteDeal}>
+              <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
             </>
@@ -277,6 +287,26 @@ export default function DealDetailPage({ params }: { params: Promise<{ dealId: s
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this deal? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={deleteDeal}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

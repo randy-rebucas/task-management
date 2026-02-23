@@ -1,11 +1,9 @@
 import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
-
-
-import { NextRequest } from "next/server";
 import { withAuth, withPermission, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 import { createTaskSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
+import { getNextTaskNumber } from "@/lib/task-counter";
 
 // Register CRM models so Mongoose populate works
 export const GET = withAuth(async (req, ctx, session, models) => {
@@ -78,12 +76,12 @@ export const POST = withPermission("tasks:create", async (req, ctx, session, mod
   const defaultStatus = await models.WorkflowStatus.findOne({ isDefault: true });
   if (!defaultStatus) return apiError("No default workflow status configured", 500);
 
-  const taskNumber = await models.Task.countDocuments() + 1;
+  const taskNumber = await getNextTaskNumber(models);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const task = new models.Task({
     ...parsed.data,
-    taskNumber: `TASK-${String(taskNumber).padStart(4, "0")}`,
+    taskNumber,
     status: defaultStatus._id,
     createdBy: session.user.id,
   }) as any;
@@ -106,6 +104,5 @@ export const POST = withPermission("tasks:create", async (req, ctx, session, mod
     }, models);
   }
 
-  // Ensure taskNumber is included in the response
-  return apiSuccess({ ...task.toObject(), taskNumber: task.taskNumber }, 201);
+  return apiSuccess(task.toObject(), 201);
 });

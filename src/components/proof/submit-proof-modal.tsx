@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import useSWR from "swr";
 import { X, Camera, Pen, CheckCircle, MapPin, Upload, Trash2 } from "lucide-react";
 import SignaturePad, { SignaturePadRef } from "./signature-pad";
 
@@ -28,6 +29,7 @@ export default function SubmitProofModal({
   onSubmitted,
 }: SubmitProofModalProps) {
   const [step, setStep] = useState(0);
+  const [selectedTaskId, setSelectedTaskId] = useState(taskId);
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
@@ -38,6 +40,17 @@ export default function SubmitProofModal({
   const [error, setError] = useState<string | null>(null);
   const sigPadRef = useRef<SignaturePadRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch tasks for the task selector (only when modal is open and no pre-selected taskId)
+  const { data: tasksData } = useSWR<{ items: { _id: string; title: string }[] }>(
+    open && !taskId ? "/api/tasks?limit=200&sortBy=title&sortOrder=asc" : null,
+    (url: string) => fetch(url).then((r) => r.json()).then((d) => d.data)
+  );
+
+  // Sync selectedTaskId when the taskId prop changes (e.g. opened from a task detail view)
+  useEffect(() => {
+    setSelectedTaskId(taskId);
+  }, [taskId, open]);
 
   // Read QR check-in from sessionStorage (set by scan page)
   const getQrCheckIn = (): QrCheckInData | null => {
@@ -87,21 +100,41 @@ export default function SubmitProofModal({
     }
   };
 
-  const saveSignature = () => {
+  const saveSignature = async () => {
     if (!sigPadRef.current) return;
     if (sigPadRef.current.isEmpty()) {
       setError("Please draw your signature before continuing.");
       return;
     }
     const dataUrl = sigPadRef.current.getDataUrl();
-    if (dataUrl) {
-      setSignatureUrl(dataUrl);
+    if (!dataUrl) return;
+
+    // Upload the signature PNG as a file instead of storing base64 in the DB
+    setUploading(true);
+    setError(null);
+    try {
+      const fetchRes = await fetch(dataUrl);
+      const blob = await fetchRes.blob();
+      const form = new FormData();
+      form.append("file", blob, "signature.png");
+      const uploadRes = await fetch("/api/field/photos", { method: "POST", body: form });
+      if (!uploadRes.ok) throw new Error("Signature upload failed");
+      const uploadData = await uploadRes.json();
+      setSignatureUrl(uploadData.data?.url ?? uploadData.url);
       setError(null);
       setStep(2);
+    } catch {
+      setError("Signature upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleSubmit = async () => {
+    if (!selectedTaskId) {
+      setError("Please select a task.");
+      return;
+    }
     if (photos.length === 0) {
       setError("At least one photo is required.");
       return;
@@ -112,7 +145,7 @@ export default function SubmitProofModal({
     const qrCheckIn = getQrCheckIn();
 
     const body: Record<string, unknown> = {
-      task: taskId,
+      task: selectedTaskId,
       photos,
       capturedAt: new Date().toISOString(),
       notes,
@@ -148,6 +181,7 @@ export default function SubmitProofModal({
 
   const handleClose = () => {
     setStep(0);
+    setSelectedTaskId(taskId);
     setPhotos([]);
     setSignatureUrl(null);
     setGps(null);
@@ -198,6 +232,25 @@ export default function SubmitProofModal({
           {/* Step 0 — Photos */}
           {step === 0 && (
             <div className="space-y-4">
+              {/* Task selector — shown when no task was pre-selected */}
+              {!taskId && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Task <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedTaskId}
+                    onChange={(e) => setSelectedTaskId(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a task…</option>
+                    {tasksData?.items?.map((t) => (
+                      <option key={t._id} value={t._id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <p className="text-sm text-gray-600">
                 Take at least one photo as proof of your visit.
               </p>
@@ -260,6 +313,10 @@ export default function SubmitProofModal({
               />
               <button
                 onClick={() => {
+                  if (!selectedTaskId) {
+                    setError("Please select a task.");
+                    return;
+                  }
                   if (photos.length === 0) {
                     setError("At least one photo is required.");
                     return;

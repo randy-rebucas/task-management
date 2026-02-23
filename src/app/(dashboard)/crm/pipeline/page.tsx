@@ -46,7 +46,6 @@ export default function PipelinePage() {
   const users = usersData?.data ?? usersData ?? [];
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: "",

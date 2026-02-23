@@ -19,7 +19,8 @@ export const GET = withPermission("crm:view", async (req, _ctx, _session, models
       .populate("assignedTo", "firstName lastName email avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     models.Deal.countDocuments(filter),
   ]);
 

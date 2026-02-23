@@ -10,6 +10,8 @@ export const GET = withPermission("crm:view", async (_req, ctx, _session, models
 
 export const POST = withPermission("crm:update", async (req, ctx, session, models) => {
   const { clientId } = await ctx.params;
+  const client = await models.Client.exists({ _id: clientId });
+  if (!client) return apiError("Client not found", 404);
   const body = await req.json();
   const parsed = createInteractionSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);

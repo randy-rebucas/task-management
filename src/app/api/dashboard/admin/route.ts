@@ -19,6 +19,7 @@ export const GET = withPermission("dashboard:admin", async (_req, _ctx, _session
       .lean(),
     models.Task.countDocuments({
       dueDate: { $lt: new Date() },
+      completedAt: null,
       isArchived: false,
     }),
   ]);

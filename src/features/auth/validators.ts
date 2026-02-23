@@ -150,11 +150,13 @@ export const createTaskSchema = z
   .superRefine((data, ctx) => {
     if (data.taskType && FIELD_TASK_TYPES_SET.has(data.taskType)) {
       if (!data.lead && !data.client && !data.deal) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Field-type tasks must be linked to a Lead, Client, or Deal.",
-          path: ["lead"],
-        });
+        for (const field of ["lead", "client", "deal"] as const) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Field-type tasks must be linked to a Lead, Client, or Deal.",
+            path: [field],
+          });
+        }
       }
     }
   });
@@ -212,12 +214,13 @@ export const createWorkflowStatusSchema = z.object({
 	name: z.string().min(1),
 	slug: z.string().min(1),
 	color: z.string().min(1),
-	order: z.number().min(1),
+	order: z.number().min(0),
 	isDefault: z.boolean(),
 	isFinal: z.boolean(),
 });
 
 export const createTransitionSchema = z.object({
+	name: z.string().optional(),
 	fromStatus: z.string().min(1, "From status is required"),
 	toStatus: z.string().min(1, "To status is required"),
 	allowedRoles: z.array(z.string()).optional(),

@@ -3,6 +3,7 @@ import { IWorkflowTransition } from "@/types";
 
 const WorkflowTransitionSchema = new Schema<IWorkflowTransition>(
   {
+    name: { type: String },
     fromStatus: { type: Schema.Types.ObjectId, ref: "WorkflowStatus", required: true },
     toStatus: { type: Schema.Types.ObjectId, ref: "WorkflowStatus", required: true },
     allowedRoles: [{ type: Schema.Types.ObjectId, ref: "Role" }],

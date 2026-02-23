@@ -208,13 +208,13 @@ export default function StaffDetailPage({
                   {format(new Date(user.createdAt), "MMM d, yyyy")}
                 </span>
               </div>
-              {user.lastLogin && (
+              {user.lastLoginAt && (
                 <>
                   <Separator />
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Last Login</span>
                     <span className="text-sm">
-                      {format(new Date(user.lastLogin), "MMM d, yyyy h:mm a")}
+                      {format(new Date(user.lastLoginAt), "MMM d, yyyy h:mm a")}
                     </span>
                   </div>
                 </>

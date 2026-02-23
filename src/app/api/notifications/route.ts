@@ -1,4 +1,4 @@
-import { withAuth, apiSuccess, getPaginationParams } from "@/features/auth/api-helpers";
+import { withAuth, apiSuccess, apiError, getPaginationParams } from "@/features/auth/api-helpers";
 export const GET = withAuth(async (req, ctx, session, models) => {
   const url = new URL(req.url);
 
@@ -37,4 +37,19 @@ export const GET = withAuth(async (req, ctx, session, models) => {
     limit,
     totalPages: Math.ceil(total / limit),
   });
+});
+
+export const DELETE = withAuth(async (req, _ctx, session, models) => {
+  const body = await req.json();
+  const { ids, all } = body;
+
+  if (all) {
+    await models.Notification.deleteMany({ recipient: session.user.id });
+  } else if (ids?.length) {
+    await models.Notification.deleteMany({ _id: { $in: ids }, recipient: session.user.id });
+  } else {
+    return apiError("Provide 'ids' array or 'all: true'");
+  }
+
+  return apiSuccess({ message: "Notifications deleted" });
 });

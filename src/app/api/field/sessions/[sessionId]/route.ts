@@ -1,5 +1,7 @@
 import { withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { getTenantPermissions } from "@/features/auth/rbac";
+import type { HydratedDocument } from "mongoose";
+import type { IFieldSession } from "@/types";
 export const GET = withAuth(async (req, ctx, session, models) => {
   const { sessionId } = await ctx.params;
   const perms = await getTenantPermissions(session.user.roles, models);
@@ -25,7 +27,7 @@ export const PATCH = withAuth(async (req, ctx, session, models) => {
   const fieldSession = await models.FieldSession.findOne({
     _id: sessionId,
     user: session.user.id,
-  }) as any;
+  }) as HydratedDocument<IFieldSession> | null;
   if (!fieldSession) return apiError("Session not found", 404);
 
   if (action === "checkout") {

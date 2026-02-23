@@ -39,7 +39,9 @@ export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _sess
       {
         $group: {
           _id: "$assignees",
-          totalAssigned: { $sum: 1 },
+          totalAssigned: {
+            $sum: { $cond: [{ $and: [{ $gte: ["$createdAt", start] }, { $lte: ["$createdAt", end] }] }, 1, 0] },
+          },
           completedInPeriod: {
             $sum: {
               $cond: [

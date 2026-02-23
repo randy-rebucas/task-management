@@ -49,27 +49,27 @@ export default function WorkflowPage() {
   // Status dialog
   const [statusDialog, setStatusDialog] = useState(false);
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
-  const [statusForm, setStatusForm] = useState({ name: "", color: "#3b82f6", order: 0, isClosed: false });
+  const [statusForm, setStatusForm] = useState({ name: "", slug: "", color: "#3b82f6", order: 0, isDefault: false, isFinal: false });
   const [statusSubmitting, setStatusSubmitting] = useState(false);
   const [deleteStatusTarget, setDeleteStatusTarget] = useState<{ _id: string; name: string } | null>(null);
 
   // Transition dialog
   const [transDialog, setTransDialog] = useState(false);
   const [editingTrans, setEditingTrans] = useState<string | null>(null);
-  const [transForm, setTransForm] = useState({ name: "", fromStatus: "", toStatus: "" });
+  const [transForm, setTransForm] = useState({ name: "", fromStatus: "", toStatus: "", requiresRemarks: false, requiresApproval: false });
   const [transSubmitting, setTransSubmitting] = useState(false);
   const [deleteTransTarget, setDeleteTransTarget] = useState<{ _id: string; name: string } | null>(null);
 
   // Status handlers
   function openCreateStatus() {
     setEditingStatus(null);
-    setStatusForm({ name: "", color: "#3b82f6", order: statuses?.length || 0, isClosed: false });
+    setStatusForm({ name: "", slug: "", color: "#3b82f6", order: statuses?.length || 0, isDefault: false, isFinal: false });
     setStatusDialog(true);
   }
 
-  function openEditStatus(s: { _id: string; name: string; color: string; order: number; isClosed?: boolean }) {
+  function openEditStatus(s: { _id: string; name: string; slug: string; color: string; order: number; isDefault?: boolean; isFinal?: boolean }) {
     setEditingStatus(s._id);
-    setStatusForm({ name: s.name, color: s.color, order: s.order, isClosed: s.isClosed || false });
+    setStatusForm({ name: s.name, slug: s.slug || "", color: s.color, order: s.order, isDefault: s.isDefault || false, isFinal: s.isFinal || false });
     setStatusDialog(true);
   }
 
@@ -77,12 +77,14 @@ export default function WorkflowPage() {
     e.preventDefault();
     setStatusSubmitting(true);
     try {
-      const url = editingStatus ? `/api/workflow/statuses/${editingStatus}` : "/api/workflow/statuses";
       const method = editingStatus ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const payload = editingStatus
+        ? { id: editingStatus, ...statusForm }
+        : { ...statusForm, slug: statusForm.slug || statusForm.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") };
+      const res = await fetch("/api/workflow/statuses", {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(statusForm),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -101,7 +103,7 @@ export default function WorkflowPage() {
   async function handleDeleteStatus() {
     if (!deleteStatusTarget) return;
     try {
-      const res = await fetch(`/api/workflow/statuses/${deleteStatusTarget._id}`, { method: "DELETE" });
+      const res = await fetch(`/api/workflow/statuses?id=${deleteStatusTarget._id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete status");
       toast.success("Status deleted");
       mutateStatuses();
@@ -115,16 +117,18 @@ export default function WorkflowPage() {
   // Transition handlers
   function openCreateTransition() {
     setEditingTrans(null);
-    setTransForm({ name: "", fromStatus: "", toStatus: "" });
+    setTransForm({ name: "", fromStatus: "", toStatus: "", requiresRemarks: false, requiresApproval: false });
     setTransDialog(true);
   }
 
-  function openEditTransition(t: { _id: string; name: string; fromStatus: string | { _id: string }; toStatus: string | { _id: string } }) {
+  function openEditTransition(t: { _id: string; name?: string; fromStatus: string | { _id: string }; toStatus: string | { _id: string }; requiresRemarks?: boolean; requiresApproval?: boolean }) {
     setEditingTrans(t._id);
     setTransForm({
-      name: t.name,
+      name: t.name || "",
       fromStatus: typeof t.fromStatus === "string" ? t.fromStatus : t.fromStatus._id,
       toStatus: typeof t.toStatus === "string" ? t.toStatus : t.toStatus._id,
+      requiresRemarks: t.requiresRemarks || false,
+      requiresApproval: t.requiresApproval || false,
     });
     setTransDialog(true);
   }
@@ -133,12 +137,12 @@ export default function WorkflowPage() {
     e.preventDefault();
     setTransSubmitting(true);
     try {
-      const url = editingTrans ? `/api/workflow/transitions/${editingTrans}` : "/api/workflow/transitions";
       const method = editingTrans ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const payload = editingTrans ? { id: editingTrans, ...transForm } : transForm;
+      const res = await fetch("/api/workflow/transitions", {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(transForm),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -157,7 +161,7 @@ export default function WorkflowPage() {
   async function handleDeleteTransition() {
     if (!deleteTransTarget) return;
     try {
-      const res = await fetch(`/api/workflow/transitions/${deleteTransTarget._id}`, { method: "DELETE" });
+      const res = await fetch(`/api/workflow/transitions?id=${deleteTransTarget._id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete transition");
       toast.success("Transition deleted");
       mutateTransitions();
@@ -219,10 +223,13 @@ export default function WorkflowPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {statuses?.map((s: { _id: string; name: string; color: string; order: number; isClosed?: boolean }) => (
+                      {statuses?.map((s: { _id: string; name: string; slug: string; color: string; order: number; isDefault?: boolean; isFinal?: boolean }) => (
                         <TableRow key={s._id}>
                           <TableCell className="font-mono text-sm">{s.order}</TableCell>
-                          <TableCell className="font-medium">{s.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {s.name}
+                            {s.isDefault && <Badge variant="outline" className="ml-2 text-xs">Default</Badge>}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <div
@@ -233,10 +240,10 @@ export default function WorkflowPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {s.isClosed ? (
-                              <Badge variant="outline">Closed</Badge>
+                            {s.isFinal ? (
+                              <Badge variant="outline">Final</Badge>
                             ) : (
-                              <Badge variant="secondary">Open</Badge>
+                              <Badge variant="secondary">Active</Badge>
                             )}
                           </TableCell>
                           <TableCell>
@@ -300,9 +307,9 @@ export default function WorkflowPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {transitions?.map((t: { _id: string; name: string; fromStatus: { _id: string; name: string; color: string }; toStatus: { _id: string; name: string; color: string } }) => (
+                      {transitions?.map((t: { _id: string; name?: string; requiresRemarks?: boolean; requiresApproval?: boolean; fromStatus: { _id: string; name: string; color: string }; toStatus: { _id: string; name: string; color: string } }) => (
                         <TableRow key={t._id}>
-                          <TableCell className="font-medium">{t.name}</TableCell>
+                          <TableCell className="font-medium">{t.name || "—"}</TableCell>
                           <TableCell>
                             <Badge style={{ backgroundColor: t.fromStatus.color, color: "#fff" }}>
                               {t.fromStatus.name}
@@ -322,7 +329,7 @@ export default function WorkflowPage() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditTransition(t)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTransTarget({ _id: t._id, name: t.name })}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTransTarget({ _id: t._id, name: t.name ?? "" })}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -355,6 +362,17 @@ export default function WorkflowPage() {
                 onChange={(e) => setStatusForm((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
+            {editingStatus && (
+              <div className="space-y-2">
+                <Label htmlFor="status-slug">Slug</Label>
+                <Input
+                  id="status-slug"
+                  value={statusForm.slug}
+                  onChange={(e) => setStatusForm((prev) => ({ ...prev, slug: e.target.value }))}
+                  placeholder="auto-derived from name"
+                />
+              </div>
+            )}
             <div className="grid gap-4 grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="status-color">Color</Label>
@@ -385,12 +403,22 @@ export default function WorkflowPage() {
             </div>
             <div className="flex items-center space-x-3">
               <Checkbox
-                id="status-closed"
-                checked={statusForm.isClosed}
-                onCheckedChange={(v) => setStatusForm((prev) => ({ ...prev, isClosed: !!v }))}
+                id="status-isDefault"
+                checked={statusForm.isDefault}
+                onCheckedChange={(v) => setStatusForm((prev) => ({ ...prev, isDefault: !!v }))}
               />
-              <Label htmlFor="status-closed" className="cursor-pointer">
-                This is a closed/completed status
+              <Label htmlFor="status-isDefault" className="cursor-pointer">
+                Default status for new tasks
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="status-isFinal"
+                checked={statusForm.isFinal}
+                onCheckedChange={(v) => setStatusForm((prev) => ({ ...prev, isFinal: !!v }))}
+              />
+              <Label htmlFor="status-isFinal" className="cursor-pointer">
+                Final status (marks task as completed)
               </Label>
             </div>
             <DialogFooter>
@@ -445,6 +473,26 @@ export default function WorkflowPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="trans-requiresRemarks"
+                checked={transForm.requiresRemarks}
+                onCheckedChange={(v) => setTransForm((prev) => ({ ...prev, requiresRemarks: !!v }))}
+              />
+              <Label htmlFor="trans-requiresRemarks" className="cursor-pointer">
+                Requires remarks when transitioning
+              </Label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="trans-requiresApproval"
+                checked={transForm.requiresApproval}
+                onCheckedChange={(v) => setTransForm((prev) => ({ ...prev, requiresApproval: !!v }))}
+              />
+              <Label htmlFor="trans-requiresApproval" className="cursor-pointer">
+                Requires approval before transition
+              </Label>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTransDialog(false)}>Cancel</Button>

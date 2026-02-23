@@ -44,7 +44,11 @@ export default function OverdueReportPage() {
 
   async function handleExport() {
     try {
-      const res = await fetch(`/api/reports/export?type=overdue${priority ? `&priority=${priority}` : ""}`);
+      const res = await fetch("/api/reports/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "csv" }),
+      });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

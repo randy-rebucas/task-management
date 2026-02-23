@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Archive } from "lucide-react";
 import { format } from "date-fns";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -38,6 +38,9 @@ export default function TasksPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
+  const [department, setDepartment] = useState("");
+  const [assignee, setAssignee] = useState("");
+  const [isArchived, setIsArchived] = useState(false);
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
 
@@ -47,9 +50,16 @@ export default function TasksPage() {
   if (debouncedSearch) params.set("search", debouncedSearch);
   if (status) params.set("status", status);
   if (priority) params.set("priority", priority);
+  if (department) params.set("department", department);
+  if (assignee) params.set("assignee", assignee);
+  if (isArchived) params.set("isArchived", "true");
 
   const { data, isLoading } = useSWR(`/api/tasks?${params}`, fetcher);
   const { data: statuses } = useSWR("/api/workflow/statuses", fetcher);
+  const { data: departmentsRes } = useSWR("/api/departments", fetcher);
+  const { data: usersRes } = useSWR("/api/users?limit=100", fetcher);
+  const departmentList = Array.isArray(departmentsRes) ? departmentsRes : departmentsRes?.data ?? [];
+  const userList = Array.isArray(usersRes) ? usersRes : usersRes?.data ?? [];
 
   return (
     <div>
@@ -102,6 +112,36 @@ export default function TasksPage() {
             <SelectItem value="urgent">Urgent</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={department} onValueChange={(v) => { setDepartment(v === "all" ? "" : v); setPage(1); }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Department" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {departmentList.map((d: { _id: string; name: string }) => (
+              <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={assignee} onValueChange={(v) => { setAssignee(v === "all" ? "" : v); setPage(1); }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Assignee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Assignees</SelectItem>
+            {userList.map((u: { _id: string; firstName: string; lastName: string }) => (
+              <SelectItem key={u._id} value={u._id}>{u.firstName} {u.lastName}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant={isArchived ? "default" : "outline"}
+          size="sm"
+          onClick={() => { setIsArchived(!isArchived); setPage(1); }}
+        >
+          <Archive className="mr-2 h-4 w-4" />
+          {isArchived ? "Archived" : "Active"}
+        </Button>
       </div>
 
       {isLoading ? (

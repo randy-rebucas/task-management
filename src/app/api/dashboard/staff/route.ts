@@ -1,21 +1,25 @@
+import mongoose from "mongoose";
 import { withPermission, apiSuccess } from "@/features/auth/api-helpers";
 export const GET = withPermission("dashboard:staff", async (req, ctx, session, models) => {
   const now = new Date();
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const uid = new mongoose.Types.ObjectId(session.user.id);
 
   const [totalAssigned, overdue, dueSoon, statuses] = await Promise.all([
     models.Task.countDocuments({
-      assignees: session.user.id,
+      assignees: uid,
       isArchived: false,
     }),
     models.Task.countDocuments({
-      assignees: session.user.id,
+      assignees: uid,
       dueDate: { $lt: now },
+      completedAt: null,
       isArchived: false,
     }),
     models.Task.find({
-      assignees: session.user.id,
+      assignees: uid,
       dueDate: { $gte: now, $lte: nextWeek },
+      completedAt: null,
       isArchived: false,
     })
       .populate("status", "name slug color")
@@ -29,7 +33,7 @@ export const GET = withPermission("dashboard:staff", async (req, ctx, session, m
   const tasksByStatus = await models.Task.aggregate([
     {
       $match: {
-        assignees: { $in: [session.user.id] },
+        assignees: { $in: [uid] },
         isArchived: false,
       },
     },

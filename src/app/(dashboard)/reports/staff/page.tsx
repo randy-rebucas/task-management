@@ -41,11 +41,11 @@ export default function StaffWorkloadReportPage() {
 
   async function handleExport() {
     try {
-      const exportParams = new URLSearchParams();
-      exportParams.set("type", "staff-workload");
-      if (department) exportParams.set("department", department);
-
-      const res = await fetch(`/api/reports/export?${exportParams}`);
+      const res = await fetch("/api/reports/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "csv" }),
+      });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

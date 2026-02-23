@@ -3,7 +3,7 @@
 import useSWR from "swr";
 import Link from "next/link";
 import { StatCard } from "./stat-card";
-import { Users, CheckSquare, AlertTriangle, Activity, TrendingUp, DollarSign, LineChart } from "lucide-react";
+import { Users, CheckSquare, AlertTriangle, Activity, LineChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
@@ -64,9 +64,9 @@ export function AdminDashboard() {
           icon={AlertTriangle}
         />
         <StatCard
-          title="Task Priorities"
-          value={data.tasksByPriority?.length || 0}
-          description="Active priority levels"
+          title="Urgent Tasks"
+          value={data.tasksByPriority?.find((p: { _id: string }) => p._id === "urgent")?.count ?? 0}
+          description="priority: urgent"
           icon={Activity}
         />
       </div>
@@ -109,20 +109,26 @@ export function AdminDashboard() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={data.taskStatusBreakdown}
+                  data={(data.taskStatusBreakdown ?? []).map(
+                    (e: { status: { name: string; color: string }; count: number }) => ({
+                      name: e.status?.name ?? "Unknown",
+                      color: e.status?.color ?? "#8884d8",
+                      count: e.count,
+                    })
+                  )}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
                   outerRadius={100}
                   dataKey="count"
-                  nameKey="status.name"
-                  label={(props) => props.payload?.status?.name ?? ""}
+                  nameKey="name"
+                  label={(props) => props.name ?? ""}
                 >
-                  {data.taskStatusBreakdown?.map(
+                  {(data.taskStatusBreakdown ?? []).map(
                     (entry: { status: { color: string } }, index: number) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={entry.status.color || "#8884d8"}
+                        fill={entry.status?.color || "#8884d8"}
                       />
                     )
                   )}

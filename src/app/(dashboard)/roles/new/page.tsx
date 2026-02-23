@@ -77,9 +77,9 @@ export default function NewRolePage() {
 
   const grouped: Record<string, { key: string; label: string; description?: string }[]> =
     permissions?.reduce(
-      (acc: Record<string, { key: string; label: string; description?: string }[]>, p: { key: string; label: string; group: string; description?: string }) => {
+      (acc: Record<string, { key: string; label: string; description?: string }[]>, p: { _id: string; action: string; resource: string; group: string; description?: string }) => {
         if (!acc[p.group]) acc[p.group] = [];
-        acc[p.group].push({ key: p.key, label: p.label, description: p.description });
+        acc[p.group].push({ key: String(p._id), label: `${p.resource}:${p.action}`, description: p.description });
         return acc;
       },
       {} as Record<string, { key: string; label: string; description?: string }[]>

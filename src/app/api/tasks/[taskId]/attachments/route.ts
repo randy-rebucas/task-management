@@ -1,8 +1,6 @@
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { FILE_UPLOAD } from "@/config/constants";
+import { uploadFile } from "@/lib/storage";
 
 export const GET = withPermission("tasks:view", async (req, ctx, _session, models) => {
   const { taskId } = await ctx.params;
@@ -35,20 +33,14 @@ export const POST = withPermission("tasks:update", async (req, ctx, session, mod
     return apiError("File type not allowed");
   }
 
-  const ext = path.extname(file.name);
-  const fileName = `${uuidv4()}${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", taskId);
-  await mkdir(uploadDir, { recursive: true });
-  const filePath = path.join(uploadDir, fileName);
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buffer);
+  const { fileUrl } = await uploadFile(taskId, file.name, buffer);
 
   const attachment = await models.TaskAttachment.create({
     task: taskId,
     uploadedBy: session.user.id,
     fileName: file.name,
-    fileUrl: `/uploads/${taskId}/${fileName}`,
+    fileUrl,
     fileSize: file.size,
     mimeType: file.type,
     attachmentType,

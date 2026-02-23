@@ -6,6 +6,8 @@ export const GET = withPermission("reports:view", async (req, _ctx, _session, mo
   const match: Record<string, unknown> = { isArchived: false };
   if (department) match.department = department;
 
+  const now = new Date();
+
   const workload = await models.Task.aggregate([
     { $match: match },
     { $unwind: "$assignees" },
@@ -13,16 +15,16 @@ export const GET = withPermission("reports:view", async (req, _ctx, _session, mo
       $group: {
         _id: "$assignees",
         totalTasks: { $sum: 1 },
-        completedTasks: {
+        completed: {
           $sum: { $cond: [{ $ne: ["$completedAt", null] }, 1, 0] },
         },
-        overdueTasks: {
+        overdue: {
           $sum: {
             $cond: [
               {
                 $and: [
                   { $ne: ["$dueDate", null] },
-                  { $lt: ["$dueDate", new Date()] },
+                  { $lt: ["$dueDate", now] },
                   { $eq: ["$completedAt", null] },
                 ],
               },
@@ -31,7 +33,21 @@ export const GET = withPermission("reports:view", async (req, _ctx, _session, mo
             ],
           },
         },
-        totalHoursLogged: { $sum: "$actualHours" },
+        inProgress: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$completedAt", null] },
+                  { $or: [{ $eq: ["$dueDate", null] }, { $gte: ["$dueDate", now] }] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        hoursLogged: { $sum: "$actualHours" },
       },
     },
     {
@@ -47,21 +63,18 @@ export const GET = withPermission("reports:view", async (req, _ctx, _session, mo
       $project: {
         _id: 0,
         userId: "$_id",
-        name: { $concat: ["$user.firstName", " ", "$user.lastName"] },
+        firstName: "$user.firstName",
+        lastName: "$user.lastName",
         email: "$user.email",
         totalTasks: 1,
-        completedTasks: 1,
-        overdueTasks: 1,
-        totalHoursLogged: 1,
+        completed: 1,
+        overdue: 1,
+        inProgress: 1,
+        hoursLogged: 1,
         completionRate: {
           $cond: [
             { $gt: ["$totalTasks", 0] },
-            {
-              $multiply: [
-                { $divide: ["$completedTasks", "$totalTasks"] },
-                100,
-              ],
-            },
+            { $multiply: [{ $divide: ["$completed", "$totalTasks"] }, 100] },
             0,
           ],
         },
@@ -70,5 +83,10 @@ export const GET = withPermission("reports:view", async (req, _ctx, _session, mo
     { $sort: { totalTasks: -1 } },
   ]);
 
-  return apiSuccess(workload);
+  const totalHours = workload.reduce((sum: number, m: any) => sum + (m.hoursLogged || 0), 0);
+  const avgTasks = workload.length
+    ? workload.reduce((sum: number, m: any) => sum + m.totalTasks, 0) / workload.length
+    : 0;
+
+  return apiSuccess({ staff: workload, avgTasks, totalHours });
 });

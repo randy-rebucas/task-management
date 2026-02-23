@@ -189,12 +189,11 @@ export default function FieldMonitoringPage() {
                   <CardContent className="pt-4">
                     <p className="text-xs text-muted-foreground">Avg Duration</p>
                     <p className="text-2xl font-bold">
-                      {formatDuration(
-                        sessionsData.data
-                          ?.filter((s: any) => s.duration)
-                          .reduce((sum: number, s: any) => sum + (s.duration || 0), 0) /
-                          Math.max(sessionsData.data?.filter((s: any) => s.duration).length || 1, 1)
-                      )}
+                      {(() => {
+                        const withDuration = sessionsData.data?.filter((s: any) => s.duration) ?? [];
+                        const total = withDuration.reduce((sum: number, s: any) => sum + (s.duration || 0), 0);
+                        return formatDuration(withDuration.length > 0 ? total / withDuration.length : 0);
+                      })()}
                     </p>
                   </CardContent>
                 </Card>

@@ -8,14 +8,19 @@ import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
 import Link from "next/link";
 import { format } from "date-fns";
+import { usePermissions } from "@/features/auth/use-permissions";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function StaffDashboard() {
   const { data, isLoading } = useSWR("/api/dashboard/staff", fetcher);
+  const { can } = usePermissions();
+  const canViewPerformance = can("performance:view");
   const now = new Date();
   const { data: perfData } = useSWR(
-    `/api/performance/summary?month=${now.getMonth() + 1}&year=${now.getFullYear()}`,
+    canViewPerformance
+      ? `/api/performance/summary?month=${now.getMonth() + 1}&year=${now.getFullYear()}`
+      : null,
     fetcher
   );
 
@@ -98,7 +103,8 @@ export function StaffDashboard() {
         </CardContent>
       </Card>
 
-      {/* Performance snapshot */}
+      {/* Performance snapshot — only for users with performance:view */}
+      {canViewPerformance && (
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -140,6 +146,7 @@ export function StaffDashboard() {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

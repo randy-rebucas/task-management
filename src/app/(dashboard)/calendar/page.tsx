@@ -16,7 +16,7 @@ import {
   subMonths, subWeeks, subDays,
   format, parseISO, differenceInDays, isToday, isPast,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw, Filter } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, RefreshCw, Filter, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -26,13 +26,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { MonthView } from "@/components/calendar/month-view";
 import { WeekView } from "@/components/calendar/week-view";
 import { DayView } from "@/components/calendar/day-view";
 import { EventDetailSheet } from "@/components/calendar/event-detail-sheet";
-import type { CalendarTask } from "@/components/calendar/calendar-event";
+import { usePermissions } from "@/features/auth/use-permissions";
+import { toast } from "sonner";
+import type { CalendarTask } from "@/types/calendar";
 import Link from "next/link";
 
 type View = "month" | "week" | "day";
@@ -73,24 +85,39 @@ const TASK_TYPES = [
 ];
 
 export default function CalendarPage() {
+  const { can } = usePermissions();
+  const canUpdate = can("tasks:update");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>("month");
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [confirmOverdueOpen, setConfirmOverdueOpen] = useState(false);
 
   const { start, end } = getDateRange(currentDate, view);
-  const swrKey = `/api/tasks?dueDateFrom=${format(start, "yyyy-MM-dd")}&dueDateTo=${format(end, "yyyy-MM-dd")}&limit=200`;
+  // AUDIT-05: pass active filters to the API so the server filters results
+  const apiParams = new URLSearchParams({
+    dueDateFrom: format(start, "yyyy-MM-dd"),
+    dueDateTo: format(end, "yyyy-MM-dd"),
+    limit: "500",
+  });
+  if (filterPriority !== "all") apiParams.set("priority", filterPriority);
+  if (filterType !== "all") apiParams.set("taskType", filterType);
+  const swrKey = `/api/tasks?${apiParams}`;
 
   const { data, mutate } = useSWR(swrKey, fetcher);
   const rawTasks: CalendarTask[] = data?.data ?? [];
+  const totalFetched: number = data?.total ?? 0;
 
-  // Apply filters
+  // Keep client-side filter as a fast local pass for immediate UI response
   const tasks = rawTasks.filter((t) => {
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
     if (filterType !== "all" && t.taskType !== filterType) return false;
     return true;
   });
+
+  // AUDIT-07: count tasks in range without a dueDate (not returned by API; informational)
+  const tasksWithoutDueDate = rawTasks.filter((t) => !t.dueDate).length;
 
   const activeFilters = (filterPriority !== "all" ? 1 : 0) + (filterType !== "all" ? 1 : 0);
 
@@ -115,6 +142,7 @@ export default function CalendarPage() {
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      if (!canUpdate) return;
       const { active, over } = event;
       if (!over || active.id === over.id) return;
 
@@ -128,9 +156,8 @@ export default function CalendarPage() {
       const delta = differenceInDays(newDue, oldDue);
 
       const body: Record<string, string> = { dueDate: newDateStr };
-      const taskWithStart = task as CalendarTask & { startDate?: string };
-      if (taskWithStart.startDate) {
-        const newStart = addDays(parseISO(taskWithStart.startDate), delta);
+      if (task.startDate) {
+        const newStart = addDays(parseISO(task.startDate), delta);
         body.startDate = format(newStart, "yyyy-MM-dd");
       }
 
@@ -148,15 +175,26 @@ export default function CalendarPage() {
         { revalidate: false }
       );
 
-      await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      try {
+        const res = await fetch(`/api/tasks/${taskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error ?? `Server error ${res.status}`);
+        }
+      } catch (err: any) {
+        // Revert optimistic update
+        mutate();
+        toast.error(`Failed to reschedule: ${err.message}`);
+        return;
+      }
 
       mutate();
     },
-    [rawTasks, mutate]
+    [rawTasks, mutate, canUpdate]
   );
 
   const overdueTasks = rawTasks.filter((t) => {
@@ -167,7 +205,7 @@ export default function CalendarPage() {
 
   const handleRescheduleOverdue = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       overdueTasks.map((t) =>
         fetch(`/api/tasks/${t._id}`, {
           method: "PUT",
@@ -177,6 +215,13 @@ export default function CalendarPage() {
       )
     );
     mutate();
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.length - succeeded;
+    if (failed === 0) {
+      toast.success(`${succeeded} overdue task${succeeded !== 1 ? "s" : ""} rescheduled to today.`);
+    } else {
+      toast.warning(`${succeeded} rescheduled, ${failed} failed. Check permissions.`);
+    }
   };
 
   return (
@@ -230,12 +275,12 @@ export default function CalendarPage() {
           </Badge>
         )}
 
-        {overdueTasks.length > 0 && (
+        {overdueTasks.length > 0 && canUpdate && (
           <Button
             variant="destructive"
             size="sm"
             className="ml-auto flex items-center gap-1.5"
-            onClick={handleRescheduleOverdue}
+            onClick={() => setConfirmOverdueOpen(true)}
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Reschedule {overdueTasks.length} overdue
@@ -284,6 +329,19 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar views */}
+      {/* AUDIT-04: show warning when API total exceeds fetched count */}
+      {totalFetched > rawTasks.length && (
+        <div className="flex items-center gap-2 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
+          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          Showing {rawTasks.length} of {totalFetched} tasks in this range. Narrow the date range or apply filters to see all.
+        </div>
+      )}
+      {/* AUDIT-07: show count of tasks not placed because they have no due date */}
+      {tasksWithoutDueDate > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {tasksWithoutDueDate} task{tasksWithoutDueDate !== 1 ? "s" : ""} not shown — no due date set.
+        </p>
+      )}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         {view === "month" && (
           <MonthView
@@ -291,6 +349,7 @@ export default function CalendarPage() {
             tasks={tasks}
             onSelectTask={setSelectedTask}
             onSelectDay={handleSelectDay}
+            canDrag={canUpdate}
           />
         )}
         {view === "week" && (
@@ -298,6 +357,7 @@ export default function CalendarPage() {
             currentDate={currentDate}
             tasks={tasks}
             onSelectTask={setSelectedTask}
+            canDrag={canUpdate}
           />
         )}
         {view === "day" && (
@@ -305,6 +365,7 @@ export default function CalendarPage() {
             currentDate={currentDate}
             tasks={tasks}
             onSelectTask={setSelectedTask}
+            canDrag={canUpdate}
           />
         )}
       </DndContext>
@@ -314,6 +375,30 @@ export default function CalendarPage() {
         task={selectedTask as Parameters<typeof EventDetailSheet>[0]["task"]}
         onClose={() => setSelectedTask(null)}
       />
+
+      {/* AUDIT-02: Confirmation dialog for bulk overdue reschedule */}
+      <AlertDialog open={confirmOverdueOpen} onOpenChange={setConfirmOverdueOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reschedule {overdueTasks.length} overdue task{overdueTasks.length !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will set the due date of all {overdueTasks.length} overdue task{overdueTasks.length !== 1 ? "s" : ""} to today.
+              This action cannot be undone automatically.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOverdueOpen(false);
+                handleRescheduleOverdue();
+              }}
+            >
+              Reschedule all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,15 +25,23 @@ export function CheckInPanel() {
     fetcher
   );
 
+  const activeSession = sessions?.data?.[0];
+  const isCheckedIn = !!activeSession;
+
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showNotes, setShowNotes] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
-  const activeSession = sessions?.data?.[0];
-  const isCheckedIn = !!activeSession;
+  // Keep elapsed time current while a session is active
+  useEffect(() => {
+    if (!isCheckedIn) return;
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [isCheckedIn]);
 
   const getLocation = useCallback((): Promise<{ lat: number; lng: number }> => {
     return new Promise((resolve, reject) => {
@@ -146,7 +154,6 @@ export function CheckInPanel() {
     }
   }
 
-  const now = new Date();
   const sessionDuration = activeSession
     ? Math.round((now.getTime() - new Date(activeSession.checkIn.time).getTime()) / 60000)
     : 0;

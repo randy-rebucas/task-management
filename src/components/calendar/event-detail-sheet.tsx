@@ -13,19 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { CalendarTask } from "./calendar-event";
-
-interface ExtendedTask extends CalendarTask {
-  startDate?: string;
-  description?: string;
-  taskNumber?: string;
-  lead?: { _id: string; name: string };
-  client?: { _id: string; name: string };
-  deal?: { _id: string; title: string; stage: string };
-}
+import type { ExtendedCalendarTask } from "@/types/calendar";
 
 interface EventDetailSheetProps {
-  task: ExtendedTask | null;
+  task: ExtendedCalendarTask | null;
   onClose: () => void;
 }
 

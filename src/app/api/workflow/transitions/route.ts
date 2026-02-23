@@ -1,6 +1,6 @@
-import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
+import { withPermission, withAuth, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { createTransitionSchema } from "@/features/auth/validators";
-export const GET = withPermission("workflow:configure", async (_req, _ctx, _session, models) => {
+export const GET = withAuth(async (_req, _ctx, _session, models) => {
   const transitions = await models.WorkflowTransition.find({ isActive: true })
     .populate("fromStatus", "name slug color")
     .populate("toStatus", "name slug color")

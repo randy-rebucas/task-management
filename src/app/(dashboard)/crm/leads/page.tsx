@@ -26,6 +26,16 @@ import {
 } from "@/components/ui/table";
 import { useDebounce } from "@/features/auth/use-debounce";
 import { LEAD_SOURCES, LEAD_STATUSES } from "@/config/constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -35,6 +45,7 @@ export default function LeadsPage() {
   const [status, setStatus] = useState("");
   const [source, setSource] = useState("");
   const [page, setPage] = useState(1);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const params = new URLSearchParams({ page: String(page), limit: "20" });
@@ -48,7 +59,6 @@ export default function LeadsPage() {
   const total = data?.total ?? 0;
 
   async function deleteLead(id: string) {
-    if (!confirm("Delete this lead?")) return;
     await fetch(`/api/crm/leads/${id}`, { method: "DELETE" });
     toast.success("Lead deleted");
     mutate();
@@ -156,7 +166,7 @@ export default function LeadsPage() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={(e) => { e.stopPropagation(); deleteLead(lead._id); }}
+                      onClick={(e) => { e.stopPropagation(); setPendingDeleteId(lead._id); }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -180,6 +190,25 @@ export default function LeadsPage() {
           </Button>
         </div>
       )}
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (pendingDeleteId) { deleteLead(pendingDeleteId); setPendingDeleteId(null); } }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

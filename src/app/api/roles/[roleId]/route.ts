@@ -27,7 +27,15 @@ export const PUT = withPermission("roles:update", async (req, ctx, session, mode
     role.slug = slugify(parsed.data.name, { lower: true, strict: true });
   }
   if (parsed.data.description !== undefined) role.description = parsed.data.description;
-  if (parsed.data.permissions) role.permissions = parsed.data.permissions as never[];
+  if (parsed.data.permissions) {
+    const permCount = await models.Permission.countDocuments({
+      _id: { $in: parsed.data.permissions },
+    });
+    if (permCount !== parsed.data.permissions.length) {
+      return apiError("Some permission IDs are invalid");
+    }
+    role.permissions = parsed.data.permissions as never[];
+  }
   if (parsed.data.isActive !== undefined) role.isActive = parsed.data.isActive;
 
   await role.save();

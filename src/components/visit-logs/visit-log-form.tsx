@@ -34,7 +34,10 @@ export function VisitLogForm() {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Failed to submit visit log");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to submit visit log");
+      }
       toast.success("Visit log submitted");
       router.push("/visit-logs");
     } catch (err) {

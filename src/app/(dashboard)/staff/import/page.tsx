@@ -18,9 +18,9 @@ import { Upload, FileText, CheckCircle2, XCircle, Download } from "lucide-react"
 import { toast } from "sonner";
 
 interface ImportResult {
-  success: number;
-  failed: number;
-  errors: { row: number; email: string; error: string }[];
+  created: number;
+  skipped: number;
+  errors: string[];
 }
 
 export default function StaffImportPage() {
@@ -76,11 +76,11 @@ export default function StaffImportPage() {
       const data: ImportResult = await res.json();
       setResult(data);
 
-      if (data.success > 0) {
-        toast.success(`Successfully imported ${data.success} staff member(s)`);
+      if (data.created > 0) {
+        toast.success(`Successfully imported ${data.created} staff member(s)`);
       }
-      if (data.failed > 0) {
-        toast.error(`${data.failed} row(s) failed to import`);
+      if (data.skipped > 0) {
+        toast.error(`${data.skipped} row(s) failed to import`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Import failed");
@@ -221,19 +221,19 @@ export default function StaffImportPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-4">
-                {result.success > 0 && (
+                {result.created > 0 && (
                   <Alert>
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     <AlertDescription>
-                      {result.success} staff member(s) imported successfully
+                      {result.created} staff member(s) imported successfully
                     </AlertDescription>
                   </Alert>
                 )}
-                {result.failed > 0 && (
+                {result.skipped > 0 && (
                   <Alert variant="destructive">
                     <XCircle className="h-4 w-4" />
                     <AlertDescription>
-                      {result.failed} row(s) failed to import
+                      {result.skipped} row(s) failed to import
                     </AlertDescription>
                   </Alert>
                 )}
@@ -246,17 +246,15 @@ export default function StaffImportPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Row</TableHead>
-                          <TableHead>Email</TableHead>
+                          <TableHead>#</TableHead>
                           <TableHead>Error</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {result.errors.map((err, i) => (
                           <TableRow key={i}>
-                            <TableCell>{err.row}</TableCell>
-                            <TableCell>{err.email}</TableCell>
-                            <TableCell className="text-destructive">{err.error}</TableCell>
+                            <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                            <TableCell className="text-destructive">{err}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

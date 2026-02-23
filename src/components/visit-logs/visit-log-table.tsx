@@ -10,16 +10,22 @@ import Link from "next/link";
 import Image from "next/image";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePermissions } from "@/features/auth/use-permissions";
 
 export function VisitLogTable() {
     const router = useRouter();
+    const { can } = usePermissions();
+    const isAdmin = can("visit_logs:view_all");
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    const [userFilter, setUserFilter] = useState("");
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("limit", "20");
     if (search) params.set("search", search);
+    if (isAdmin && userFilter) params.set("userId", userFilter);
     const { data, isLoading } = useSWR(`/api/visit-logs?${params}`, (url) => fetch(url).then(r => r.json()));
+    const { data: usersData } = useSWR(isAdmin ? "/api/users?limit=100" : null, (url) => fetch(url).then(r => r.json()));
 
     return (
         <div>
@@ -32,6 +38,20 @@ export function VisitLogTable() {
                         className="pl-3"
                     />
                 </div>
+                {isAdmin && (
+                    <select
+                        className="border rounded px-3 py-1.5 text-sm"
+                        value={userFilter}
+                        onChange={e => { setUserFilter(e.target.value); setPage(1); }}
+                    >
+                        <option value="">All Staff</option>
+                        {usersData?.data?.map((u: any) => (
+                            <option key={u._id} value={u._id}>
+                                {u.firstName} {u.lastName}
+                            </option>
+                        ))}
+                    </select>
+                )}
             </div>
             <div className="rounded-md border">
                 {isLoading ? (
@@ -47,6 +67,7 @@ export function VisitLogTable() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Date</TableHead>
+                                    {isAdmin && <TableHead>Submitted By</TableHead>}
                                     <TableHead>Places Visited</TableHead>
                                     <TableHead>People Met</TableHead>
                                     <TableHead>Purpose</TableHead>
@@ -67,6 +88,11 @@ export function VisitLogTable() {
                                         style={{ cursor: "pointer" }}
                                     >
                                         <TableCell>{format(new Date(log.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
+                                        {isAdmin && (
+                                            <TableCell className="text-sm">
+                                                {log.user ? `${log.user.firstName} ${log.user.lastName}` : "—"}
+                                            </TableCell>
+                                        )}
                                         <TableCell className="max-w-[160px] truncate" title={log.placesVisited}>{log.placesVisited}</TableCell>
                                         <TableCell className="max-w-[120px] truncate" title={log.peopleMet}>{log.peopleMet}</TableCell>
                                         <TableCell className="max-w-[120px] truncate" title={log.purpose}>{log.purpose}</TableCell>

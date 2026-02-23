@@ -3,10 +3,10 @@ import type { IFieldSession } from "@/types";
 // GET /api/field/coverage - all check-in locations for heatmap
 export const GET = withPermission("visit_logs:view_all", async (req, _ctx, _session, models) => {
   const url = new URL(req.url);
-  const days = parseInt(url.searchParams.get("days") || "30", 10);
+  const days = Math.min(Math.max(parseInt(url.searchParams.get("days") || "30", 10) || 30, 1), 90);
 
   const since = new Date();
-  since.setDate(since.getDate() - Math.min(days, 90));
+  since.setDate(since.getDate() - days);
 
   const sessions = await models.FieldSession.find({
     date: { $gte: since },

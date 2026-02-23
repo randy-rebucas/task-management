@@ -83,12 +83,15 @@ function getGreeting() {
 
 export default function FieldHubPage() {
   const { data: session } = useSession();
-  const { data: taskData } = useSWR("/api/tasks/my?limit=5", fetcher);
+  // Fetch enough tasks to compute accurate due-today and overdue counts;
+  // the list preview is sliced to 5 for display.
+  const { data: taskData } = useSWR("/api/tasks/my?limit=100", fetcher);
 
-  const tasks: Task[] = taskData?.data ?? [];
+  const allTasks: Task[] = taskData?.data ?? [];
+  const tasks: Task[] = allTasks.slice(0, 5);
   const today = new Date();
 
-  const dueToday = tasks.filter((t) => {
+  const dueToday = allTasks.filter((t) => {
     if (!t.dueDate) return false;
     const d = new Date(t.dueDate);
     return (
@@ -98,7 +101,7 @@ export default function FieldHubPage() {
     );
   });
 
-  const overdue = tasks.filter((t) => {
+  const overdue = allTasks.filter((t) => {
     if (!t.dueDate) return false;
     return new Date(t.dueDate) < today;
   });

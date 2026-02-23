@@ -308,6 +308,7 @@ export interface IWorkflowStatus {
 
 export interface IWorkflowTransition {
   _id: Types.ObjectId;
+  name?: string;
   fromStatus: Types.ObjectId;
   toStatus: Types.ObjectId;
   allowedRoles: Types.ObjectId[];
@@ -324,12 +325,14 @@ export interface INotification {
   recipient: Types.ObjectId;
   type:
     | "task_assigned" | "task_updated" | "status_changed" | "comment_added"
-    | "deadline_approaching" | "task_overdue" | "approval_needed" | "approval_resolved"
-    | "mention" | "system" | "lead_stagnation" | "field_inactive";
+    | "deadline_approaching" | "task_overdue"
+    | "system" | "lead_stagnation" | "field_inactive";
   title: string;
   message: string;
   relatedTask?: Types.ObjectId;
   relatedUser?: Types.ObjectId;
+  relatedResource?: Types.ObjectId;
+  link?: string;
   isRead: boolean;
   readAt?: Date;
   emailSent: boolean;

@@ -46,7 +46,7 @@ async function fetchKPIs(userId: string, start: Date, end: Date, finalStatusIds:
 
   const [assigned, completedInPeriod, overdue, newLeads, totalLeads, closedLeads, visits, visitLogCount] =
     await Promise.all([
-      models.Task.countDocuments({ assignees: uid, isArchived: false }),
+      models.Task.countDocuments({ assignees: uid, createdAt: { $gte: start, $lte: end }, isArchived: false }),
       models.Task.countDocuments({ assignees: uid, status: { $in: finalStatusIds }, updatedAt: { $gte: start, $lte: end }, isArchived: false }),
       models.Task.countDocuments({ assignees: uid, dueDate: { $lt: now }, status: { $nin: finalStatusIds }, isArchived: false }),
       models.Task.countDocuments({ assignees: uid, taskType: "lead_follow_up", createdAt: { $gte: start, $lte: end } }),

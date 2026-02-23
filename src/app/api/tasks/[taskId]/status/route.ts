@@ -1,9 +1,9 @@
 import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
-
 import { statusTransitionSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
 import { triggerNotification } from "@/features/users/notification-service";
+import { getNextTaskNumber } from "@/lib/task-counter";
 export const PATCH = withPermission("tasks:update", async (req, ctx, session, models) => {
   const { taskId } = await ctx.params;
   const body = await req.json();
@@ -74,9 +74,9 @@ export const PATCH = withPermission("tasks:update", async (req, ctx, session, mo
   if (toStatus.isFinal && task.taskType === "client_meeting" && (followUpEnabled ? Boolean(followUpEnabled.value) : true)) {
     const defaultStatus = await models.WorkflowStatus.findOne({ isDefault: true, isActive: true }) as any;
     if (defaultStatus) {
-      const taskCount = await models.Task.countDocuments();
+      const nextNumber = await getNextTaskNumber(models);
       const followUp = await models.Task.create({
-        taskNumber: `TASK-${String(taskCount + 1).padStart(4, "0")}`,
+        taskNumber: nextNumber,
         title: `Follow-up: ${task.title}`,
         description: `Auto-generated follow-up from completed meeting: ${task.taskNumber}`,
         taskType: "lead_follow_up",

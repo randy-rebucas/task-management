@@ -1,5 +1,7 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
+import type { Map as LeafletMap } from "leaflet";
 import { useEffect, useRef } from "react";
 
 interface CoveragePoint {
@@ -16,26 +18,18 @@ interface CoverageMapProps {
 
 export function CoverageMap({ points, height = 500 }: CoverageMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
 
     let aborted = false;
-    let localMap: any = null;
+    let localMap: LeafletMap | null = null;
 
     (async () => {
       const L = (await import("leaflet")).default;
 
       if (aborted || !containerRef.current) return;
-
-      if (!document.getElementById("leaflet-css")) {
-        const link = document.createElement("link");
-        link.id = "leaflet-css";
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        document.head.appendChild(link);
-      }
 
       const map = L.map(containerRef.current!);
       localMap = map;

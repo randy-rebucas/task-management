@@ -8,6 +8,11 @@ import crypto from "crypto";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 
+async function cleanupFiles(paths: string[]) {
+  await Promise.all(
+    paths.map((p) => fs.unlink(path.join(process.cwd(), "public", p)).catch(() => {}))
+  );
+}
 
 export const POST = withPermission("visit_logs:create", async (req, ctx, session, models) => {
   const contentType = req.headers.get("content-type") || "";
@@ -23,6 +28,7 @@ export const POST = withPermission("visit_logs:create", async (req, ctx, session
     for (const file of files) {
       if (typeof file === "object" && "arrayBuffer" in file) {
         if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+          await cleanupFiles(savedFiles);
           return apiError(`Invalid file type: ${file.type}. Only images are allowed.`);
         }
         const ext = file.type.split("/")[1];
@@ -37,6 +43,7 @@ export const POST = withPermission("visit_logs:create", async (req, ctx, session
     }
     const parsed = createVisitLogSchema.safeParse({ ...fields, photos: savedFiles });
     if (!parsed.success) {
+      await cleanupFiles(savedFiles);
       return apiError(parsed.error.issues[0].message);
     }
     const visitLog = await models.VisitLog.create({ ...parsed.data, user: session.user.id });
@@ -77,7 +84,12 @@ export const GET = withPermission("visit_logs:view", async (req, ctx, session, m
   }
 
   const [data, total] = await Promise.all([
-    models.VisitLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    models.VisitLog.find(filter)
+      .populate("user", "firstName lastName")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     models.VisitLog.countDocuments(filter),
   ]);
 

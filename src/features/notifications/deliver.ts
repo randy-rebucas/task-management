@@ -10,6 +10,8 @@ export async function deliverNotification(params: {
   title: string;
   message: string;
   relatedTask?: string;
+  relatedResource?: string;
+  link?: string;
   channels: ("in_app" | "email")[];
 }): Promise<void> {
   await dbConnect();
@@ -24,6 +26,8 @@ export async function deliverNotification(params: {
         title: params.title,
         message: params.message,
         ...(params.relatedTask ? { relatedTask: params.relatedTask } : {}),
+        ...(params.relatedResource ? { relatedResource: params.relatedResource } : {}),
+        ...(params.link ? { link: params.link } : {}),
       });
       notifId = String(notif._id);
     } catch (err) {

@@ -21,6 +21,7 @@ const CrmInteractionSchema = new Schema<ICrmInteraction>(
 
 CrmInteractionSchema.index({ lead: 1, date: -1 });
 CrmInteractionSchema.index({ client: 1, date: -1 });
+CrmInteractionSchema.index({ lead: 1, type: 1 }); // visit-to-close analytics
 
 const CrmInteraction: Model<ICrmInteraction> =
   mongoose.models.CrmInteraction ||

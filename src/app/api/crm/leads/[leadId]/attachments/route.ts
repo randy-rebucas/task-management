@@ -10,6 +10,8 @@ export const GET = withPermission("crm:view", async (_req, ctx, _session, models
 
 export const POST = withPermission("crm:update", async (req, ctx, session, models) => {
   const { leadId } = await ctx.params;
+  const lead = await models.Lead.exists({ _id: leadId });
+  if (!lead) return apiError("Lead not found", 404);
   const body = await req.json();
   const parsed = createCrmAttachmentSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.issues[0].message);

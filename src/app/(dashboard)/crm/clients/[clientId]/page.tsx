@@ -25,6 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -74,6 +84,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   const [savingFollowUp, setSavingFollowUp] = useState(false);
 
   const [uploading, setUploading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [pendingDeleteAttachmentId, setPendingDeleteAttachmentId] = useState<string | null>(null);
 
   function startEdit() {
     if (!client) return;
@@ -128,7 +140,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   }
 
   async function deleteClient() {
-    if (!confirm("Delete this client permanently?")) return;
     await fetch(`/api/crm/clients/${clientId}`, { method: "DELETE" });
     toast.success("Client deleted");
     router.push("/crm/clients");
@@ -183,7 +194,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   }
 
   async function deleteAttachment(id: string) {
-    if (!confirm("Delete this attachment?")) return;
     await fetch(`/api/crm/clients/${clientId}/attachments?id=${id}`, { method: "DELETE" });
     toast.success("Attachment deleted");
     mutateAttachments();
@@ -214,7 +224,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
               <Button variant="outline" size="sm" onClick={startEdit}>
                 <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
-              <Button variant="destructive" size="sm" onClick={deleteClient}>
+              <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
               </Button>
             </>
@@ -507,7 +517,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                         </Button>
                       </a>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => deleteAttachment(att._id)}>
+                        onClick={() => setPendingDeleteAttachmentId(att._id)}>
                         <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -578,6 +588,46 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this client? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={deleteClient}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingDeleteAttachmentId} onOpenChange={(open) => { if (!open) setPendingDeleteAttachmentId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Attachment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this attachment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (pendingDeleteAttachmentId) { deleteAttachment(pendingDeleteAttachmentId); setPendingDeleteAttachmentId(null); } }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

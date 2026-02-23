@@ -1,3 +1,4 @@
+import { getTenantPermissions, checkPermission } from "@/features/auth/rbac";
 import { withPermission, apiSuccess, apiError } from "@/features/auth/api-helpers";
 import { assignTaskSchema } from "@/features/auth/validators";
 import { logActivity } from "@/features/users/activity-logger";
@@ -12,6 +13,14 @@ export const PATCH = withPermission("tasks:assign", async (req, ctx, session, mo
   if (!existing) return apiError("Task not found", 404);
 
   const previousAssignees = existing.assignees.map((a: any) => a.toString());
+
+  // If there are already assignees this is a reassignment — require tasks:reassign
+  if (previousAssignees.length > 0) {
+    const perms = await getTenantPermissions(session.user.roles, models);
+    if (!checkPermission(perms, "tasks:reassign")) {
+      return apiError("You need 'tasks:reassign' permission to change existing assignees.", 403);
+    }
+  }
 
   const task = await models.Task.findByIdAndUpdate(
     taskId,

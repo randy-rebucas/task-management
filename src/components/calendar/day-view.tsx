@@ -2,7 +2,8 @@
 
 import { format, isSameDay, parseISO, isWithinInterval } from "date-fns";
 import { DroppableDay } from "./droppable-day";
-import { CalendarEvent, type CalendarTask } from "./calendar-event";
+import { CalendarEvent } from "./calendar-event";
+import type { CalendarTask } from "@/types/calendar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -10,6 +11,7 @@ interface DayViewProps {
   currentDate: Date;
   tasks: CalendarTask[];
   onSelectTask: (task: CalendarTask) => void;
+  canDrag?: boolean;
 }
 
 const PRIORITY_ORDER = ["urgent", "high", "medium", "low"] as const;
@@ -31,9 +33,7 @@ const PRIORITY_BADGE: Record<string, string> = {
 function getTasksForDay(tasks: CalendarTask[], date: Date): CalendarTask[] {
   return tasks.filter((task) => {
     const due = task.dueDate ? parseISO(task.dueDate) : null;
-    const start = (task as { startDate?: string }).startDate
-      ? parseISO((task as { startDate?: string }).startDate!)
-      : null;
+    const start = task.startDate ? parseISO(task.startDate) : null;
     if (!due) return false;
     if (isSameDay(due, date)) return true;
     if (start && isWithinInterval(date, { start, end: due })) return true;
@@ -41,7 +41,7 @@ function getTasksForDay(tasks: CalendarTask[], date: Date): CalendarTask[] {
   });
 }
 
-export function DayView({ currentDate, tasks, onSelectTask }: DayViewProps) {
+export function DayView({ currentDate, tasks, onSelectTask, canDrag = true }: DayViewProps) {
   const dateKey = format(currentDate, "yyyy-MM-dd");
   const dayTasks = getTasksForDay(tasks, currentDate);
 
@@ -91,7 +91,7 @@ export function DayView({ currentDate, tasks, onSelectTask }: DayViewProps) {
               </div>
               <div className="space-y-2">
                 {grouped[priority].map((task) => (
-                  <CalendarEvent key={task._id} task={task} onSelect={onSelectTask} />
+                  <CalendarEvent key={task._id} task={task} onSelect={onSelectTask} canDrag={canDrag} />
                 ))}
               </div>
             </div>

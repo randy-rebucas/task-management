@@ -15,13 +15,15 @@ import {
 } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DroppableDay } from "./droppable-day";
-import { CalendarEvent, type CalendarTask } from "./calendar-event";
+import { CalendarEvent } from "./calendar-event";
+import type { CalendarTask } from "@/types/calendar";
 
 interface MonthViewProps {
   currentDate: Date;
   tasks: CalendarTask[];
   onSelectTask: (task: CalendarTask) => void;
   onSelectDay: (date: Date) => void;
+  canDrag?: boolean;
 }
 
 const DAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -29,10 +31,7 @@ const DAY_HEADERS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function getTasksForDay(tasks: CalendarTask[], date: Date): CalendarTask[] {
   return tasks.filter((task) => {
     const due = task.dueDate ? parseISO(task.dueDate) : null;
-    const start = (task as { startDate?: string }).startDate
-      ? parseISO((task as { startDate?: string }).startDate!)
-      : null;
-
+    const start = task.startDate ? parseISO(task.startDate) : null;
     if (!due) return false;
     if (isSameDay(due, date)) return true;
     if (start && due && isWithinInterval(date, { start, end: due })) return true;
@@ -40,7 +39,7 @@ function getTasksForDay(tasks: CalendarTask[], date: Date): CalendarTask[] {
   });
 }
 
-export function MonthView({ currentDate, tasks, onSelectTask, onSelectDay }: MonthViewProps) {
+export function MonthView({ currentDate, tasks, onSelectTask, onSelectDay, canDrag = true }: MonthViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart);
@@ -105,6 +104,7 @@ export function MonthView({ currentDate, tasks, onSelectTask, onSelectDay }: Mon
                     task={task}
                     onSelect={onSelectTask}
                     compact
+                    canDrag={canDrag}
                   />
                 ))}
                 {overflow > 0 && (

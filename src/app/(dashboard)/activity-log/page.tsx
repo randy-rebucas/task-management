@@ -44,7 +44,7 @@ export default function ActivityLogPage() {
   params.set("limit", "30");
   if (debouncedSearch) params.set("search", debouncedSearch);
   if (action) params.set("action", action);
-  if (entity) params.set("entity", entity);
+  if (entity) params.set("resource", entity);
 
   const { data, isLoading } = useSWR(`/api/activity-logs?${params}`, fetcher);
 
@@ -106,25 +106,24 @@ export default function ActivityLogPage() {
           {data?.data?.map(
             (log: {
               _id: string;
-              user: { _id: string; firstName: string; lastName: string };
+              actor: { _id: string; firstName: string; lastName: string };
               action: string;
-              entity: string;
-              entityId?: string;
-              description: string;
-              metadata?: Record<string, unknown>;
+              resource: string;
+              resourceId?: string;
+              details?: Record<string, unknown>;
               createdAt: string;
             }) => (
               <Card key={log._id}>
                 <CardContent className="flex items-start gap-4 py-3">
                   <Avatar className="h-8 w-8 mt-0.5">
                     <AvatarFallback className="text-[10px]">
-                      {log.user?.firstName?.[0]}{log.user?.lastName?.[0]}
+                      {log.actor?.firstName?.[0]}{log.actor?.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium">
-                        {log.user?.firstName} {log.user?.lastName}
+                        {log.actor?.firstName} {log.actor?.lastName}
                       </span>
                       <Badge
                         variant="secondary"
@@ -133,10 +132,17 @@ export default function ActivityLogPage() {
                         {log.action}
                       </Badge>
                       <Badge variant="outline" className="text-xs capitalize">
-                        {log.entity}
+                        {log.resource}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{log.description}</p>
+                    {log.details && Object.keys(log.details).length > 0 && (
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {Object.entries(log.details)
+                          .slice(0, 3)
+                          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
+                          .join(" · ")}
+                      </p>
+                    )}
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(log.createdAt), "MMM d, yyyy h:mm a")}
                     </span>

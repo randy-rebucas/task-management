@@ -25,6 +25,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDebounce } from "@/features/auth/use-debounce";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -33,6 +43,7 @@ export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const params = new URLSearchParams({ page: String(page), limit: "20" });
@@ -45,7 +56,6 @@ export default function ClientsPage() {
   const total = data?.total ?? 0;
 
   async function deleteClient(id: string) {
-    if (!confirm("Delete this client?")) return;
     await fetch(`/api/crm/clients/${id}`, { method: "DELETE" });
     toast.success("Client deleted");
     mutate();
@@ -133,7 +143,7 @@ export default function ClientsPage() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); deleteClient(client._id); }}
+                    onClick={(e) => { e.stopPropagation(); setPendingDeleteId(client._id); }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -151,6 +161,25 @@ export default function ClientsPage() {
           <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Next</Button>
         </div>
       )}
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this client? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (pendingDeleteId) { deleteClient(pendingDeleteId); setPendingDeleteId(null); } }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

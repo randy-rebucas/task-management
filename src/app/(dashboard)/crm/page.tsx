@@ -24,8 +24,10 @@ export default function CRMPage() {
   const totalDeals = stages.reduce((s: number, st: any) => s + st.count, 0);
   const totalValue = stages.reduce((s: number, st: any) => s + st.totalValue, 0);
   const wonDeals = stages.find((s: any) => s.stage === "closed_won");
+  const closedLost = stages.find((s: any) => s.stage === "closed_lost");
+  const closedTotal = (wonDeals?.count ?? 0) + (closedLost?.count ?? 0);
   const winRate =
-    totalDeals > 0 ? Math.round(((wonDeals?.count ?? 0) / totalDeals) * 100) : 0;
+    closedTotal > 0 ? Math.round(((wonDeals?.count ?? 0) / closedTotal) * 100) : 0;
 
   return (
     <div className="p-6 space-y-6">

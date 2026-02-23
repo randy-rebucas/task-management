@@ -3,20 +3,20 @@
 import { startOfWeek, addDays, format, isToday, isSameDay, parseISO, isWithinInterval } from "date-fns";
 import { cn } from "@/lib/utils";
 import { DroppableDay } from "./droppable-day";
-import { CalendarEvent, type CalendarTask } from "./calendar-event";
+import { CalendarEvent } from "./calendar-event";
+import type { CalendarTask } from "@/types/calendar";
 
 interface WeekViewProps {
   currentDate: Date;
   tasks: CalendarTask[];
   onSelectTask: (task: CalendarTask) => void;
+  canDrag?: boolean;
 }
 
 function getTasksForDay(tasks: CalendarTask[], date: Date): CalendarTask[] {
   return tasks.filter((task) => {
     const due = task.dueDate ? parseISO(task.dueDate) : null;
-    const start = (task as { startDate?: string }).startDate
-      ? parseISO((task as { startDate?: string }).startDate!)
-      : null;
+    const start = task.startDate ? parseISO(task.startDate) : null;
     if (!due) return false;
     if (isSameDay(due, date)) return true;
     if (start && isWithinInterval(date, { start, end: due })) return true;
@@ -25,11 +25,10 @@ function getTasksForDay(tasks: CalendarTask[], date: Date): CalendarTask[] {
 }
 
 function isMultiDay(task: CalendarTask): boolean {
-  const start = (task as { startDate?: string }).startDate;
-  return !!start && !!task.dueDate && start !== task.dueDate;
+  return !!task.startDate && !!task.dueDate && task.startDate !== task.dueDate;
 }
 
-export function WeekView({ currentDate, tasks, onSelectTask }: WeekViewProps) {
+export function WeekView({ currentDate, tasks, onSelectTask, canDrag = true }: WeekViewProps) {
   const weekStart = startOfWeek(currentDate);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -83,7 +82,7 @@ export function WeekView({ currentDate, tasks, onSelectTask }: WeekViewProps) {
               key={dateKey}
               id={dateKey}
               className={cn(
-                "min-h-[400px] p-1.5 space-y-1",
+                "min-h-[120px] max-h-[500px] overflow-y-auto p-1.5 space-y-1",
                 isToday(day) && "bg-primary/5"
               )}
             >
@@ -95,7 +94,7 @@ export function WeekView({ currentDate, tasks, onSelectTask }: WeekViewProps) {
                     {isMultiDay(task) && (
                       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-400 rounded-full" />
                     )}
-                    <CalendarEvent task={task} onSelect={onSelectTask} />
+                    <CalendarEvent task={task} onSelect={onSelectTask} canDrag={canDrag} />
                   </div>
                 ))
               )}
